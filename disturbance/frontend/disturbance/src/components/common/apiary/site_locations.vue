@@ -64,6 +64,9 @@
 
         <div id="map-wrapper" class="row col-sm-12">
             <div id="map" class="map">
+                <div :id="search_box_id" class="search-box">
+                    <input :id="search_input_id" class="search-input"/>
+                </div>
                 <div id="basemap-button">
                     <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                     <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
@@ -163,6 +166,8 @@
     import {getTopLeft, getWidth} from 'ol/extent';
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
     import { getArea, getLength } from 'ol/sphere'
+    import Awesomplete from 'awesomplete'
+    import { api_endpoints } from '@/utils/hooks'
 
     // create the WMTS tile grid in the google projection
     const projection = getProjection('EPSG:4326');
@@ -452,6 +457,10 @@
                 segmentStyles: null,
                 measurementLayer: null,
                 measuring: false,
+
+                mapboxAccessToken: null,
+                search_box_id: uuid(),
+                search_input_id: uuid(),
             }
         },
         components: {
@@ -701,6 +710,75 @@
             }
         },
         methods:{
+            retrieveMapboxAccessToken: async function(){
+                let ret_val = await $.ajax('/api/geocoding_address_search_token')
+                return ret_val
+            },
+            initAwesomplete: function(){
+                var vm = this;
+                var element_search = document.getElementById(vm.search_input_id);
+                this.awe = new Awesomplete(element_search);
+                $(element_search).on('keyup', function(ev){
+                    var keyCode = ev.keyCode || ev.which;
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)){
+                        vm.search(ev.target.value);
+                        return false;
+                    }
+                }).on('awesomplete-selectcomplete', function(ev){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    /* User selected one of the search results */
+                    for (var i=0; i<vm.suggest_list.length; i++){
+                        if (vm.suggest_list[i].value == ev.target.value){
+                            var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
+                            vm.zoomToCoordinates([latlng.lng, latlng.lat], 13)
+                        }
+                    }
+                    return false;
+                });
+            },
+            search: function(place){
+                var vm = this;
+
+                var latlng = this.map.getView().getCenter();
+                console.log({latlng})
+
+                $.ajax({
+                    url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                        access_token: vm.mapboxAccessToken,
+                        country: 'au',
+                        limit: 10,
+                        proximity: ''+latlng[0]+','+latlng[1],
+                        bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                        types: 'region,postcode,district,place,locality,neighborhood,address,poi'
+                    }),
+                    dataType: 'json',
+                    success: function(data, status, xhr) {
+                        vm.suggest_list = [];  // Clear the list first
+                        if (data.features && data.features.length > 0){
+                            for (var i = 0; i < data.features.length; i++){
+                                vm.suggest_list.push({ label: data.features[i].place_name,
+                                                        value: data.features[i].place_name,
+                                                        feature: data.features[i]
+                                                        });
+                            }
+                        }
+
+                        vm.awe.list = vm.suggest_list;
+                        vm.awe.evaluate();
+                    }
+                });
+            },
+            zoomToCoordinates: function(coordinates, zoomLevel){
+                let currentZoomLevel = this.map.getView().getZoom()
+                let targetZoomLevel = (zoomLevel) ? zoomLevel : (currentZoomLevel + 1)
+                this.map.getView().animate({
+                    // zoom: currentZoomLevel + 1, 
+                    zoom: targetZoomLevel,
+                    center: coordinates
+                })
+            },
             display_layers_option: function(mode){
                 if(mode === 'layer'){
                     this.hover = true
@@ -1821,6 +1899,8 @@
             this.startTime = new Date()
             await this.load_existing_sites()
             this.make_remainders_reactive()
+            let temp_token = await this.retrieveMapboxAccessToken()
+            this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function() {
             let vm = this;
@@ -1828,6 +1908,7 @@
                 vm.initMap();
                 vm.set_mode('normal')
                 vm.addEventListeners();
+                vm.initAwesomplete()
             });
         }
     }
@@ -2046,4 +2127,9 @@
     .v-leave-active {
           transition: 0.4s;
     }
+    @import './map_address_search_scoped.css'
+</style>
+
+<style>
+    @import './map_address_search.css'
 </style>

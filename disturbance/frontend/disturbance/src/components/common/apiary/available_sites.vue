@@ -1482,7 +1482,6 @@
         },
         created: async function() {
             let temp_token = await this.retrieveMapboxAccessToken()
-            console.log({temp_token})
             this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function() {
@@ -1718,42 +1717,9 @@
         left: 50%;
         z-index: 100000;
     }
-    .search-box {
-        z-index: 1000;
-        position: absolute;
-        top: 10px;
-        left: 50px;
-    }
-    .search-input {
-        z-index: 1000;
-        width: 300px;
-        padding: 5px;
-        -moz-border-radius: 5px;
-        -webkit-border-radius: 5px;
-        border-radius: 5px;
-        border: 2px solid lightgray;
-    }
-    .search-input:focus {
-        outline: none;
-        border: 2px solid darkgray;
-    }
+    @import './map_address_search_scoped.css'
 </style>
 
 <style>
-    .awesomplete > ul {
-        background-color: white;
-        padding: 0.5em;
-        list-style-type: none;
-        border-radius: 5px;
-    }
-    .awesomplete > ul > li {
-        cursor: pointer;
-        padding: 0.2em;
-    }
-    .awesomplete > ul > li:hover {
-        background-color: lightblue;
-    }
-    .visually-hidden {
-        display: none;
-    }
+    @import './map_address_search.css'
 </style>
