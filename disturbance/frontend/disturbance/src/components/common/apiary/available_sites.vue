@@ -30,6 +30,9 @@
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
+                    <div :id="search_box_id" class="search-box">
+                        <input :id="search_input_id" class="search-input"/>
+                    </div>
                     <div v-show="fullscreen" id="filter_search_on_map">
 
                         <!-- filters on map here -->
@@ -133,6 +136,9 @@
     import Cluster from 'ol/source/Cluster';
     import 'select2/dist/css/select2.min.css'
     import 'select2-bootstrap-theme/dist/select2-bootstrap.min.css'
+    import Awesomplete from 'awesomplete'
+    import { api_endpoints } from '@/utils/hooks'
+    import { fromLonLat } from 'ol/proj'
 
     export default {
         name: 'AvailableSites',
@@ -295,6 +301,9 @@
                         'text': 'Unavailable',
                     },
                 ],
+                mapboxAccessToken: null,
+                search_box_id: uuid(),
+                search_input_id: uuid(),
             }
         },
         components: {
@@ -390,6 +399,65 @@
             }
         },
         methods: {
+            retrieveMapboxAccessToken: async function(){
+                let ret_val = await $.ajax('/api/geocoding_address_search_token')
+                return ret_val
+            },
+            initAwesomplete: function(){
+                var vm = this;
+                var element_search = document.getElementById(vm.search_input_id);
+                this.awe = new Awesomplete(element_search);
+                $(element_search).on('keyup', function(ev){
+                    var keyCode = ev.keyCode || ev.which;
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)){
+                        vm.search(ev.target.value);
+                        return false;
+                    }
+                }).on('awesomplete-selectcomplete', function(ev){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    /* User selected one of the search results */
+                    for (var i=0; i<vm.suggest_list.length; i++){
+                        if (vm.suggest_list[i].value == ev.target.value){
+                            var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
+                            vm.zoomToCoordinates([latlng.lng, latlng.lat], 13)
+                        }
+                    }
+                    return false;
+                });
+            },
+            search: function(place){
+                var vm = this;
+
+                var latlng = this.map.getView().getCenter();
+
+                $.ajax({
+                    url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                        access_token: vm.mapboxAccessToken,
+                        country: 'au',
+                        limit: 10,
+                        proximity: ''+latlng[0]+','+latlng[1],
+                        bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                        types: 'region,postcode,district,place,locality,neighborhood,address,poi'
+                    }),
+                    dataType: 'json',
+                    success: function(data, status, xhr) {
+                        vm.suggest_list = [];  // Clear the list first
+                        if (data.features && data.features.length > 0){
+                            for (var i = 0; i < data.features.length; i++){
+                                vm.suggest_list.push({ label: data.features[i].place_name,
+                                                        value: data.features[i].place_name,
+                                                        feature: data.features[i]
+                                                        });
+                            }
+                        }
+
+                        vm.awe.list = vm.suggest_list;
+                        vm.awe.evaluate();
+                    }
+                });
+            },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
                 let vm = this
                 if (availabilities_currently_selected.length === 0){
@@ -462,10 +530,16 @@
                 let filter_search_row_wrapper = $('#filter_search_row_wrapper')
                 let wrapper_in_map = $('#filter_search_on_map')
 
+                let search_box = $('#' + vm.search_box_id)
+
                 if (action === 'enter'){
                     filter_search_elements.prependTo(wrapper_in_map)
+                    search_box.css("top", "50px")
+                    search_box.css("left", "60px")
                 } else if (action === 'leave'){
                     filter_search_elements.prependTo(filter_search_row_wrapper)
+                    search_box.css("top", "10px")
+                    search_box.css("left", "50px")
                 }
             },
             applySelect2: function(){
@@ -1248,9 +1322,14 @@
                 this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
                 this.showPopup(feature)
             },
-            zoomToCoordinates: function(coordinates){
+            zoomToCoordinates: function(coordinates, zoomLevel){
                 let currentZoomLevel = this.map.getView().getZoom()
-                this.map.getView().animate({zoom: currentZoomLevel + 1, center: coordinates})
+                let targetZoomLevel = (zoomLevel) ? zoomLevel : (currentZoomLevel + 1)
+                this.map.getView().animate({
+                    // zoom: currentZoomLevel + 1, 
+                    zoom: targetZoomLevel,
+                    center: coordinates
+                })
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
@@ -1400,7 +1479,9 @@
                 } // END: loop for show_hide_instructions
             }, // END: showHideApiarySites()
         },
-        created: function() {
+        created: async function() {
+            let temp_token = await this.retrieveMapboxAccessToken()
+            this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function() {
             let vm = this;
@@ -1414,6 +1495,7 @@
             vm.displayAllFeatures()
             vm.applySelect2()
             vm.showHideApiarySites()
+            vm.initAwesomplete()
         },
     }
 </script>
@@ -1634,4 +1716,9 @@
         left: 50%;
         z-index: 100000;
     }
+    @import './map_address_search_scoped.css'
+</style>
+
+<style>
+    @import './map_address_search.css'
 </style>
