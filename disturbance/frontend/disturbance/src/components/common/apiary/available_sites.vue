@@ -129,7 +129,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, SiteColours } from '@/components/common/apiary/site_colours.js'
+    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, zoomToCoordinates, checkIfValidlatitudeAndlongitude } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
     import Datatable from '@vue-utils/datatable.vue'
@@ -301,6 +301,7 @@
                         'text': 'Unavailable',
                     },
                 ],
+                awe: null,
                 mapboxAccessToken: null,
                 search_box_id: uuid(),
                 search_input_id: uuid(),
@@ -409,7 +410,7 @@
                 this.awe = new Awesomplete(element_search);
                 $(element_search).on('keyup', function(ev){
                     var keyCode = ev.keyCode || ev.which;
-                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)){
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)||(keyCode===8)||(keyCode===46)){
                         vm.search(ev.target.value);
                         return false;
                     }
@@ -421,7 +422,7 @@
                     for (var i=0; i<vm.suggest_list.length; i++){
                         if (vm.suggest_list[i].value == ev.target.value){
                             var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
-                            vm.zoomToCoordinates([latlng.lng, latlng.lat], 13)
+                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], 14)
                         }
                     }
                     return false;
@@ -430,33 +431,40 @@
             search: function(place){
                 var vm = this;
 
-                var latlng = this.map.getView().getCenter();
+                let searching_by_latlng = checkIfValidlatitudeAndlongitude(place)
 
-                $.ajax({
-                    url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
-                        access_token: vm.mapboxAccessToken,
-                        country: 'au',
-                        limit: 10,
-                        proximity: ''+latlng[0]+','+latlng[1],
-                        bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
-                        types: 'region,postcode,district,place,locality,neighborhood,address,poi'
-                    }),
-                    dataType: 'json',
-                    success: function(data, status, xhr) {
-                        vm.suggest_list = [];  // Clear the list first
-                        if (data.features && data.features.length > 0){
-                            for (var i = 0; i < data.features.length; i++){
-                                vm.suggest_list.push({ label: data.features[i].place_name,
-                                                        value: data.features[i].place_name,
-                                                        feature: data.features[i]
-                                                        });
+                if(!(searching_by_latlng)){
+                    var latlng = vm.map.getView().getCenter();
+                    $.ajax({
+                        url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                            access_token: vm.mapboxAccessToken,
+                            country: 'au',
+                            limit: 10,
+                            proximity: ''+latlng[0]+','+latlng[1],
+                            bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                            types: 'region,postcode,district,place,locality,neighborhood,address,poi'
+                        }),
+                        dataType: 'json',
+                        success: function(data, status, xhr) {
+                            vm.suggest_list = [];  // Clear the list first
+                            if (data.features && data.features.length > 0){
+                                for (var i = 0; i < data.features.length; i++){
+                                    vm.suggest_list.push({ label: data.features[i].place_name,
+                                                            value: data.features[i].place_name,
+                                                            feature: data.features[i]
+                                                            });
+                                }
                             }
-                        }
 
-                        vm.awe.list = vm.suggest_list;
-                        vm.awe.evaluate();
-                    }
-                });
+                            vm.awe.list = vm.suggest_list;
+                            vm.awe.evaluate();
+                        }
+                    })
+                } else {
+                    let lat = searching_by_latlng[1]
+                    let lng = searching_by_latlng[4]
+                    zoomToCoordinates(vm.map, [lng, lat])
+                }
             },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
                 let vm = this
@@ -1038,7 +1046,8 @@
                             } else {
                                 let geometry = feature.getGeometry();
                                 let coordinates = geometry.getCoordinates();
-                                vm.zoomToCoordinates(coordinates)
+                                let currentZoomLevel = vm.map.getView().getZoom()
+                                zoomToCoordinates(vm.map, coordinates, currentZoomLevel + 1)
                             }
                         } else {
                             vm.closePopup()
@@ -1315,21 +1324,6 @@
             removeApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 this.apiarySitesQuerySource.removeFeature(feature)
-            },
-            zoomToApiarySiteById: function(apiary_site_id){
-                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let geometry = feature.getGeometry()
-                this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
-                this.showPopup(feature)
-            },
-            zoomToCoordinates: function(coordinates, zoomLevel){
-                let currentZoomLevel = this.map.getView().getZoom()
-                let targetZoomLevel = (zoomLevel) ? zoomLevel : (currentZoomLevel + 1)
-                this.map.getView().animate({
-                    // zoom: currentZoomLevel + 1, 
-                    zoom: targetZoomLevel,
-                    center: coordinates
-                })
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)

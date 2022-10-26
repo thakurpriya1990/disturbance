@@ -360,3 +360,20 @@ export function getDisplayNameFromStatus(status_name){
             break
     }
 }
+export function zoomToCoordinates(map, coordinates, zoomLevel){
+    let currentZoomLevel = map.getView().getZoom()
+    let targetZoomLevel = (zoomLevel) ? zoomLevel : currentZoomLevel
+    map.getView().animate({
+        zoom: targetZoomLevel,
+        center: coordinates
+    })
+}
+export function checkIfValidlatitudeAndlongitude(str) {
+    // Regular expression to check if string is a latitude and longitude
+    // const regexExp = /^((\-?|\+?)?\d+(\.\d+)?),\s*((\-?|\+?)?\d+(\.\d+)?)$/gi;
+    const regexExp = /^\s*((\-?|\+?)?\d+(\.\d+)?)[,\,\/]\s*((\-?|\+?)?\d+(\.\d+)?)$/gi;
+
+    let regResult = regexExp.exec(str)
+
+    return regResult
+}
