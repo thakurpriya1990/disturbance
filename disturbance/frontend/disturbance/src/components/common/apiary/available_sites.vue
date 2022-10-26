@@ -129,7 +129,7 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, SiteColours } from '@/components/common/apiary/site_colours.js'
+    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, zoomToCoordinates, checkIfValidlatitudeAndlongitude } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
     import Datatable from '@vue-utils/datatable.vue'
@@ -301,6 +301,7 @@
                         'text': 'Unavailable',
                     },
                 ],
+                awe: null,
                 mapboxAccessToken: null,
                 search_box_id: uuid(),
                 search_input_id: uuid(),
@@ -409,7 +410,7 @@
                 this.awe = new Awesomplete(element_search);
                 $(element_search).on('keyup', function(ev){
                     var keyCode = ev.keyCode || ev.which;
-                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)||(keyCode===8)){
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)||(keyCode===8)||(keyCode===46)){
                         vm.search(ev.target.value);
                         return false;
                     }
@@ -421,28 +422,19 @@
                     for (var i=0; i<vm.suggest_list.length; i++){
                         if (vm.suggest_list[i].value == ev.target.value){
                             var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
-                            vm.zoomToCoordinates([latlng.lng, latlng.lat], 14)
+                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], 14)
                         }
                     }
                     return false;
                 });
             },
-            checkIfValidlatitudeAndlongitude: function(str) {
-                // Regular expression to check if string is a latitude and longitude
-                // const regexExp = /^((\-?|\+?)?\d+(\.\d+)?),\s*((\-?|\+?)?\d+(\.\d+)?)$/gi;
-                const regexExp = /^\s*((\-?|\+?)?\d+(\.\d+)?)[,\,\/]\s*((\-?|\+?)?\d+(\.\d+)?)$/gi;
-
-                let regResult = regexExp.exec(str)
-
-                return regResult
-            },
             search: function(place){
                 var vm = this;
 
-                let searching_by_latlng = vm.checkIfValidlatitudeAndlongitude(place)
+                let searching_by_latlng = checkIfValidlatitudeAndlongitude(place)
 
                 if(!(searching_by_latlng)){
-                    var latlng = this.map.getView().getCenter();
+                    var latlng = vm.map.getView().getCenter();
                     $.ajax({
                         url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
                             access_token: vm.mapboxAccessToken,
@@ -471,7 +463,7 @@
                 } else {
                     let lat = searching_by_latlng[1]
                     let lng = searching_by_latlng[4]
-                    vm.zoomToCoordinates([lng, lat])
+                    zoomToCoordinates(vm.map, [lng, lat])
                 }
             },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
@@ -1055,7 +1047,7 @@
                                 let geometry = feature.getGeometry();
                                 let coordinates = geometry.getCoordinates();
                                 let currentZoomLevel = vm.map.getView().getZoom()
-                                vm.zoomToCoordinates(coordinates, currentZoomLevel + 1)
+                                zoomToCoordinates(vm.map, coordinates, currentZoomLevel + 1)
                             }
                         } else {
                             vm.closePopup()
@@ -1332,22 +1324,6 @@
             removeApiarySiteById: function(apiary_site_id){
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
                 this.apiarySitesQuerySource.removeFeature(feature)
-            },
-            zoomToApiarySiteById: function(apiary_site_id){
-                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let geometry = feature.getGeometry()
-                this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
-                this.showPopup(feature)
-            },
-            zoomToCoordinates: function(coordinates, zoomLevel){
-                let currentZoomLevel = this.map.getView().getZoom()
-                // let targetZoomLevel = (zoomLevel) ? zoomLevel : (currentZoomLevel + 1)
-                let targetZoomLevel = (zoomLevel) ? zoomLevel : currentZoomLevel
-                this.map.getView().animate({
-                    // zoom: currentZoomLevel + 1, 
-                    zoom: targetZoomLevel,
-                    center: coordinates
-                })
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
