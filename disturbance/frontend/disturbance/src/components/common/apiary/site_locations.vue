@@ -65,7 +65,7 @@
         <div id="map-wrapper" class="row col-sm-12">
             <div id="map" class="map">
                 <div :id="search_box_id" class="search-box">
-                    <input :id="search_input_id" class="search-input"/>
+                    <input :id="search_input_id" class="search-input" placeholder="latitude, longitude OR address to search"/>
                 </div>
                 <div id="basemap-button">
                     <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
