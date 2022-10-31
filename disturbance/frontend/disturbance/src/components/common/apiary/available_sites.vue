@@ -305,6 +305,7 @@
                 mapboxAccessToken: null,
                 search_box_id: uuid(),
                 search_input_id: uuid(),
+                search_address_latlng_text: '',
             }
         },
         components: {
@@ -618,8 +619,14 @@
                 this.apiarySitesQuerySource.addFeatures(features)
             },
             addEventListeners: function () {
-                //$("#" + this.table_id).on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
+                let vm = this
+
                 $("#app").on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
+
+                let search_input_elem = $('#' + vm.search_input_id)
+                search_input_elem.on('input', function(ev){
+                    vm.search(ev.target.value);
+                })
             },
             getApiarySiteAvailableFromEvent(e){
                 let apiary_site_available = e.target.getAttribute("data-apiary-site-available");

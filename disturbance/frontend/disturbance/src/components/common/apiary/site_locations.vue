@@ -1255,8 +1255,15 @@
                 return allFeatures
             },
             addEventListeners: function(){
+                let vm = this
+
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
                 $("#site-locations-table").on("click", ".view_on_map", this.zoomOnApiarySite)
+
+                let searchLatLng = document.getElementById(this.search_input_id)
+                searchLatLng.addEventListener('input', function(ev){
+                    vm.search(ev.target.value);
+                })
             },
             zoomOnApiarySite: function(e) {
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
