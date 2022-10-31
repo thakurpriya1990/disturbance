@@ -734,7 +734,12 @@
                 feature.setStyle(style_applied)
             },
             addEventListeners: function () {
+                let vm = this
 
+                let searchLatLng = document.getElementById(this.search_input_id)
+                searchLatLng.addEventListener('input', function(ev){
+                    vm.search(ev.target.value);
+                })
             },
             displayAllFeatures: function() {
                 if (this.apiarySitesQuerySource.getFeatures().length>0){
