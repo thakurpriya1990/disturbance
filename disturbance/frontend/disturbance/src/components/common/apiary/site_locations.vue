@@ -729,11 +729,17 @@
                     ev.preventDefault();
                     ev.stopPropagation();
 
+                    let currentZoomLevel = vm.map.getView().getZoom()
+                    let targetZoomLevel = 14
+                    if (targetZoomLevel < currentZoomLevel){
+                        targetZoomLevel = currentZoomLevel
+                    }
+
                     /* User selected one of the search results */
                     for (var i=0; i<vm.suggest_list.length; i++){
                         if (vm.suggest_list[i].value == ev.target.value){
                             var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
-                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], 14)
+                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], targetZoomLevel)
                         }
                     }
                     return false;
@@ -774,7 +780,13 @@
                 } else {
                     let lat = searching_by_latlng[1]
                     let lng = searching_by_latlng[4]
-                    zoomToCoordinates(vm.map, [lng, lat])
+                    let currentZoomLevel = vm.map.getView().getZoom()
+                    let targetZoomLevel = 14
+                    if (targetZoomLevel < currentZoomLevel){
+                        targetZoomLevel = currentZoomLevel
+                    }
+
+                    zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
                 }
             },
             display_layers_option: function(mode){
