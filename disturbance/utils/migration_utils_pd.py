@@ -173,7 +173,7 @@ class ApiaryLicenceReader():
         # create the Migratiom models
         t1_start = time.time()
         #try:
-        self.create_licences()
+        approvals_created = self.create_licences()
         #except Exception as e:
          #   print(e)
           #  import ipdb; ipdb.set_trace()
@@ -183,10 +183,10 @@ class ApiaryLicenceReader():
         # create the Licence/Permit PDFs
         t2_start = time.time()
         try:
-            self.create_licence_pdf()
+            self.create_licence_pdf(approvals_created)
         except Exception as e:
             print(e)
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
         t2_end = time.time()
         print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
 
@@ -213,7 +213,7 @@ class ApiaryLicenceReader():
                         mobile_number=self.__get_mobile_number(row)
                     )
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                # import ipdb; ipdb.set_trace()
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
     def create_organisations(self):
@@ -230,7 +230,8 @@ class ApiaryLicenceReader():
             try: 
                 lo = ledger_organisation.objects.filter(abn=row.name)
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                # import ipdb; ipdb.set_trace()
+                logger.error('{}'.format(e))
             try:
 
                 if ledger_organisation.objects.filter(name=row.licencee).count() > 0:
@@ -270,8 +271,9 @@ class ApiaryLicenceReader():
                     user = EmailUser.objects.get(email=row.email)
                     delegate = UserDelegation.objects.get_or_create(organisation=org, user=user)
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                # import ipdb; ipdb.set_trace()
                 print(e)
+                logger.error('{}'.format(e))
             count += 1
         print("Count: orgs: ".format(str(count)))
 
@@ -301,7 +303,8 @@ class ApiaryLicenceReader():
                 ).first()
         except Exception as e:
             print(e)
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
+            logger.error('{}'.format(e))
 
         return oa
 
@@ -330,13 +333,16 @@ class ApiaryLicenceReader():
         except Exception as e:
             print('Org Contact: {}'.format(row))
             print(e)
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
+            logger.error('{}'.format(e))
 
     def create_licences(self):
         count = 1
         completed_site_numbers = []
         duplicate_site_numbers = []
         skipped_indices = []
+        approvals_created = []
+
         with transaction.atomic():
             #for index, row in self.df[3244:].iterrows():
             for index, row in self.df.iterrows():
@@ -362,19 +368,24 @@ class ApiaryLicenceReader():
                         if row.licencee_type == 'organisation':
                             org = Organisation.objects.get(organisation__abn=row.abn)
                             user = EmailUser.objects.get(email=row.email)
-                            self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
+                            created_approval = self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
+                            if created_approval:
+                                approvals_created.append(created_approval)
                             print("Permit number {} migrated".format(row.get('permit_number')))
                             print
                             print
 
                         elif row.licencee_type == 'individual':
                             user = EmailUser.objects.get(email=row.email)
-                            self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
+                            created_approval = self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
+                            if created_approval:
+                                approvals_created.append(created_approval)
                             print("Permit number {} migrated".format(row.get('permit_number')))
 
                         else:
                             # declined and not to be reissued
-                            status = data['status']
+                            # status = data['status']
+                            status = row.status
 
                         completed_site_numbers.append(site_number)
                         count += 1
@@ -387,23 +398,26 @@ class ApiaryLicenceReader():
 
                 except ValueError as e:
                     print(f'ERROR: SITE NUMBER {site_number} - SKIPPING')
-                    import ipdb; ipdb.set_trace()
+                    # import ipdb; ipdb.set_trace()
                     raise e
                 except Exception as e:
                     print(e)
-                    import ipdb; ipdb.set_trace()
+                    # import ipdb; ipdb.set_trace()
                     raise e
 
         print(f'Duplicate Site Numbers: {duplicate_site_numbers}')
         print('Skipped indices: {}'.format(skipped_indices))
 
+        return approvals_created
+
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
+        created_approval = None
         from disturbance.components.approvals.models import Approval
         #import ipdb; ipdb.set_trace()
         try:
             site_number = int(data.permit_number) if data.permit_number else int(data.licensed_site)
         except Exception as e:
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
             print('ERROR: There is no site_number - Must provide a site number in migration spreadsheeet. {e}')
 
         try:
@@ -413,7 +427,7 @@ class ApiaryLicenceReader():
             site_status = 'not_to_be_reissued' if data['status'].lower().strip() == 'not to be reissued' else data['status'].lower().strip()
 
         except Exception as e:
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
             print(e)
 
         try:
@@ -440,9 +454,11 @@ class ApiaryLicenceReader():
                                     }
                             )
                 if approval_created:
+                    created_approval = approval
                     print('Approval: {} created'.format(approval))
             else:
-                import ipdb; ipdb.set_trace()
+                # import ipdb; ipdb.set_trace()
+                pass
 
             #if 'PM' not in proposal.lodgement_number:
             #    proposal.lodgement_number = proposal.lodgement_number.replace('P', 'PM') # Application Migrated
@@ -534,14 +550,16 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             logger.error('{}'.format(e))
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
             return None
 
-        return approval
+        return created_approval
 
-    def create_licence_pdf(self):
-        approvals_migrated = Approval.objects.filter(current_proposal__application_type__name=ApplicationType.APIARY, migrated=True)
+    def create_licence_pdf(self, approvals_created):
+        # approvals_migrated = Approval.objects.filter(current_proposal__application_type__name=ApplicationType.APIARY, migrated=True)
+        approvals_migrated = approvals_created
         print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
+
         for idx, a in enumerate(approvals_migrated):
             a.generate_doc(a.current_proposal.submitter)
             print('{}, Created PDF for Approval {}'.format(idx, a))
