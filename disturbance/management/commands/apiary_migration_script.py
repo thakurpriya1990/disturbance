@@ -30,17 +30,20 @@ class Command(BaseCommand):
         filename = options['filename']
 
         if not filename:
-            filename = os.path.join(BASE_DIR, 'tmp', 'apiary_migration_file_Second_Migration-Cook.xlsx')
+            filename = os.path.join(BASE_DIR, 'tmp', 'test.xlsx')
         exists = os.path.isfile(filename)
 
-        t_start = time.time()
+        if exists:
+            t_start = time.time()
 
-        alr=ApiaryLicenceReader(filename)
-        alr.run_migration()
+            alr=ApiaryLicenceReader(filename)
+            alr.run_migration()
 
-        t_end = time.time()
-        print('TIME TAKEN: {}'.format(t_end - t_start))
+            t_end = time.time()
+            print('TIME TAKEN: {}'.format(t_end - t_start))
 
-        proposals = Proposal.objects.filter(migrated=True).count()
-        approvals = Approval.objects.filter(migrated=True).count()
-        print(f'Proposals {proposals}, Approvals {approvals}')
+            # proposals = Proposal.objects.filter(migrated=True).count()
+            # approvals = Approval.objects.filter(migrated=True).count()
+            # print(f'Proposals {proposals}, Approvals {approvals}')
+        else:
+            print('File: {} does not exist.'.format(filename))

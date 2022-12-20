@@ -77,9 +77,14 @@ class ApiaryLicenceReader():
         alr = ApiaryLicenceReader('disturbance/utils/csv/apiary_migration_file_02Jun2022.xlsx')
 
         alr.create_users()
+
         alr.create_organisations()
-        alr.create_licences()
-        alr.create_licence_pdf()
+
+        approvals_created = alr.create_licences()
+        (All the approvals created are returned as a list)
+
+        alr.create_licence_pdf(approvals_created)
+        (Pass approvals as a list or a queryset)
 
     FROM mgt-command:
         python manage_ds.py apiary_migration_script --filename disturbance/utils/csv/apiary_migration_file_02Jun2022.xlsx
@@ -160,37 +165,37 @@ class ApiaryLicenceReader():
     def run_migration(self):
 
         # create the users and organisations, if they don't already exist
-        t0_start = time.time()
+        # t0_start = time.time()
         #try:
         self.create_users()
         self.create_organisations()
         #except Exception as e:
          #   print(e)
           #  import ipdb; ipdb.set_trace()
-        t0_end = time.time()
-        print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
+        # t0_end = time.time()
+        # print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
 
         # create the Migratiom models
-        t1_start = time.time()
+        # t1_start = time.time()
         #try:
-        approvals_created = self.create_licences()
+        approvals_affected = self.create_licences()
         #except Exception as e:
          #   print(e)
           #  import ipdb; ipdb.set_trace()
-        t1_end = time.time()
-        print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
+        # t1_end = time.time()
+        # print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
 
         # create the Licence/Permit PDFs
-        t2_start = time.time()
+        # t2_start = time.time()
         try:
-            self.create_licence_pdf(approvals_created)
+            self.create_licence_pdf(approvals_affected)
         except Exception as e:
             print(e)
             # import ipdb; ipdb.set_trace()
-        t2_end = time.time()
-        print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
+        # t2_end = time.time()
+        # print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
 
-        print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
+        # print('TIME TAKEN (Total): {}'.format(t2_end - t0_start))
 
     def create_users(self):
         # Iterate through the dataframe and create non-existent users
@@ -212,6 +217,7 @@ class ApiaryLicenceReader():
                         phone_number=self.__get_phone_number(row),
                         mobile_number=self.__get_mobile_number(row)
                     )
+                    print('EmailUser: {} has been created.'.format(user.email))
             except Exception as e:
                 # import ipdb; ipdb.set_trace()
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
@@ -266,6 +272,7 @@ class ApiaryLicenceReader():
                         billing_address=oa,
                         trading_name=row.trading_name,
                     )
+                    print('Organisation: {} has been created'.format(lo.abn))
                     org, created_org = Organisation.objects.get_or_create(organisation=lo)
                     org_contact = self._create_org_contact(row, org)
                     user = EmailUser.objects.get(email=row.email)
@@ -340,8 +347,8 @@ class ApiaryLicenceReader():
         count = 1
         completed_site_numbers = []
         duplicate_site_numbers = []
-        skipped_indices = []
-        approvals_created = []
+        # skipped_indices = []
+        approvals_affected = []
 
         with transaction.atomic():
             #for index, row in self.df[3244:].iterrows():
@@ -359,33 +366,33 @@ class ApiaryLicenceReader():
                     #    raise ValueError("index: {} has no permit_number or licenced_site".format(index))
                     site_number = int(row.permit_number) if row.permit_number else int(row.licensed_site)
                     #ApiarySite.objects.filter(id=site_number)
-                    if site_number not in completed_site_numbers and \
-                        not ApiarySite.objects.filter(id=site_number).exists():
+                    if site_number not in completed_site_numbers and not ApiarySite.objects.filter(id=site_number).exists():
 
                         #if row.status != 'Vacant' and index>4474:
                         #if row.status != 'Vacant':
                             #import ipdb; ipdb.set_trace()
+                        approval_affected = None
                         if row.licencee_type == 'organisation':
                             org = Organisation.objects.get(organisation__abn=row.abn)
                             user = EmailUser.objects.get(email=row.email)
-                            created_approval = self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
-                            if created_approval:
-                                approvals_created.append(created_approval)
-                            print("Permit number {} migrated".format(row.get('permit_number')))
-                            print
-                            print
+                            approval_affected = self._migrate_approval(data=row, submitter=user, applicant=org, proxy_applicant=None)
+                            # if created_approval:
+                            #     approvals_created.append(created_approval)
+                            # print("Permit No/licensed_site: {} migrated".format(site_number))
 
                         elif row.licencee_type == 'individual':
                             user = EmailUser.objects.get(email=row.email)
-                            created_approval = self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
-                            if created_approval:
-                                approvals_created.append(created_approval)
-                            print("Permit number {} migrated".format(row.get('permit_number')))
+                            approval_affected = self._migrate_approval(data=row, submitter=user, applicant=None, proxy_applicant=user)
 
-                        else:
+                        # else:
                             # declined and not to be reissued
                             # status = data['status']
-                            status = row.status
+                            # status = row.status
+
+                        if approval_affected and approval_affected not in approvals_affected:
+                            approvals_affected.append(approval_affected)
+
+                        print("Permit No/licensed_site: {} migrated".format(site_number))
 
                         completed_site_numbers.append(site_number)
                         count += 1
@@ -406,12 +413,14 @@ class ApiaryLicenceReader():
                     raise e
 
         print(f'Duplicate Site Numbers: {duplicate_site_numbers}')
-        print('Skipped indices: {}'.format(skipped_indices))
+        # print('Skipped indices: {}'.format(skipped_indices))
 
-        return approvals_created
+        return approvals_affected
 
     def _migrate_approval(self, data, submitter, applicant=None, proxy_applicant=None):
-        created_approval = None
+        # created_approval = None
+        approval_affected = None
+        approval_created = False
         from disturbance.components.approvals.models import Approval
         #import ipdb; ipdb.set_trace()
         try:
@@ -453,8 +462,8 @@ class ApiaryLicenceReader():
                                     'current_proposal':proposal,
                                     }
                             )
+                approval_affected = approval
                 if approval_created:
-                    created_approval = approval
                     print('Approval: {} created'.format(approval))
             else:
                 # import ipdb; ipdb.set_trace()
@@ -553,16 +562,16 @@ class ApiaryLicenceReader():
             # import ipdb; ipdb.set_trace()
             return None
 
-        return created_approval
+        return approval_affected
 
     def create_licence_pdf(self, approvals_created):
         # approvals_migrated = Approval.objects.filter(current_proposal__application_type__name=ApplicationType.APIARY, migrated=True)
-        approvals_migrated = approvals_created
-        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
+        approvals_migrated = list(approvals_created)
+        print('Total {} approval(s) for creating licence pdf: {}'.format(len(approvals_migrated), approvals_migrated))
 
         for idx, a in enumerate(approvals_migrated):
             a.generate_doc(a.current_proposal.submitter)
-            print('{}, Created PDF for Approval {}'.format(idx, a))
+            print('{}, Created licence PDF for Approval: {}'.format(idx, a))
 
 
 
