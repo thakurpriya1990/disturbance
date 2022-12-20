@@ -114,7 +114,7 @@ class ApprovalSerializerForLicenceDoc(serializers.ModelSerializer):
         return approval.issue_date.strftime('%d/%m/%Y')
 
     def get_approver(self, approval):
-        if approval.migrated:
+        if approval.migrated and not approval.reissued:  # Even if this approval is the one migrated, we don't want to use a default approver name when it it is reissued.
             try:
                 approver = EmailUser.objects.get(email=settings.APIARY_MIGRATED_LICENCES_APPROVER)
             except Exception as e:
