@@ -129,7 +129,7 @@ class ApiaryLicenceReader():
         df['approval_minister_date'] = pd.to_datetime(df['approval_minister_date'], errors='coerce')
 
         df['issue_date'] = df.apply(lambda row: row.issue_date if isinstance(row.issue_date, datetime.datetime) else row.start_date, axis=1)
-        df['abn']        = df['abn'].str.replace(" ","").str.strip()
+        df['abn']        = df['abn'].astype(str).str.replace(" ","").str.strip()
         df['email']      = df['email'].str.replace(" ","").str.lower().str.strip()
         #df['abn']        = df['abn'].str.strip().str.lower()
         #df['email']      = df['email'].str.strip().str.lower()
@@ -439,6 +439,8 @@ class ApiaryLicenceReader():
                                     'current_proposal':proposal,
                                     }
                             )
+                if approval_created:
+                    print('Approval: {} created'.format(approval))
             else:
                 import ipdb; ipdb.set_trace()
 
