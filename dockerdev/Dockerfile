@@ -1,5 +1,5 @@
 # Prepare the base environment.
-FROM dbcawa/disturbance:v2022.09.21.13.4401 as builder_base_disturbancedev
+FROM dbcawa/disturbance:latest as builder_base_disturbancedev
 
 RUN apt-get update
 RUN apt-get install --no-install-recommends -y npm patch
