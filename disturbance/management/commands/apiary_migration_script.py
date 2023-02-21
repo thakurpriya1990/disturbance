@@ -1,8 +1,12 @@
+import os
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import send_mail
 from pathlib import Path
+
+from disturbance.settings import BASE_DIR
 from disturbance.utils.migration_utils_pd import ApiaryLicenceReader
 from disturbance.components.proposals.models import Proposal
 from disturbance.components.approvals.models import Approval
@@ -25,14 +29,21 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         filename = options['filename']
 
-        t_start = time.time()
+        if not filename:
+            filename = os.path.join(BASE_DIR, 'tmp', 'test.xlsx')
+        exists = os.path.isfile(filename)
 
-        alr=ApiaryLicenceReader(filename)
-        alr.run_migration()
+        if exists:
+            t_start = time.time()
 
-        t_end = time.time()
-        print('TIME TAKEN: {}'.format(t_end - t_start))
+            alr=ApiaryLicenceReader(filename)
+            alr.run_migration()
 
-        proposals = Proposal.objects.filter(migrated=True).count()
-        approvals = Approval.objects.filter(migrated=True).count()
-        print(f'Proposals {proposals}, Approvals {approvals}')
+            t_end = time.time()
+            print('TIME TAKEN: {}'.format(t_end - t_start))
+
+            # proposals = Proposal.objects.filter(migrated=True).count()
+            # approvals = Approval.objects.filter(migrated=True).count()
+            # print(f'Proposals {proposals}, Approvals {approvals}')
+        else:
+            print('File: {} does not exist.'.format(filename))

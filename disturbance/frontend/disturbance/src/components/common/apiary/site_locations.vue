@@ -64,6 +64,9 @@
 
         <div id="map-wrapper" class="row col-sm-12">
             <div id="map" class="map">
+                <div :id="search_box_id" class="search-box">
+                    <input :id="search_input_id" class="search-input" placeholder="latitude, longitude OR address to search"/>
+                </div>
                 <div id="basemap-button">
                     <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                     <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
@@ -153,7 +156,7 @@
     import TextField from '@/components/forms/text.vue'
     import datatable from '@vue-utils/datatable.vue'
     import uuid from 'uuid';
-    import { getStatusForColour, getApiaryFeatureStyle, drawingSiteRadius, existingSiteRadius, SiteColours } from '@/components/common/apiary/site_colours.js'
+    import { getStatusForColour, getApiaryFeatureStyle,SiteColours, zoomToCoordinates, checkIfValidlatitudeAndlongitude } from '@/components/common/apiary/site_colours.js'
     import Overlay from 'ol/Overlay';
 
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
@@ -163,6 +166,8 @@
     import {getTopLeft, getWidth} from 'ol/extent';
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
     import { getArea, getLength } from 'ol/sphere'
+    import Awesomplete from 'awesomplete'
+    import { api_endpoints } from '@/utils/hooks'
 
     // create the WMTS tile grid in the google projection
     const projection = getProjection('EPSG:4326');
@@ -452,6 +457,11 @@
                 segmentStyles: null,
                 measurementLayer: null,
                 measuring: false,
+
+                awe: null,
+                mapboxAccessToken: null,
+                search_box_id: uuid(),
+                search_input_id: uuid(),
             }
         },
         components: {
@@ -701,6 +711,84 @@
             }
         },
         methods:{
+            retrieveMapboxAccessToken: async function(){
+                let ret_val = await $.ajax('/api/geocoding_address_search_token')
+                return ret_val
+            },
+            initAwesomplete: function(){
+                var vm = this;
+                var element_search = document.getElementById(vm.search_input_id);
+                this.awe = new Awesomplete(element_search);
+                $(element_search).on('keyup', function(ev){
+                    var keyCode = ev.keyCode || ev.which;
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)||(keyCode===8)||(keyCode===46)){
+                        vm.search(ev.target.value);
+                        return false;
+                    }
+                }).on('awesomplete-selectcomplete', function(ev){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    let currentZoomLevel = vm.map.getView().getZoom()
+                    let targetZoomLevel = 14
+                    if (targetZoomLevel < currentZoomLevel){
+                        targetZoomLevel = currentZoomLevel
+                    }
+
+                    /* User selected one of the search results */
+                    for (var i=0; i<vm.suggest_list.length; i++){
+                        if (vm.suggest_list[i].value == ev.target.value){
+                            var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
+                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], targetZoomLevel)
+                        }
+                    }
+                    return false;
+                });
+            },
+            search: function(place){
+                var vm = this;
+
+                let searching_by_latlng = checkIfValidlatitudeAndlongitude(place)
+
+                if(!(searching_by_latlng)){
+                    var latlng = vm.map.getView().getCenter();
+                    $.ajax({
+                        url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                            access_token: vm.mapboxAccessToken,
+                            country: 'au',
+                            limit: 10,
+                            proximity: ''+latlng[0]+','+latlng[1],
+                            bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                            types: 'region,postcode,district,place,locality,neighborhood,address,poi'
+                        }),
+                        dataType: 'json',
+                        success: function(data, status, xhr) {
+                            vm.suggest_list = [];  // Clear the list first
+                            if (data.features && data.features.length > 0){
+                                for (var i = 0; i < data.features.length; i++){
+                                    vm.suggest_list.push({ label: data.features[i].place_name,
+                                                            value: data.features[i].place_name,
+                                                            feature: data.features[i]
+                                                            });
+                                }
+                            }
+
+                            vm.awe.list = vm.suggest_list;
+                            vm.awe.evaluate();
+                        }
+                    });
+                } else {
+                    let lat = searching_by_latlng[1]
+                    let lng = searching_by_latlng[4]
+                    let currentZoomLevel = vm.map.getView().getZoom()
+                    let targetZoomLevel = 14
+                    if (targetZoomLevel < currentZoomLevel){
+                        targetZoomLevel = currentZoomLevel
+                    }
+
+                    zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
+                }
+            },
             display_layers_option: function(mode){
                 if(mode === 'layer'){
                     this.hover = true
@@ -1179,8 +1267,15 @@
                 return allFeatures
             },
             addEventListeners: function(){
+                let vm = this
+
                 $("#site-locations-table").on("click", ".delete_button", this.removeSiteLocation);
                 $("#site-locations-table").on("click", ".view_on_map", this.zoomOnApiarySite)
+
+                let searchLatLng = document.getElementById(this.search_input_id)
+                searchLatLng.addEventListener('input', function(ev){
+                    vm.search(ev.target.value);
+                })
             },
             zoomOnApiarySite: function(e) {
                 let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
@@ -1276,7 +1371,9 @@
                         center: [115.95, -31.95],
                         zoom: 7,
                         projection: 'EPSG:4326'
-                    })
+                    }),
+                    pixelRatio: 1,  // We need this in order to make this map work correctly with the browser and/or display scaling factor(s) other than 100%
+                                    // Ref: https://github.com/openlayers/openlayers/issues/11464
                 });
 
                 let clusterSource = new Cluster({
@@ -1821,6 +1918,8 @@
             this.startTime = new Date()
             await this.load_existing_sites()
             this.make_remainders_reactive()
+            let temp_token = await this.retrieveMapboxAccessToken()
+            this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function() {
             let vm = this;
@@ -1828,6 +1927,7 @@
                 vm.initMap();
                 vm.set_mode('normal')
                 vm.addEventListeners();
+                vm.initAwesomplete()
             });
         }
     }
@@ -2046,4 +2146,9 @@
     .v-leave-active {
           transition: 0.4s;
     }
+    @import './map_address_search_scoped.css'
+</style>
+
+<style>
+    @import './map_address_search.css'
 </style>
