@@ -179,11 +179,9 @@ class UserViewSet(viewsets.ModelViewSet):
             instance = self.get_object()
             serializer = UserAddressSerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
-            #import ipdb; ipdb.set_trace()
             if instance.residential_address:
                 address = Address.objects.filter(id=instance.residential_address.id)
                 total_addresses=address.count()
-                #import ipdb; ipdb.set_trace()
                 if total_addresses > 0:
                     residential_address = Address.objects.get(id=address[0].id) 
                     residential_address.locality=serializer.validated_data['locality']
@@ -193,8 +191,6 @@ class UserViewSet(viewsets.ModelViewSet):
                     residential_address.line1=serializer.validated_data['line1']
                     residential_address.save()
                     instance.residential_address= residential_address
-                    # residential_address.line1=serializer.validated_data['line1']
-                    # residential_address.save()
             else:
                 address=Address.objects.create(
                     line1=serializer.validated_data['line1'],
@@ -210,7 +206,6 @@ class UserViewSet(viewsets.ModelViewSet):
 
             with transaction.atomic():
                 instance.save()
-                #instance.residential_address.save()
                 serializer = UserSerializer(instance)
             return Response(serializer.data);
         except serializers.ValidationError:
