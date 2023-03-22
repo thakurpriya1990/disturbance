@@ -42,7 +42,8 @@ from decimal import Decimal
 
 from ledger.payments.models import Invoice
 from ledger.basket.models import Basket
-from oscar.apps.order.models import Order
+# from oscar.apps.order.models import Order
+from ledger.order.models import Order
 from disturbance.helpers import is_internal, is_disturbance_admin, is_in_organisation_contacts
 from disturbance.context_processors import apiary_url
 
