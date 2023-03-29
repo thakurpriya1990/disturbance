@@ -786,7 +786,9 @@
                         targetZoomLevel = currentZoomLevel
                     }
 
-                    zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
+                    //zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
+                    zoomToCoordinates(vm.map, [lat, lng], targetZoomLevel)
+
                 }
             },
             display_layers_option: function(mode){
