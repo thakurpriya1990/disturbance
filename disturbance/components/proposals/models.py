@@ -5157,6 +5157,8 @@ from ckeditor.fields import RichTextField
 class MasterlistQuestion(models.Model):
     ANSWER_TYPE_CHECKBOX = 'checkbox'
     ANSWER_TYPE_RADIO = 'radiobuttons'
+    ANSWER_TYPE_SELECT = 'select'
+    ANSWER_TYPE_MULTI = 'multi-select'
 
     ANSWER_TYPE_CHOICES=(('text', 'Text'),
                          (ANSWER_TYPE_RADIO, 'Radio button'),
@@ -5179,6 +5181,12 @@ class MasterlistQuestion(models.Model):
         ANSWER_TYPE_CHECKBOX,
         # ANSWER_TYPE_SELECT,
         # ANSWER_TYPE_MULTI,
+        ANSWER_TYPE_RADIO,
+    ]
+    ANSWER_TYPE_OPTIONS_NEW = [
+        ANSWER_TYPE_CHECKBOX,
+        ANSWER_TYPE_SELECT,
+        ANSWER_TYPE_MULTI,
         ANSWER_TYPE_RADIO,
     ]
     name = models.CharField(max_length=100)
