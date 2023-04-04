@@ -29,8 +29,8 @@
             </template>
             <span v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin'></i></span>
             <!-- <i id="file-spinner" class=""></i> -->
-            <div v-if="files">
-                <div v-for="v in documents">
+            <div v-if="files" class="files">
+                <div v-for="v in documents" :data-file-name="v.name">
                     <p>
                         File: <a :href="v.file" target="_blank">{{v.name}}</a> &nbsp;
                         <span v-if="!readonly && v.can_delete">
@@ -74,11 +74,13 @@ import alert from '@vue-utils/alert.vue'
 export default {
     props:{
         proposal_id: null,
+        proposal_lodgement_date: String,
         name:String,
         label:String,
         id:String,
         isRequired:String,
         //comment_value: String,
+        comment_value: [String, Object],
         assessor_readonly: Boolean,
         help_text:String,
         help_text_assessor:String,
@@ -103,14 +105,15 @@ export default {
                     "application/pdf,text/csv,application/msword,application/vnd.ms-excel,application/x-msaccess," +
                     "application/x-7z-compressed,application/x-bzip,application/x-bzip2,application/zip," + 
                     ".dbf,.gdb,.gpx,.prj,.shp,.shx," + 
-                    ".json,.kml,.gpx";
+                    ".json,.kml,.gpx,.txt,";
                 return file_types;
             }
         },
-        isRepeatable:Boolean,
+        isRepeatable: [String, Boolean],
         readonly:Boolean,
         docsUrl: String,
         comment_boxes: "",
+        //comment_boxes: [String, Array]
     },
     components: {Comment, HelpText, HelpTextUrl, CommentBox, alert },
     data:function(){
@@ -205,6 +208,9 @@ export default {
             formData.append('action', 'list');
             formData.append('input_name', vm.name);
             formData.append('csrfmiddlewaretoken', vm.csrf_token);
+            if(vm.proposal_lodgement_date){
+                formData.append('proposal_lodgement_date', vm.proposal_lodgement_date);
+            }
             vm.$http.post(vm.proposal_document_action, formData)
                 .then(res=>{
                     vm.documents = res.body;

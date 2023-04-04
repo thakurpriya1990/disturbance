@@ -26,3 +26,4 @@ cd ../../../ &&
 docker image build $NO_CACHE --tag $BUILD_TAG . &&
 echo $BUILD_TAG &&
 docker push $BUILD_TAG
+

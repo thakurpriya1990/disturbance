@@ -1,11 +1,15 @@
-from __future__ import unicode_literals
-import collections
 
+
+import logging
+import copy
+import subprocess
+import collections
 import json
 import datetime
-
 import pytz
 import requests
+import re
+
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
 from django.contrib.gis.db.models.manager import GeoManager
@@ -14,22 +18,30 @@ from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
-from django.db.models import Q
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
+
+from dirtyfields import DirtyFieldsMixin
+from reversion.models import Version
+from deepdiff import DeepDiff
+from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField
+from rest_framework import serializers
+from ast import literal_eval
+from taggit.models import TaggedItemBase
+
 from ledger.checkout.utils import createCustomBasket
 from ledger.payments.invoice.utils import CreateInvoiceBasket
 from ledger.settings_base import TIME_ZONE
-from rest_framework import serializers
-from taggit.models import TaggedItemBase
+
 from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 from disturbance import exceptions
-# from disturbance.components.approvals.models import ApiarySiteOnApproval
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
     ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
@@ -56,10 +68,10 @@ import subprocess
 from multiselectfield import MultiSelectField
 from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField, GroupedForeignKey
 
-import logging
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
-    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX
+    SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX, \
+    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +307,7 @@ class ProposalDocument(Document):
 def fee_invoice_references_default():
     return []
 
-class Proposal(RevisionedMixin):
+class Proposal(DirtyFieldsMixin, RevisionedMixin):
     CUSTOMER_STATUS_TEMP = 'temp'
     CUSTOMER_STATUS_DRAFT = 'draft'
     CUSTOMER_STATUS_WITH_ASSESSOR = 'with_assessor'
@@ -460,14 +472,35 @@ class Proposal(RevisionedMixin):
 
     def __str__(self):
         return str(self.id)
-
-    #Append 'P' to Proposal id to generate Lodgement number. Lodgement number and lodgement sequence are used to generate Reference.
+      
+    
     def save(self, *args, **kwargs):
-        super(Proposal, self).save(*args,**kwargs)
+        # Store the original values of fields we want to keep track of in 
+        # django reversion before they are overwritten by super() below
+        original_processing_status = self._original_state['processing_status']
+        original_assessor_data = self._original_state['assessor_data']
+        original_comment_data = self._original_state['comment_data']
+
+        # Populate self with the new field values
+        super(Proposal, self).save(*args, **kwargs)
+
+        # Append 'P' to Proposal id to generate Lodgement number.
+        # Lodgement number and lodgement sequence are used to generate Reference.
         if self.lodgement_number == '':
             new_lodgment_id = 'P{0:06d}'.format(self.pk)
             self.lodgement_number = new_lodgment_id
             self.save()
+
+        # If the processing_status has changed then add a reversion comment
+        # so we have a way of filtering based on the status changing
+        if self.processing_status != original_processing_status:
+            self.save(version_comment=f'processing_status: {self.processing_status}')
+        elif self.assessor_data != original_assessor_data:
+            # Although the status hasn't changed we add the text 'processing_status'
+            # So we can filter based on it later (for both assessor_data and comment_data)
+            self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
+        elif self.comment_data != original_comment_data:
+            self.save(version_comment='comment_data: Has changed - tagging with processing_status')
 
     @property
     def fee_paid(self):
@@ -706,6 +739,12 @@ class Proposal(RevisionedMixin):
         Gets a full Proposal version to show when the View button is clicked.
         """
 
+        versions = self.get_reversion_history()
+
+        return versions[version_number].field_dict
+
+
+        """
         all_revisions_list = list(self.get_reversion_history().values())
         print(all_revisions_list[version_number].field_dict["data"][0].keys())
         version1 = all_revisions_list[version_number].field_dict["data"]
@@ -716,6 +755,7 @@ class Proposal(RevisionedMixin):
         for k, v in dic.items():
             out[k.split('_0_')[1]] = v
         return version1
+        """
 
     def get_revision_flat(self, version_number):
         """
@@ -766,18 +806,22 @@ class Proposal(RevisionedMixin):
 
         return dictionary
 
-    def get_revision_diff(self, compare_version):
+    def get_revision_diff(self, newer_version, older_version):
         """
         Gets all the revision differences between the most recent revision and the revision specified.
         """
-        from deepdiff import DeepDiff
 
-        all_revisions_list = list(self.get_reversion_history().values())
-        all_revisions_length = len(all_revisions_list)
+        versions = self.get_reversion_history()
 
-        most_recent_data = all_revisions_list[0].field_dict["data"]
-        compare_data = all_revisions_list[all_revisions_length-compare_version].field_dict["data"]
-        diffs = DeepDiff(most_recent_data, compare_data, ignore_order=True)
+        # all_revisions_list = list(self.get_reversion_history().values())
+
+        versions_length = len(versions)
+
+        newer_version = versions[newer_version].field_dict["data"]
+
+        older_version = versions[older_version].field_dict["data"]
+
+        diffs = DeepDiff(newer_version, older_version, ignore_order=True)
 
         diffs_list = []
         for v in diffs.items():
@@ -786,17 +830,395 @@ class Proposal(RevisionedMixin):
                     diffs_list.append({k.split('\'')[-2]:v['new_value'],})
         return diffs_list
 
+
+    def get_version_differences(self, newer_version: int, older_version: int):
+        """ Returns the differences between two versions
+
+        The most recent version is always 0.
+
+        The second most recent version is 1 and so on all the way to the oldest
+        version
+
+        This method will raise an Exception if the newer_version argument is
+        higher than or equal to the older version to make sure we are indeed
+        comparing a newer version with an older version.
+
+        See: https://django-reversion.readthedocs.io for more information.
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = self.get_reversion_history()
+
+        # Complain if either requested version doesn't exist
+        if (newer_version>=(len(versions)-1)):
+            raise IndexError(f'The newer_version you requested "{newer_version}" doesn\'t exist')
+
+        if (older_version>(len(versions)-1)):
+            raise IndexError(f'The older_version you requested "{older_version}" doesn\'t exist')
+
+        newer_version_data = versions[newer_version].field_dict
+        older_version_data = versions[older_version].field_dict
+
+        differences = DeepDiff(newer_version_data, older_version_data, ignore_order=True)
+
+        default_mapping = {datetime.datetime: lambda d: str(d)}
+
+        json_differences = json.loads(differences.to_json(default_mapping=default_mapping))
+
+        #logger.debug(f'\n\json_differences = \n\n {json_differences}')
+
+        return json_differences
+
+    def get_version_differences_comment_and_assessor_data(self, field, newer_version: int, older_version: int):
+        """ Returns the differences between the comment data of two versions
+
+        Due to the structure of the 'comment_data' and 'assessor_data' fields being different to the 
+        structure of the 'data' field, we need some custom logic to return the section identifier and
+        the email for the referrer.
+
+        This makes it possible for the compare function on the front end to append the revision notes
+        to the correct location quite easily.
+
+        This method only works when each item in the JSON field has it's data in the following
+        structure:
+
+        {
+        "name": "Section0-7Group1-1-Yes2",
+        "assessor": "",
+        "referrals": [
+            {
+            "email": "tracy.sonneman@dbca.wa.gov.au",
+            "value": "",
+            "full_name": "Tracy Sonneman"
+            }
+        ]
+        },
+
+        """
+
+        # Fail if either argument is negative
+        if(newer_version<0 or older_version<0):
+            raise Exception('The newer_version and older_version arguements must be 0 or higher')
+
+        # Refuse to compare if the newer version is not actually newer
+        if(newer_version>=older_version):
+            raise Exception('The newer_version arguement must be smaller than the older_version argument')
+
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+
+        older_version_data = versions[older_version].field_dict[field]
+        newer_version_data = versions[newer_version].field_dict[field]
+
+        differences = DeepDiff(older_version_data, newer_version_data, ignore_order=True)
+
+        #logger.debug(f'differences = {differences}')
+
+        json_differences = json.loads(differences.to_json())
+
+        differences_list = []
+
+        if 'values_changed' in json_differences:            
+            logger.debug('\n\n values_changed ========================= ')
+            values_changed = json_differences['values_changed']
+
+            for key in values_changed:
+                # Due to the structure of comment_data and assessor_data we need to get the section name
+                # for both the comments and the referral comments.
+                #    
+                # We also need the email for the Refferal comments.
+                #
+                # With this information we can attach the revision notes in the right place on the frontend
+                # quite easily.
+                #
+                # Also keep in mind that deep diff will return a different data structure once referral
+                # comments have been added.
+                
+                # Get the number between the first set of square brackets i.e. x in 'root[x].etc[y].etc[z]
+                regex = re.search('(?<=\[).+?(?=\])', str(key))
+                root_level = regex.group(0)
+
+                differences_list = self.append_to_differences_list_by_field(field, older_version_data, newer_version_data, \
+                    values_changed, key, root_level,differences_list)
+
+        return differences_list
+
+    def append_to_differences_list_by_field(self, field, older_version_data, newer_version_data, values_changed, key, root_level, \
+                                            differences_list):
+        """ Returns the differences list with the appropriate keys for the assessor_data field. """
+        
+        older_assessor_comment = older_version_data[int(root_level)]['assessor']
+        newer_assessor_comment = newer_version_data[int(root_level)]['assessor']
+
+        #logger.debug('key = ' + str(key))
+
+        root_level_name = newer_version_data[int(root_level)]['name']
+
+        if 'assessor_data' == field:
+            assessor_suffix = '-Assessor'
+            referral_suffix = '-Referral-'
+        elif 'comment_data' == field:
+            assessor_suffix = '-comment-field-Assessor'
+            referral_suffix = '-comment-field-Referral-'            
+        else:
+            raise ValueError('The field argument must be either assessor_data or comment_data')
+
+        if older_assessor_comment:
+            logger.debug('\n There is an older comment: \n' + str(older_assessor_comment))
+            # if the assessor comment hasn't changed then it must be a referral comment change that deep diff picked up
+            if newer_assessor_comment == older_assessor_comment:
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    if older_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:                
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
+            else:
+                logger.debug('key = ' + str(key))
+                if 'referral' not in key:
+                    root_level_name_appended = root_level_name + assessor_suffix
+                    old_value = values_changed[key]['old_value']
+                    logger.debug('old_value = ' + str(old_value))
+                    if(type(old_value) is dict):
+                        # In certain circumstances, deep diff returns a dictionary rather than just a value
+                        differences_list.append({root_level_name_appended:old_value['assessor']})
+                    else:
+                        differences_list.append({root_level_name_appended:old_value})
+                else:
+                    older_referrals = older_version_data[int(root_level)]['referrals']
+                    newer_referrals = newer_version_data[int(root_level)]['referrals']
+                    if newer_referrals:
+                        for i, new_referral in enumerate(newer_referrals):
+                            logger.debug('\n new_referral \n' + str(new_referral['value'] ))
+                            logger.debug('\n older_referral \n' + str(older_referrals[i]['value']))
+                            referrer_email = new_referral['email']
+                            root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                            try:
+                                if new_referral['value'] != older_referrals[i]['value']:
+                                    if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                        differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                            except IndexError:
+                                # This referral doesn't exist in the older version
+                                if new_referral['value']:
+                                    differences_list.append({root_level_name_appended:'(Previously Blank)'})
+        else:
+            if newer_assessor_comment:
+                root_level_name_appended = root_level_name + assessor_suffix
+                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:                           
+                                referrer_email = new_referral['email']
+                                root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                        
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+            else:
+                # Edge case. Both the old assessor comment and the new assessor comment are empty
+                # Which means the change deep diff picked up must be a referral comment
+                older_referrals = older_version_data[int(root_level)]['referrals']
+                newer_referrals = newer_version_data[int(root_level)]['referrals']
+                if newer_referrals:
+                    for i, new_referral in enumerate(newer_referrals):
+                        referrer_email = new_referral['email']
+                        root_level_name_appended = root_level_name + f'{referral_suffix}{referrer_email}'
+                        try:
+                            if new_referral['value'] != older_referrals[i]['value']:
+                                if {root_level_name_appended:older_referrals[i]['value']} not in differences_list:                         
+                                    differences_list.append({root_level_name_appended:older_referrals[i]['value']})
+                        except IndexError:
+                            # This referral doesn't exist in the older version
+                            if new_referral['value']:
+                                differences_list.append({root_level_name_appended:'(Previously Blank)'})
+
+        return differences_list
+
     def get_reversion_history(self):
         """
-        Get all the revisions submitted for this Proposal.
+        Get the revisions for this Proposal where the processing_status has changed
         """
-        from reversion.models import Version
         # Get all revisions that have been submitted (not just saved by user) including the original.
-        all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
+        #all_revisions = [v for v in Version.objects.get_for_object(self)[0:] if not v.field_dict['customer_status'] == 'draft']
         # Strip out duplicates (only take the most recent of a revision).
-        unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+        #unique_revisions = collections.OrderedDict({v.field_dict['lodgement_date']:v for v in all_revisions})
+
+        unique_revisions = Version.objects.get_for_object(self).select_related('revision').filter(revision__comment__contains='processing_status')
 
         return unique_revisions
+
+    def get_full_reversion_history(self):
+        """  Get all the revisions for this Proposal.
+        """
+
+        revisions = Version.objects.get_for_object(self).select_related('revision')
+
+        return revisions
+
+    def get_documents_for_version(self, version_number):
+        # get the datetime the requested version was lodged
+        versions = list(Version.objects.get_for_object(self).select_related('revision')\
+            .filter(revision__comment__contains='processing_status').get_unique())
+        version = versions[version_number]
+        #proposal = Proposal(**version)
+        version_lodgement_date = version.field_dict['lodgement_date']
+        version_documents = ProposalDocument.objects.filter(proposal=self, uploaded_date__lte=version_lodgement_date)\
+            .order_by('input_name', 'uploaded_date')
+        return version_documents, version_lodgement_date
+
+    def get_document_differences(self, newer_version, older_version, differences_only):
+        newer_version_documents, newer_version_lodgement_date = self.get_documents_for_version(newer_version)
+        older_version_documents, older_version_lodgement_date = self.get_documents_for_version(older_version)
+
+        newer_documents_list = []
+        input_name = ''
+        for document in newer_version_documents:
+            if not document.hidden:
+                #logger.debug('newer_document.input_name = ' + str(document.input_name))
+                #logger.debug('newer_document.name = ' + str(document.name))
+                #logger.debug('newer_document.hidden = ' + str(document.hidden) + '\n\n')
+                if input_name != document.input_name:
+                    input_name = document.input_name
+                    input_item = {input_name:[]}
+                    newer_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{document.name:document._file.url}]
+
+        #return newer_documents_list
+
+        older_documents_list = []
+        input_name = ''
+        for document in older_version_documents:
+            # We need to get the state (hidden or not) of the document as it was in the older version
+            older_document_version = Version.objects.get_for_object(document)\
+            .select_related('revision').filter(revision__date_created__lte=older_version_lodgement_date).order_by('-revision__date_created').first()
+            older_document = ProposalDocument(**older_document_version.field_dict)
+            if not older_document.hidden:
+                #logger.debug('older_document.input_name = ' + str(older_document.input_name))
+                #logger.debug('older_document.name = ' + str(older_document.name))
+                #logger.debug('older_document.hidden = ' + str(older_document.hidden) + '\n\n')
+                if input_name != older_document.input_name:
+                    input_name = older_document.input_name
+                    input_item = {input_name:[]}
+                    older_documents_list.append(input_item)
+                    #logger.debug('adding ' + str(input_item))
+
+                #logger.debug('input_name ' + str(input_name))
+
+                input_item[input_name] += [{older_document.name:older_document._file.url}]
+
+        #return older_documents_list
+
+        #logger.debug('older_documents_list = ' + str(older_documents_list))
+
+
+        #logger.debug('\n\nolder_documents_list = ' + str(newer_documents_list))
+
+        #logger.debug('newer_version_documents length = ' + str(len(list(newer_version_documents))))
+        #logger.debug('older_version_documents length = ' + str(len(list(older_version_documents))))
+
+        differences = DeepDiff(newer_documents_list, older_documents_list, ignore_order=True)
+
+        #logger.debug('\n\ndifferences = ' + str(differences))
+
+        #if differences_only:
+        differences_list = []
+        for difference in differences.items():
+            if "values_changed" in difference:
+                #logger.debug('\n\n values_changed -----------------> ')
+                for key, value in difference[1].items():
+                    key_suffix = key.split('\'')[-1]
+                    #logger.debug('\n\n key = ' + str(key))
+                    #logger.debug('\n\n values = ' + str(value))
+                    section = key.split('\'')[-2]
+                    # Add the old value document to the list as an remove
+                    old_value_dict = value['old_value']
+                    #logger.debug('\n\n old_value_dict = ' + str(old_value_dict))
+                    operation = '-'
+                    for item in old_value_dict:
+                        file_name = item
+                        file_path = old_value_dict[item]
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+                    # Add the new value document to the list as an add
+                    new_value_dict = value['new_value']
+                    #logger.debug('\n\n new_value_dict = ' + str(new_value_dict))
+                    operation = '+'
+                    for item in new_value_dict:
+                        file_name = item
+                        file_path = new_value_dict[item]
+                        #logger.debug('\n\n item = ' + str(item))
+                        #logger.debug('\n\n file_path = ' + str(file_path))
+                        differences_list.append({section:(operation, file_name, file_path)})
+
+                    #differences_list.append({section:'-{},+{}'.format(old_value, new_value),})
+
+            #logger.debug(f'difference = {difference}')
+            if "iterable_item_removed" in difference:
+                #logger.debug('\n\n iterable_item_removed -----------------> ')
+                operation = '-'
+                for item in difference[1]:
+                    document = difference[1][item]
+                    for x in document:
+                        #logger.debug('\n\n x = ' + x)
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+            if "iterable_item_added" in difference:
+                #logger.debug('\n\n iterable_item_added -----------------> ')
+                operation = '+'
+                for item in difference[1]:
+                    #logger.debug('\n\n item = ' + str(item))
+                    document = difference[1][item]
+                    for x in document:
+                        section = item.split('\'')[-2]
+                        #logger.debug('\n\n section = ' + str(section))
+                        #logger.debug('\n\n document = ' + str(document))
+
+                        section = item.split('\'')[-2]
+
+                        #file = document[section][0]
+                        for key, value in document.items():
+
+                            file_name = key
+                            file_path = document[key]
+                            differences_list.append({section:(operation, file_name, file_path)})
+
+        return differences_list
+        
 
     def __assessor_group(self):
         # Alternative logic for Apiary applications
@@ -2849,6 +3271,11 @@ class ApiarySiteOnProposal(RevisionedMixin):
     def __str__(self):
         return 'id:{}: (apiary_site: {}, proposal_apiary: {})'.format(self.id, self.apiary_site.id, self.proposal_apiary.id)
 
+    def get_relevant_applicant_name(self):
+        if self.proposal_apiary and self.proposal_apiary.proposal:
+            return self.proposal_apiary.proposal.relevant_applicant_name
+        return ''
+
     class Meta:
         app_label = 'disturbance'
         unique_together = ['apiary_site', 'proposal_apiary',]
@@ -3364,12 +3791,12 @@ class ProposalApiary(RevisionedMixin):
                                 relation_target.batch_no = apiary_site.get('properties')['batch_no']
 
                                 if apiary_site.get('properties')['approval_cpc_date']:
-                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%d-%M-%Y')
+                                    relation_target.approval_cpc_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_cpc_date'], '%Y-%M-%d')
                                 else:
                                     relation_target.approval_cpc_date = None
 
                                 if apiary_site.get('properties')['approval_minister_date']:
-                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%d-%M-%Y')
+                                    relation_target.approval_minister_date = datetime.datetime.strptime(apiary_site.get('properties')['approval_minister_date'], '%Y-%M-%d')
                                 else:
                                     relation_target.approval_minister_date = None
 
@@ -3422,45 +3849,52 @@ class ProposalApiary(RevisionedMixin):
                 # This period should not overwrap the existings, otherwise you will need a refund
                 annual_rental_fee_period, perioed_created = AnnualRentalFeePeriod.objects.get_or_create(period_start_date=period_start_date, period_end_date=period_end_date)
 
-                line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
-                    approval,
-                    today_now_local,
-                    (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
-                    sites_approved
-                )
-
-                if line_items:
-                    basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
-                    order = CreateInvoiceBasket(
-                        payment_method='other', system=PAYMENT_SYSTEM_PREFIX
-                    ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
-                                               invoice_text='Payment Invoice')
-                    invoice = Invoice.objects.get(order_number=order.number)
-
-                    line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
-                    annual_rental_fee = AnnualRentalFee.objects.create(
-                        approval=approval,
-                        annual_rental_fee_period=annual_rental_fee_period,
-                        invoice_reference=invoice.reference,
-                        invoice_period_start_date=invoice_period[0],
-                        invoice_period_end_date=invoice_period[1],
-                        lines=line_items,
+                run_date = ApiaryAnnualRentalFeeRunDate.objects.get(name=ApiaryAnnualRentalFeeRunDate.NAME_CRON)
+                if run_date.enabled_for_new_site:
+                    line_items, apiary_sites_charged, invoice_period = generate_line_items_for_annual_rental_fee(
+                        approval,
+                        today_now_local,
+                        (annual_rental_fee_period.period_start_date, annual_rental_fee_period.period_end_date),
+                        sites_approved
                     )
 
-                    for site in sites_approved:
-                        # Store the apiary sites which the invoice created above has been issued for
-                        apiary_site = ApiarySite.objects.get(id=site['id'])
-                        annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
-                        annual_rental_fee_apiary_site.save()
+                    if line_items:
+                        basket = createCustomBasket(line_items, approval.relevant_applicant_email_user, PAYMENT_SYSTEM_ID)
+                        order = CreateInvoiceBasket(
+                            payment_method='other', system=PAYMENT_SYSTEM_PREFIX
+                        ).create_invoice_and_order(basket, 0, None, None, user=approval.relevant_applicant_email_user,
+                                                   invoice_text='Payment Invoice')
+                        invoice = Invoice.objects.get(order_number=order.number)
 
-                        # Add approved sites to the existing temporary use proposal with status 'draft'
-                        proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
-                        for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
-                            temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+                        line_items = make_serializable(line_items)  # Make line items serializable to store in the JSONField
+                        annual_rental_fee = AnnualRentalFee.objects.create(
+                            approval=approval,
+                            annual_rental_fee_period=annual_rental_fee_period,
+                            invoice_reference=invoice.reference,
+                            invoice_period_start_date=invoice_period[0],
+                            invoice_period_end_date=invoice_period[1],
+                            lines=line_items,
+                        )
 
-                    if not preview:
-                        email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
-                    # TODO: Add comms log
+                        for site in sites_approved:
+                            # Store the apiary sites which the invoice created above has been issued for
+                            apiary_site = ApiarySite.objects.get(id=site['id'])
+                            annual_rental_fee_apiary_site = AnnualRentalFeeApiarySite(apiary_site=apiary_site, annual_rental_fee=annual_rental_fee)
+                            annual_rental_fee_apiary_site.save()
+
+                            # Add approved sites to the existing temporary use proposal with status 'draft'
+                            proposal_apiary_temporary_use_qs = ProposalApiaryTemporaryUse.objects.filter(loaning_approval=approval, proposal__processing_status=Proposal.PROCESSING_STATUS_DRAFT)
+                            for proposal_apiary_temporary_use in proposal_apiary_temporary_use_qs:
+                                temp_use_apiary_site, temp_created = TemporaryUseApiarySite.objects.get_or_create(apiary_site=site, proposal_apiary_temporary_use=proposal_apiary_temporary_use)
+
+                        if not preview:
+                            email_data = send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice)
+
+                            from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
+                            email_data['approval'] = u'{}'.format(approval.id)
+                            serializer = ApprovalLogEntrySerializer(data=email_data)
+                            serializer.is_valid(raise_exception=True)
+                            serializer.save()
 
                 #print approval,approval.id, created
             # Generate compliances
@@ -3963,7 +4397,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
         (NAME_PERIOD_START, 'Start date of the annual site fee'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    period_start_date = models.DateField(blank=True, null=True)
+    period_start_date = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
 
     def __str__(self):
         try:
@@ -3974,6 +4408,7 @@ class ApiaryAnnualRentalFeePeriodStartDate(RevisionedMixin):
     class Meta:
         app_label = 'disturbance'
         ordering = ('period_start_date', )  # oldest record first, latest record last
+        verbose_name = 'Annual Site Fee Period Start Date'
 
 
 class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
@@ -3985,7 +4420,9 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
         (NAME_CRON, 'Date to Issue'),
     )
     name = models.CharField(unique=True, max_length=50, choices=NAME_CHOICES, )
-    date_run_cron = models.DateField(blank=True, null=True)
+    date_run_cron = models.DateField(blank=True, null=True, help_text='Although year, month and date are entered, the system uses only the month and the date internally')
+    enabled = models.BooleanField(default=False, verbose_name='Apply by cronjob', help_text='Sets whether the annual fee is applied to the sites by the cron job')
+    enabled_for_new_site = models.BooleanField(default=False, verbose_name='Apply when approved', help_text='Sets whether the annual fee is applied when an application is approved')
 
     class Meta:
         app_label = 'disturbance'
@@ -3999,6 +4436,8 @@ class ApiaryAnnualRentalFeeRunDate(RevisionedMixin):
 
 
 class ApiarySite(models.Model):
+    id = models.IntegerField(primary_key=True, editable=False)
+
     site_guid = models.CharField(max_length=50, blank=True)
     latest_proposal_link = models.ForeignKey('disturbance.ApiarySiteOnProposal', blank=True, null=True, on_delete=models.SET_NULL)
     latest_approval_link = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, on_delete=models.SET_NULL)
@@ -4008,8 +4447,32 @@ class ApiarySite(models.Model):
     approval_link_for_vacant = models.ForeignKey('disturbance.ApiarySiteOnApproval', blank=True, null=True, related_name='vacant_apiary_site', on_delete=models.SET_NULL)
     is_vacant = models.BooleanField(default=False)
 
+    def get_relevant_applicant_name(self):
+        relevant_name = ''
+
+        try:
+            if not self.is_vacant:
+                if self.latest_approval_link and self.latest_approval_link.site_status in [SITE_STATUS_CURRENT, SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED,]:
+                    relevant_name = self.latest_approval_link.approval.relevant_applicant_name
+                elif self.latest_proposal_link and self.latest_proposal_link.site_status in [SITE_STATUS_PENDING, SITE_STATUS_DENIED,]:
+                    relevant_name = self.latest_proposal_link.proposal_apiary.proposal.relevant_applicant_name
+        except Exception as e:
+            logger.error('Exception raised when retrieving the relevant applicant name for the apiary site: {}. Error: {}'.format(self, e))
+
+        return relevant_name
+
     def __str__(self):
         return '{}'.format(self.id,)
+
+    def save(self, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        if not self.id:
+            max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
+            self.id = int(max) + 1 if max is not None else 1
+
+        #kwargs.pop('force_insert')
+        #kwargs.update({'force_update': True})
+        super().save(kwargs)
 
     def delete(self, using=None, keep_parents=False):
         super(ApiarySite, self).delete(using, keep_parents)
@@ -4748,6 +5211,8 @@ from ckeditor.fields import RichTextField
 class MasterlistQuestion(models.Model):
     ANSWER_TYPE_CHECKBOX = 'checkbox'
     ANSWER_TYPE_RADIO = 'radiobuttons'
+    ANSWER_TYPE_SELECT = 'select'
+    ANSWER_TYPE_MULTI = 'multi-select'
 
     ANSWER_TYPE_CHOICES=(('text', 'Text'),
                          (ANSWER_TYPE_RADIO, 'Radio button'),
@@ -4770,6 +5235,12 @@ class MasterlistQuestion(models.Model):
         ANSWER_TYPE_CHECKBOX,
         # ANSWER_TYPE_SELECT,
         # ANSWER_TYPE_MULTI,
+        ANSWER_TYPE_RADIO,
+    ]
+    ANSWER_TYPE_OPTIONS_NEW = [
+        ANSWER_TYPE_CHECKBOX,
+        ANSWER_TYPE_SELECT,
+        ANSWER_TYPE_MULTI,
         ANSWER_TYPE_RADIO,
     ]
     name = models.CharField(max_length=100)

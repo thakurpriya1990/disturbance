@@ -965,10 +965,13 @@ export default {
                     vm.post_and_redirect(vm.application_fee_url, {'csrfmiddlewaretoken' : vm.csrf_token});
                 },
                 err=>{
-                    if (err.body.type[0] === 'site_no_longer_available'){
+                    if (err.body.type && err.body.type[0] === 'site_no_longer_available'){
+                        console.log('1')
                         vm.display_site_no_longer_available_modal(err)
                     } else {
+                        console.log('2')
                         helpers.processError(err)
+                        vm.submittingProposal = false
                     }
                 }
             );

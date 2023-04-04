@@ -2,6 +2,7 @@ from __future__ import unicode_literals
 
 import datetime
 from django.db import models,transaction
+from django.db.models import Q, Max
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete
 from django.core.exceptions import ValidationError
@@ -96,12 +97,17 @@ class ApiarySiteOnApproval(models.Model):
     roadtrack = models.CharField(max_length=40, blank=True, null=True)
     zone = models.CharField(max_length=40, blank=True, null=True)
     catchment = models.CharField(max_length=40, blank=True, null=True)
-    dra_permit = models.BooleanField(default=False)
+    dra_permit = models.NullBooleanField()
 
     objects = GeoManager()
 
     def __str__(self):
         return 'id:{}: (apiary_site: {}, approval: {})'.format(self.id, self.apiary_site.id, self.approval.id)
+
+    def get_relevant_applicant_name(self):
+        if self.approval:
+            return self.approval.relevant_applicant_name
+        return ''
 
     class Meta:
         app_label = 'disturbance'
@@ -733,7 +739,7 @@ def delete_documents(sender, instance, *args, **kwargs):
 import reversion
 reversion.register(Approval, follow=['documents', 'approval_set', 'action_logs'])
 reversion.register(ApprovalDocument)
-reversion.register(ApprovalLogDocument, follow=['documents'])
+reversion.register(ApprovalLogDocument)
 reversion.register(ApprovalLogEntry)
 reversion.register(ApprovalUserAction)
 reversion.register(ApiarySiteOnApproval)

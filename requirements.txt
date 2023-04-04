@@ -1,6 +1,7 @@
 Django==1.11.29
 django-extensions==1.9.8
 git+https://github.com/dbca-wa/ledger#egg=ledger
+#git+https://github.com/dbca-wa/ledger@v2022.08.19.01#egg=ledger
 #git+https://github.com/dbca-wa/ledger@4818666a1bda5fac274e9d0b48008797f04f6545
 git+https://github.com/dbca-wa/dpaw-utils.git@0.3a16#egg=dpaw-utils
 git+https://github.com/django-oscar/django-oscar.git@8a3288da439cc2a878f44ae5c5101043e658d2a2#egg=django-oscar
@@ -19,8 +20,6 @@ django-cron==0.5.0
 django-dynamic-fixture==1.9.1
 openpyxl==3.0.9
 datapackage==0.8.1
-#python-dateutil==2.6.1
-python-dateutil==2.7.3
 py4j==0.10.2.1
 djangorestframework==3.5.2
 djangorestframework-gis==0.11
@@ -53,6 +52,8 @@ git+https://github.com/digi604/django-smart-selects.git@js-unlinting-fixes
 django-multiselectfield==0.1.12
 psycopg2==2.8.6
 deepdiff==5.7.0
+whitenoise==5.3.0
+git+https://github.com/dbca-wa/django-media-serv.git#egg=django_media_serv
 
 # next packages required for geopandas
 # rtree requires 'sudo apt install libspatialindex-dev'
@@ -64,7 +65,7 @@ munch==2.5.0
 numpy==1.21.5
 pandas==1.3.5
 pyproj==3.2.1
-#python-dateutil==2.6.1
+python-dateutil==2.8.2
 shapely==1.8.0
 geopandas==0.10.2
 rtree==0.9.7

@@ -280,8 +280,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         )
         return Response(data)
 
-
-
 #    @list_route(methods=['GET',])
 #    def approvals_paginated(self, request, *args, **kwargs):
 #        """
@@ -337,6 +335,11 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 #        serializer = self.get_serializer(result_page, context={'request':request}, many=True)
 #        return paginator.get_paginated_response(serializer.data)
 
+    def retrieve(self, request, *args, **kwargs):
+        approval = self.get_object()
+        serializer = self.get_serializer(approval, context={'request': request})
+        return Response(serializer.data)
+
     @detail_route(methods=['GET',])
     def approval_wrapper(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -380,6 +383,19 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         instance.log_user_action(ApprovalUserAction.ACTION_UPDATE_NO_CHARGE_DATE_UNTIL.format(instance.no_annual_rental_fee_until.strftime('%d/%m/%Y'), instance.id), request)
 
         return Response({})
+
+    # To solve the performance issue
+    @detail_route(methods=['GET',])
+    @basic_exception_handler
+    def apiary_sites(self, request, *args, **kwargs):
+        approval = self.get_object()
+        # ret = []
+        from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
+        # for relation in approval.get_relations():
+        #     ret.append(ApiarySiteOnApprovalGeometrySerializer(relation).data)
+        # return ret
+        serializer = ApiarySiteOnApprovalGeometrySerializer(approval.get_relations(), many=True)
+        return Response(serializer.data)
 
     @detail_route(methods=['GET',])
     @basic_exception_handler
@@ -526,10 +542,10 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                 comms = serializer.save()
                 # Save the files
                 for f in request.FILES:
-                    document = comms.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
+                    document = comms.documents.create(
+                            name = str(request.FILES[f]),
+                            _file = request.FILES[f]
+                            )
                 # End Save Documents
 
                 return Response(serializer.data)

@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
-from disturbance.components.main.views import deed_poll_url
+from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
@@ -17,8 +17,10 @@ from disturbance.components.proposals import api as proposal_api
 from disturbance.components.approvals import api as approval_api
 from disturbance.components.compliances import api as compliances_api
 from disturbance.components.main import api as main_api
+from disturbance.components.history import api as history_api
 
 from ledger.urls import urlpatterns as ledger_patterns
+from django_media_serv.urls import urlpatterns as media_serv_patterns
 
 # API patterns
 from disturbance.management.default_data_manager import DefaultDataManager
@@ -83,7 +85,7 @@ router.register(
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
     url(r'^api/countries$', users_api.GetCountries.as_view(), name='get-countries'),
-    url(r'^api/department_users$', users_api.DepartmentUserList.as_view(), name='department-users-list'),
+    #url(r'^api/department_users$', users_api.DepartmentUserList.as_view(), name='department-users-list'),
     url(r'^api/proposal_type$', proposal_api.GetProposalType.as_view(), name='get-proposal-type'),
     url(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
     url(r'^api/organisation_access_group_members',org_api.OrganisationAccessGroupMembers.as_view(),name='organisation-access-group-members'),
@@ -96,8 +98,21 @@ api_patterns = [
     url(r'^api/search_sections',proposal_api.SearchSectionsView.as_view(),name='search_sections'),
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
     url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url'),
-
 #    url(r'^api/das/spatial_query$' proposal_api.SpatialQueryQuestionViewSet, name='sqs_spatial_query'),
+
+    url(r'^api/history/compare/serialized/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
+            history_api.GetCompareSerializedVersionsView.as_view(), name='get-compare-serialized-versions'),
+    url(r'^api/history/compare/root/fields/(?P<app_label>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
+            history_api.GetCompareRootLevelFieldsVersionsView.as_view(), name='get-compare-root-level-fields-versions'),
+    url(r'^api/history/compare/field/(?P<app_label>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/(?P<compare_field>[\w-]+)/$',
+            history_api.GetCompareFieldVersionsView.as_view(), name='get-compare-field-versions'),
+    url(r'^api/history/compare/(?P<app_label>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
+            history_api.GetCompareVersionsView.as_view(), name='get-compare-versions'),
+    url(r'^api/history/versions/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<reference_id_field>[\w-]+)/$',
+            history_api.GetVersionsView.as_view(), name='get-versions'),
+    url(r'^api/history/version/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<version_number>\d+)/$',
+            history_api.GetVersionView.as_view(), name='get-version'),
+    url(r'^api/geocoding_address_search_token', GeocodingAddressSearchTokenView.as_view(), name='geocoding_address_search_token'),
 ]
 
 # URL Patterns
@@ -148,7 +163,9 @@ urlpatterns = [
 
     #url(r'^organisations/(?P<pk>\d+)/confirm-delegate-access/(?P<uid>[0-9A-Za-z]+)-(?P<token>.+)/$', views.ConfirmDelegateAccess.as_view(), name='organisation_confirm_delegate_access'),
     # reversion history-compare
+    url(r'^history/proposal/latest/(?P<pk>\d+)/(?P<count>\d+)/$', proposal_views.ProposalHistoryLatestCompareView.as_view(), name='proposal_history_latest'),
     url(r'^history/proposal/(?P<pk>\d+)/$', proposal_views.ProposalHistoryCompareView.as_view(), name='proposal_history'),
+    url(r'^history/proposal/filtered/(?P<pk>\d+)/$', proposal_views.ProposalFilteredHistoryCompareView.as_view(), name='proposal_filtered_history'),
     url(r'^history/referral/(?P<pk>\d+)/$', proposal_views.ReferralHistoryCompareView.as_view(), name='referral_history'),
     url(r'^history/approval/(?P<pk>\d+)/$', proposal_views.ApprovalHistoryCompareView.as_view(), name='approval_history'),
     url(r'^history/compliance/(?P<pk>\d+)/$', proposal_views.ComplianceHistoryCompareView.as_view(), name='compliance_history'),
@@ -157,16 +174,15 @@ urlpatterns = [
     url(r'^history/organisation/(?P<pk>\d+)/$', organisation_views.OrganisationHistoryCompareView.as_view(), name='organisation_history'),
     url(r'^template_group$', views.TemplateGroupView.as_view(), name='template-group'),
 
-    # Reports
+                  # Reports
     url(r'^api/oracle_job$', main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),
         name='booking-settlements-report'),
 
                   # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
-] + ledger_patterns
+] + ledger_patterns + media_serv_patterns
 
 if not are_migrations_running():
     DefaultDataManager()
 
-if settings.DEBUG:  # Serve media locally in development.
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
