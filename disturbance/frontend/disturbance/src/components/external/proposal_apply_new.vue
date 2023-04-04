@@ -353,14 +353,14 @@ export default {
 
     },
 
-	fetchActivityMatrix: function(){
+	fetchActivityMatrix: async function(){
 		let vm = this;
         vm.sub_activities1 = [];
         vm.sub_activities2 = [];
         vm.categories = [];
         vm.approval_level = '';
 
-		vm.$http.get(api_endpoints.activity_matrix).then((response) => {
+		await vm.$http.get(api_endpoints.activity_matrix).then((response) => {
 				this.activity_matrix = response.body[0].schema[0];
 				this.keys_ordered = response.body[0].ordered;
 				//console.log('this.activity_matrix ' + response.body[0].schema);
@@ -369,29 +369,38 @@ export default {
                 for (var i = 0; i < keys.length; i++) {
                     this.activities.push( {text: keys[i], value: keys[i]} );
                 }
+                vm.fetchRegions();
 		},(error) => {
 			console.log(error);
 		})
 	},
-    chainedSelectSubActivities1: function(activity_name){
+    chainedSelectSubActivities1: function(activity_name, set_data=false){
 		let vm = this;
-        vm.sub_activities1 = [];
-        vm.sub_activities2 = [];
-        vm.categories = [];
-        vm.selected_sub_activity1 = '';
-        vm.selected_sub_activity2 = '';
-        vm.selected_category = '';
-        vm.approval_level = '';
+        
+        this.sub_activities1 = [];
+        this.sub_activities2 = [];
+        this.categories = [];
+        this.selected_sub_activity1 = '';
+        this.selected_sub_activity2 = '';
+        this.selected_category = '';
+        this.approval_level = '';
+        if(this.proposal && !set_data){
+            this.proposal.sub_activity_level1 = '';
+            this.proposal.sub_activity_level2 = '';
+            this.proposal.management_area = '';
+            this.proposal.approval_level = '';
+        }
 
-        vm.sub_activities1 = [];
-        var [api_activities, res] = this.get_sub_matrix(activity_name, vm.activity_matrix)
+        //vm.sub_activities1 = [];
+
+        var [api_activities, res] = this.get_sub_matrix(activity_name, this.activity_matrix)
         if (res == "null" || res == null) {
             //for (var i = 0; i < vm.activity_matrix.length; i++) {
             //    if (activity_name == vm.activity_matrix[i]['text']) {
             //        vm.activity_matrix[i]['sub_matrix']
             //    }
             //}
-            vm.proposal.approval_level = api_activities;
+            this.proposal.approval_level = api_activities;
             return;
         } else if (res == "pass") {
             var api_sub_activities = this.get_sub_matrix("pass", api_activities[0])[0];
@@ -417,13 +426,18 @@ export default {
         }
 	},
 
-    chainedSelectSubActivities2: function(activity_name){
+    chainedSelectSubActivities2: function(activity_name, set_data=false){
 		let vm = this;
         vm.sub_activities2 = [];
         vm.categories = [];
         vm.selected_sub_activity2 = '';
         vm.selected_category = '';
         vm.approval_level = '';
+        if(this.proposal && !set_data){
+            this.proposal.sub_activity_level2 = '';
+            this.proposal.management_area = '';
+            this.proposal.approval_level = '';
+        }
 
         //var api_activities = this.get_sub_matrix(activity_name, vm.sub_activities1[0]['text'])
         var [api_activities, res] = this.get_sub_matrix(activity_name, vm.sub_activities1)
@@ -446,11 +460,15 @@ export default {
             }
         }
 	},
-    chainedSelectCategories: function(activity_name){
+    chainedSelectCategories: function(activity_name,set_data=false){
 		let vm = this;
         vm.categories = [];
         vm.selected_category = '';
         vm.approval_level = '';
+        if(this.proposal && !set_data){
+            vm.proposal.management_area = '';
+            vm.proposal.approval_level = '';
+        }
 
         for (var i = 0; i < vm.sub_activities2.length; i++) {
             if (activity_name == vm.sub_activities2[i]['text']) {
@@ -508,7 +526,6 @@ export default {
     },
     setProposalData: function(regions){
         let vm=this;
-        //console.log("here", vm.proposal)
         if(vm.proposal){
             //vm.chainedSelectAppType(vm.proposal.application_type)
             vm.selected_application_name=vm.proposal.application_type;
@@ -552,14 +569,14 @@ export default {
             
             vm.chainedSelectDistricts2(vm.proposal.region, regions);
             if(vm.activity_matrix){
-                vm.chainedSelectSubActivities1(vm.proposal.activity);
+                vm.chainedSelectSubActivities1(vm.proposal.activity, true);
             }
             //vm.chainedSelectSubActivities1(vm.proposal.activity);
             if(vm.proposal.sub_activity_level1!="" && vm.proposal.sub_activity_level1!=null){
-            vm.chainedSelectSubActivities2(vm.proposal.sub_activity_level1);
+            vm.chainedSelectSubActivities2(vm.proposal.sub_activity_level1, true);
             }
             if(vm.proposal.sub_activity_level2!="" && vm.proposal.sub_activity_level2!=null){
-                chainedSelectCategories(vm.proposal.sub_activity_level2);
+                chainedSelectCategories(vm.proposal.sub_activity_level2, true);
             }
         }
     }
@@ -569,7 +586,7 @@ export default {
   mounted: function() {
     let vm = this;
     vm.fetchActivityMatrix();
-    vm.fetchRegions();
+    //vm.fetchRegions();
     vm.fetchApplicationTypes();
     //vm.fetchActivityMatrix();
     vm.form = document.forms.new_proposal;
