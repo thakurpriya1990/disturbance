@@ -5203,7 +5203,7 @@ class SpatialQueryQuestion(models.Model):
 #    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
 #    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
     question = models.TextField('Question (Masterlist Question)')
-    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512)
+    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
 
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
@@ -5229,7 +5229,7 @@ class SpatialQueryQuestion(models.Model):
 
     def __str__(self):
         #return '{} - {}'.format(self.question.id, self.layer_name)
-        return '{} - {}'.format(self.layer_name)
+        return '{}'.format(self.layer_name)
 
 #    def get_options(self):
 #        return "\n".join([q.label for q in self.question.option.all()])

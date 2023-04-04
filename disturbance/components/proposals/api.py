@@ -6,6 +6,7 @@ import json
 
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
+from django.conf import settings
 from django.db.models import Q
 from django.db import transaction, connection
 from django.core.exceptions import ValidationError
@@ -1330,6 +1331,29 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+class ProposalSqsViewSet(viewsets.ModelViewSet):
+    queryset = Proposal.objects.none()
+    serializer_class = ProposalSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) |
+                Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            )
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
+            return queryset
+
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return Proposal.objects.none()
+
 
 class ProposalViewSet(viewsets.ModelViewSet):
     #queryset = Proposal.objects.all()
@@ -1400,6 +1424,75 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['GET',])
+    def sqs_data(self, request, *args, **kwargs):
+        '''
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS
+        ''' 
+        from rest_framework.reverse import reverse_lazy
+        from rest_framework.test import APIClient
+        import requests
+
+        geojson = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}
+
+        #import ipdb; ipdb.set_trace()
+
+        base_api_url = reverse_lazy('api-root', request=request)
+        #masterlist_questions_gbl = requests.get(base_api_url + 'spatial_query/grouped_by_layer.json', headers={}).json()
+        masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
+
+        #api_client = APIClient()
+        #masterlist_questions_gbl = api_client.post('spatial_query/grouped_by_layer.json')
+        #masterlist_questions_gbq = api_client.post('spatial_query/grouped_by_question.json')
+
+        proposal = self.get_object()
+        data = dict(
+	    proposal=dict(
+		system=settings.SYSTEM_NAME_SHORT,
+		id=proposal.id,
+		schema=proposal.schema,
+		data=proposal.data,
+
+	    ),
+            #masterlist_questions = masterlist_questions_gbl,
+            #masterlist_questions_gbq = masterlist_questions_gbq,
+            masterlist_questions = masterlist_questions_gbq,
+            geojson = geojson,
+        )
+        return Response(data)
+
+    @detail_route(methods=['GET',])
+    def sqs_data_single(self, request, *args, **kwargs):
+        '''
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS for Sinfle MLQ question
+        For 'refresh' button on DAS form
+        ''' 
+        from rest_framework.reverse import reverse_lazy
+        from rest_framework.test import APIClient
+        import requests
+
+        GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}
+
+        MASTERLIST_QUESTION_SINGLE = [{'question_group': '8.0 Proposal subtitle (Textbox Component)?', 'questions': [{'id': 54, 'question': '8.0 Proposal subtitle (Textbox Component)?', 'answer_mlq': '', 'layer_name': 'cddp:dpaw_regions', 'layer_url': 'https://kmi.dbca.wa.gov.au/geoserver/cddp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=cddp:dpaw_regions&maxFeatures=50&outputFormat=application%2Fjson', 'expiry': '2024-01-01', 'visible_to_proponent': True, 'buffer': 300, 'how': 'Overlapping', 'column_name': 'region', 'operator': 'IsNotNull', 'value': '', 'prefix_answer': '', 'no_polygons_proponent': -1, 'answer': '', 'prefix_info': '', 'no_polygons_assessor': -1, 'assessor_info': '', 'regions': 'All'}]}]
+
+        #import ipdb; ipdb.set_trace()
+        #base_api_url = reverse_lazy('api-root', request=request)
+        #masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
+
+        proposal = self.get_object()
+        data = dict(
+	    proposal=dict(
+		system=settings.SYSTEM_NAME_SHORT,
+		id=proposal.id,
+		schema=proposal.schema,
+		data=proposal.data,
+
+	    ),
+            masterlist_questions = MASTERLIST_QUESTION_SINGLE,
+            geojson = GEOJSON,
+        )
+        return Response(data)
 
     @detail_route(methods=['POST',])
     def get_revision(self, request, *args, **kwargs):
@@ -3928,7 +4021,16 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
   
             Group spatial query questions by layer_name
         """
+#        multi-select --> id=9
+#        select       --> id=7
+#        checkbox     --> id=45,46,47
+#        radiobutton  --> id=48,49,50, 51,52 	('5.0 What is ... First level radiobutton (Radiobutton Component)?')
         queryset = self.get_queryset()
+        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
+        #queryset = queryset.filter(id__in=[45,46,47])       # checkbox
+        #queryset = queryset.filter(id__in=[43])             # select
+        #queryset = queryset.filter(id__in=[44])             # multi-select
+        queryset = queryset.filter(id__in=[53,54])           # text, text_area
         serializer = self.get_serializer(queryset, many=True)
 
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
@@ -3953,6 +4055,11 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             Group spatial query questions by layer_name
         """
         queryset = self.get_queryset()
+        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
+        #queryset = queryset.filter(id__in=[45,46,47,55])       # checkbox
+        #queryset = queryset.filter(id__in=[43])             # select
+        #queryset = queryset.filter(id__in=[44])             # multi-select
+        queryset = queryset.filter(id__in=[53,54])           # text, text_area
         serializer = self.get_serializer(queryset, many=True)
 
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')

@@ -232,6 +232,14 @@ class ListProposalSerializer(BaseProposalSerializer):
         return self.context.get('template_group')
 
 
+#class ProposalSqsSerializer(BaseProposalSerializer):
+#    class Meta:
+#        model = Proposal
+#        fields = (
+#            'schema',
+#            'data',
+#        )
+ 
 class ProposalSerializer(BaseProposalSerializer):
     submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
