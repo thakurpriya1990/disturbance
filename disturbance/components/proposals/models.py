@@ -5670,6 +5670,28 @@ class SpatialQueryQuestion(models.Model):
         (ISNULL, 'Is null'),
         (ISNOTNULL, 'Is not null'),
     )
+
+    TEXT = 'Text'
+    MULTISELECT = 'Multi-Select'
+    RADIOBUTTON = 'Radio button'
+    CHECKBOX = 'Checkbox'
+    WIDGET_TYPE_CHOICES=(
+        (TEXT, 'Text'),
+        (MULTISELECT, 'Multi select'),
+        (RADIOBUTTON, 'Radio button'),
+        (CHECKBOX, 'Checkbox'),
+    )
+
+    NONE = '' 
+    TEXT = 'Text'
+    INT = 'Int'
+    FLOAT = 'Float'
+    VALUE_TYPE_CHOICES=(
+        (NONE, ''),
+        (TEXT, 'Text String'),
+        (INT, 'Integer'),
+        (FLOAT, 'Float'),
+    )
                          
 #    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
 #    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
@@ -5682,9 +5704,12 @@ class SpatialQueryQuestion(models.Model):
     visible_to_proponent = models.BooleanField(default=False)
     buffer = models.PositiveIntegerField(blank=True, null=True)
     how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
+    widget_type = models.CharField('Component type', max_length=40, choices=WIDGET_TYPE_CHOICES, blank=True, null=True) #default=WIDGET_TYPE_CHOICES[0][0])
+    priority = models.SmallIntegerField('Radio button priority', blank=True, null=True)
     column_name = models.CharField('Name of layer attribute/field', max_length=100)
     operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
     value = models.CharField(max_length=100, blank=True, null=True)
+    value_type = models.CharField('Value type', max_length=40, choices=VALUE_TYPE_CHOICES, default=VALUE_TYPE_CHOICES[0][0])
 
     prefix_answer = models.TextField(blank=True, null=True)
     no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1, blank=True)
@@ -5697,10 +5722,11 @@ class SpatialQueryQuestion(models.Model):
                                         
     class Meta:
         app_label = 'disturbance'
+        ordering = ['-id']
 
     def __str__(self):
         #return '{} - {}'.format(self.question.id, self.layer_name)
-        return '{}'.format(self.layer_name)
+        return '{} - {}'.format(self.question, self.layer_name)
 
 #    def get_options(self):
 #        return "\n".join([q.label for q in self.question.option.all()])

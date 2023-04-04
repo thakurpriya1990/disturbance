@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 
 NL = '\n'
 
+#    'Question ID[1]':                   'question_id',
+#    'Answer ID[2]':                     'answer_mlq_id',
 COLUMN_MAPPING = {
     'Component Type[0]':                'component_type',
     'Question ID[1]':                   'question',

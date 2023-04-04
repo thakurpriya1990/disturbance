@@ -34,16 +34,17 @@ from disturbance.components.proposals.serializers_apiary import (
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 from disturbance.components.organisations.models import Organisation
+#from disturbance.components.main.utils import sqs_query
 
 import traceback
 import os
 import json
 
-import logging
 
 from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj
 
+import logging
 logger = logging.getLogger(__name__)
 
 richtext = u''
@@ -926,6 +927,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
+            import ipdb; ipdb.set_trace()
             extracted_fields,special_fields, add_info_applicant = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             
             instance.data = extracted_fields
@@ -966,6 +968,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             }
 
+            import ipdb; ipdb.set_trace()
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -1758,7 +1761,7 @@ def prefill_data_from_shape_original(schema ):
     
     try:
         for item in schema:
-            data.update(_populate_data_from_item(item, 0, ''))
+            data.update(_populate_data_from_item_original(item, 0, ''))
            
     except:
         traceback.print_exc()
@@ -1856,17 +1859,24 @@ def check_checkbox_item_original(item_name,item,item_data,repetition,suffix):
     return checkbox_item
 
 class PrefillData(object):
+    """
+    from disturbance.components.proposals.utils import PrefillData
+    pr=PrefillData()
+    pr.prefill_data_from_shape(p.schema)
+    """
 
-    def __init__(self):
+    def __init__(self, sqs_builder=None):
+        self.sqs_builder=sqs_builder
         self.data={}
         self.layer_data=[]
         self.add_info_assessor={}
 
-    def prefill_data_from_shape(self, schema ):
+    def prefill_data_from_shape(self, schema):
         #data = {}
         
         try:
             for item in schema:
+                #import ipdb; ipdb.set_trace()
                 self.data.update(self._populate_data_from_item(item, 0, ''))
                
         except:
@@ -1881,10 +1891,14 @@ class PrefillData(object):
         else:
             raise Exception('Missing name in item %s' % item['label'])
 
+        #import ipdb; ipdb.set_trace()
         if 'children' not in item:
             if item['type'] =='checkbox':
+                #import ipdb; ipdb.set_trace()
                 if sqs_value:
+                    #import ipdb; ipdb.set_trace()
                     for val in sqs_value:
+                        #import ipdb; ipdb.set_trace()
                         if val==item['label']:
                             item_data[item['name']]='on'
                             item_layer_data={
@@ -1900,11 +1914,15 @@ class PrefillData(object):
             else:
                     if item['type'] == 'multi-select':
                         #Get value from SQS. Value should be an array of the correct options.
-                        sqs_value=item['options'][1]['value']
-                        sqs_value=[sqs_value]
-                        if sqs_value:
+                        #sqs_value=item['options'][1]['value']
+                        #sqs_value=[sqs_value]
+                        #import ipdb; ipdb.set_trace()
+                        sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
+                        sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                        
+                        if sqs_values:
                             item_data[item['name']]=[]
-                        for val in sqs_value:
+                        for val in sqs_values:
                             if item['options']:
                                 for op in item['options']:
                                     if val==op['value']:
@@ -1927,10 +1945,16 @@ class PrefillData(object):
 
                     elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
                         #Get value from SQS
-                        sqs_value=item['options'][1]['value']
+                        #sqs_value=item['options'][1]['value']
+                        #import ipdb; ipdb.set_trace()
+                        sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
+                        sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                        #import ipdb; ipdb.set_trace()
+                        sqs_value = self.get_first_radiobutton(sqs_values) if item['type']=='radiobuttons' else ''.join(sqs_values)
                         if item['options']:
                             for op in item['options']:
-                                if sqs_value==op['value']:
+                                #if sqs_value==op['value']:
+                                if sqs_value==op['label']:
                                     item_data[item['name']]=op['value']
                                     item_layer_data={
                                         'name': item['name'],
@@ -1944,8 +1968,13 @@ class PrefillData(object):
                     else:
                         #All the other types e.g. textarea, text, date.
                         #This is where we can add API call to SQS to get the answer.
-                        sqs_value="test"
+                        #sqs_value="test"
+                        #import ipdb; ipdb.set_trace()
+                        #sqs_value = [self.sqs_builder.find(question=item['label'], answer=option['label']) for option in item['options']]
+                        sqs_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
                         item_data[item['name']]= sqs_value
+                        #import ipdb; ipdb.set_trace()
+                        #item_layer_data = self.update_layer_info(list)
                         item_layer_data={
                         'name': item['name'],
                         'layer_name': 'layer  name',
@@ -1954,11 +1983,14 @@ class PrefillData(object):
                         'new_layer_updated': 'new layer updated'
                         }
                         self.layer_data.append(item_layer_data)
-                        sqs_assessor_value='test'
+                        #sqs_assessor_value='test'
+                        sqs_assessor_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
                         self.add_info_assessor[item['name']]= sqs_assessor_value
                         #print(item)
                         #print('radiobuttons/ textarea/ text/ date etc item', item)
         else:
+            #import ipdb; ipdb.set_trace()
+            #sqs_values = []
             if 'repetition' in item:
                 item_data = self.generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
             else:
@@ -1966,7 +1998,17 @@ class PrefillData(object):
                 #Check if item has checkbox childer
                 if self.check_checkbox_item(extended_item_name, item, item_data,1,suffix):
                     #make a call to sqs for item
-                    sqs_values=['first']
+                    # 1. question      --> item['label']
+                    # 2. checkbox text --> item['children'][0]['label']
+                    # 3. request response for all checkbox's ie. send item['children'][all]['label']. 
+                    #    SQS will return a list of checkbox's answersfound eg. ['National park', 'Nature reserve']
+                    #sqs_values=['Nature reserve']
+                    #if item['label'] == 
+                    #sqs_values = sqs_query()['proponent_answer']
+                    #import ipdb; ipdb.set_trace()
+                    #sqs_value = ['Nature reserve',2]
+                    sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label'], widget_type='checkbox') for child in item['children']]
+                    sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
                     #pass sqs values as an attribute.
                     item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
                 else:
@@ -1995,11 +2037,35 @@ class PrefillData(object):
         return item_data
 
     def check_checkbox_item(self, item_name,item,item_data,repetition,suffix):
+        #import ipdb; ipdb.set_trace()
         checkbox_item=False
         for child_item in item.get('children'):
             if child_item['type']=='checkbox':
                 checkbox_item=True        
         return checkbox_item
+
+    def get_first_radiobutton(self, _list):
+        """
+        If SQS JSON object has multiple radiobuttons returned - select the one with highest priority (1,2,3 --> 1 is highest)
+        """
+        if not _list:
+            return None
+         
+        tmp_dict = {}
+        for i in _list:
+            tmp_dict.update(i)
+        return tmp_dict.get(min(tmp_dict.keys()))
+
+    def update_layer_info(self, _list):
+        #import ipdb; ipdb.set_trace()
+        return {
+            'name': item['name'],
+            'layer_name': 'layer name',
+            'layer_updated': 'layer updated',
+            'new_layer_name': 'new layer name',
+            'new_layer_updated': 'new layer updated'
+            }
+        
 
 def save_prefill_data(proposal):
     prefill_instance= PrefillData()
