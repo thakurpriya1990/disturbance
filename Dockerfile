@@ -70,7 +70,8 @@ vim \
 #ssh \
 python3-gevent \
 software-properties-common \
-imagemagick
+imagemagick \
+npm
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
 apt-get update && \
@@ -105,7 +106,9 @@ echo $TZ > /etc/timezone && \
 touch /app/.env
 COPY .git ./.git
 COPY disturbance ./disturbance
-RUN  mkdir -p /app/disturbance/static/disturbance_vue/static
+RUN mkdir -p /app/disturbance/static/disturbance_vue/static
+RUN cd /app/disturbance/frontend/disturbance; npm install
+RUN cd /app/disturbance/frontend/disturbance; npm run build
 RUN python manage_ds.py collectstatic --noinput && \
 mkdir /app/tmp/ && \
 chmod 777 /app/tmp/
