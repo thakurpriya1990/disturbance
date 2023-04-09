@@ -17,9 +17,9 @@ fi
 #git pull &&
 date_var=$(date +%Y.%m.%d.%H.%M%S)
 BUILD_TAG=dbcawa/disturbance:v$date_var
-cd disturbance/frontend/disturbance/ &&
-npm run build &&
-cd ../../../ &&
+#cd disturbance/frontend/disturbance/ &&
+#npm run build &&
+#cd ../../../ &&
 #source venv/bin/activate &&
 #./manage_co.py collectstatic --no-input &&
 #git log --pretty=medium -30 > ./git_history_recent &&

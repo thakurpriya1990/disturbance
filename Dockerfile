@@ -105,7 +105,7 @@ echo $TZ > /etc/timezone && \
 touch /app/.env
 COPY .git ./.git
 COPY disturbance ./disturbance
-RUN  mkdir /app/disturbance/static/disturbance_vue/static
+RUN  mkdir -p /app/disturbance/static/disturbance_vue/static
 RUN python manage_ds.py collectstatic --noinput && \
 mkdir /app/tmp/ && \
 chmod 777 /app/tmp/
