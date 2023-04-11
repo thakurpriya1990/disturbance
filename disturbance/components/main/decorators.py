@@ -3,7 +3,7 @@ import traceback
 from django.db import connection, reset_queries
 import functools
 from django.conf import settings
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.handlers.wsgi import WSGIRequest
 from django.http import HttpRequest
 from rest_framework import serializers
@@ -51,6 +51,41 @@ def update_settings_handler(func):
         return func(*args, **kwargs)
     return wrapper
 
+
+def api_exception_handler(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        #import ipdb; ipdb.set_trace()
+        try:
+            return func(*args, **kwargs)
+
+        except ObjectDoesNotExist as e:
+            raise serializers.ValidationError(str(e))
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise   
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                if hasattr(e, 'message'):
+                    raise serializers.ValidationError(e.message)
+                else:
+                    raise
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+    return wrapper
+
+
+def traceback_exception_handler(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            traceback.print_exc()
+    return wrapper
 
 def timeit(method):
     def timed(*args, **kw):

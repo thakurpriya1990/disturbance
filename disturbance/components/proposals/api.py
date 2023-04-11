@@ -30,7 +30,7 @@ from disturbance.components.approvals.serializers_apiary import (
     ApiarySiteOnApprovalMinimalGeometrySerializer,
     ApiarySiteOnApprovalMinGeometrySerializer,
 )
-from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger
+from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
@@ -1460,7 +1460,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
         from rest_framework.test import APIClient
         import requests
 
-        geojson = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}
+        proposal = self.get_object()
+        #geojson = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}
+        geojson=proposal.shapefile_json
 
         #import ipdb; ipdb.set_trace()
 
@@ -1472,15 +1474,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #masterlist_questions_gbl = api_client.post('spatial_query/grouped_by_layer.json')
         #masterlist_questions_gbq = api_client.post('spatial_query/grouped_by_question.json')
 
-        proposal = self.get_object()
         data = dict(
-	    proposal=dict(
-		system=settings.SYSTEM_NAME_SHORT,
-		id=proposal.id,
-		schema=proposal.schema,
-		data=proposal.data,
+            proposal=dict(
+                system=settings.SYSTEM_NAME_SHORT,
+                id=proposal.id,
+                schema=proposal.schema,
+                data=proposal.data,
 
-	    ),
+            ),
             #masterlist_questions = masterlist_questions_gbl,
             #masterlist_questions_gbq = masterlist_questions_gbq,
             masterlist_questions = masterlist_questions_gbq,
@@ -1489,7 +1490,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return Response(data)
 
     @detail_route(methods=['GET',])
-    def sqs_data_single(self, request, *args, **kwargs):
+    def _sqs_data_single(self, request, *args, **kwargs):
         '''
         Initially developed to allow testing of SQS Server - providing and example API request from DAS for Sinfle MLQ question
         For 'refresh' button on DAS form
@@ -1508,17 +1509,67 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         proposal = self.get_object()
         data = dict(
-	    proposal=dict(
-		system=settings.SYSTEM_NAME_SHORT,
-		id=proposal.id,
-		schema=proposal.schema,
-		data=proposal.data,
+            proposal=dict(
+                system=settings.SYSTEM_NAME_SHORT,
+                id=proposal.id,
+                schema=proposal.schema,
+                data=proposal.data,
 
-	    ),
+            ),
             masterlist_questions = MASTERLIST_QUESTION_SINGLE,
             geojson = GEOJSON,
         )
         return Response(data)
+
+    @detail_route(methods=['POST',])
+    @api_exception_handler
+    def sqs_data_single(self, request, *args, **kwargs):
+        '''
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS for Sinfle MLQ question
+        For 'refresh' button on DAS form
+
+        To test (from DAS shell): 
+            requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
+        ''' 
+        from rest_framework.reverse import reverse_lazy
+        from rest_framework.test import APIClient
+        import requests
+
+        #import ipdb; ipdb.set_trace()
+        mlq_id = request.data.get('masterlist_question_id')
+        lodgement_number = request.data.get('lodgement_number')
+        proposal = Proposal.objects.get(lodgement_number=lodgement_number)
+
+        base_api_url = reverse_lazy('api-root', request=request)
+        masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/single_question.json', data={'masterlist_question_id':mlq_id}, headers={}).json()
+
+        #import ipdb; ipdb.set_trace()
+        geojson=proposal.shapefile_json
+
+        # serialize masterlist question
+        masterlist_question_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
+        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        masterlist_question_json = json.loads(rendered)
+        masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
+
+        data = dict(
+            proposal=dict(
+                system=settings.SYSTEM_NAME_SHORT,
+                id=proposal.id,
+                schema=proposal.schema,
+                data=proposal.data,
+
+            ),
+            masterlist_questions = masterlist_question,
+            geojson = geojson,
+        )
+
+        # send query to SQS
+        resp = requests.post(url=f'http://localhost:8002/api/v1/das/{settings.SQS_APIKEY}/spatial_query/', json=data).json()
+
+        return Response(resp)
+
 
     @detail_route(methods=['POST',])
     def get_revision(self, request, *args, **kwargs):
@@ -4144,44 +4195,45 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 #        serializer = self.get_serializer(queryset, many=True)
 #        return Response(serializer.data)
 
-    @list_route(methods=['GET', ])
-    def grouped_by_layer(self, request, *args, **kwargs):
-        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
-  
-            Group spatial query questions by layer_name
-        """
-#        multi-select --> id=9
-#        select       --> id=7
-#        checkbox     --> id=45,46,47
-#        radiobutton  --> id=48,49,50, 51,52 	('5.0 What is ... First level radiobutton (Radiobutton Component)?')
-        queryset = self.get_queryset()
-        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
-        #queryset = queryset.filter(id__in=[45,46,47])       # checkbox
-        #queryset = queryset.filter(id__in=[43])             # select
-        #queryset = queryset.filter(id__in=[44])             # multi-select
-        queryset = queryset.filter(id__in=[53,54])           # text, text_area
-        serializer = self.get_serializer(queryset, many=True)
-
-        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-        sqq_json = json.loads(rendered)
-
-#        if 'exclude_expired' in request.GET and request.GET.get('exclude_expired').lower()=='true':
-#            now = datetime.now(pytz.timezone(TIME_ZONE))
-#            queryset = queryset.exclude(expiry__lt=now)
+#    @list_route(methods=['GET', ])
+#    def grouped_by_layer(self, request, *args, **kwargs):
+#        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
+#  
+#            Group spatial query questions by layer_name
+#        """
+##        multi-select --> id=9
+##        select       --> id=7
+##        checkbox     --> id=45,46,47
+##        radiobutton  --> id=48,49,50, 51,52    ('5.0 What is ... First level radiobutton (Radiobutton Component)?')
+#        queryset = self.get_queryset()
+#        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
+#        #queryset = queryset.filter(id__in=[45,46,47])       # checkbox
+#        #queryset = queryset.filter(id__in=[43])             # select
+#        #queryset = queryset.filter(id__in=[44])             # multi-select
+#        queryset = queryset.filter(id__in=[53,54])           # text, text_area
+#        serializer = self.get_serializer(queryset, many=True)
 #
-        #import ipdb; ipdb.set_trace()
-        layer_names = [i['layer_name'] for i in sqq_json]
-        unique_layer_names = list(set(layer_names))
-        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
-        for layer_dict in unique_layer_list:
-            for sqq_record in sqq_json:
-                #print(j['layer_name'])
-                if layer_dict['layer_name'] in sqq_record.values():
-                    layer_dict['questions'].append(sqq_record)
-
-        return Response(unique_layer_list)
+#        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#        sqq_json = json.loads(rendered)
+#
+##        if 'exclude_expired' in request.GET and request.GET.get('exclude_expired').lower()=='true':
+##            now = datetime.now(pytz.timezone(TIME_ZONE))
+##            queryset = queryset.exclude(expiry__lt=now)
+##
+#        #import ipdb; ipdb.set_trace()
+#        layer_names = [i['layer_name'] for i in sqq_json]
+#        unique_layer_names = list(set(layer_names))
+#        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
+#        for layer_dict in unique_layer_list:
+#            for sqq_record in sqq_json:
+#                #print(j['layer_name'])
+#                if layer_dict['layer_name'] in sqq_record.values():
+#                    layer_dict['questions'].append(sqq_record)
+#
+#        return Response(unique_layer_list)
 
     @list_route(methods=['GET', ])
+    @api_exception_handler
     def grouped_by_question(self, request, *args, **kwargs):
         """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
   
@@ -4209,6 +4261,24 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                     question_dict['questions'].append(sqq_record)
 
         return Response(question_group_list)
+
+    @list_route(methods=['GET', ])
+    @api_exception_handler
+    def single_question(self, request, *args, **kwargs):
+        """ http://localhost:8001/api/spatial_query/single_question.json 
+        """
+        #import ipdb; ipdb.set_trace()
+        mlq_id = request.data.get('masterlist_question_id')
+        mlq_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
+        serializer = self.get_serializer(mlq_qs, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        question_json = json.loads(rendered)
+
+        # will contain just a single question
+        question_group_list = [{'question_group': question_json[0]['question'], 'questions': question_json}]
+
+        return Response(question_group_list)
+
 
     @list_route(methods=['GET', ])
     def get_spatialquery_selects(self, request, *args, **kwargs):
@@ -4359,7 +4429,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 ###        multi-select --> id=9
 ###        select       --> id=7
 ###        checkbox     --> id=45,46,47
-###        radiobutton  --> id=48,49,50, 51,52 	('5.0 What is ... First level radiobutton (Radiobutton Component)?')
+###        radiobutton  --> id=48,49,50, 51,52  ('5.0 What is ... First level radiobutton (Radiobutton Component)?')
 ##        queryset = self.get_queryset()
 ##        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
 ##        #queryset = queryset.filter(id__in=[45,46,47])       # checkbox
