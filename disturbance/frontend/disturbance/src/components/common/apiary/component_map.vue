@@ -2,6 +2,9 @@
     <div>
         <div class="map-wrapper row col-sm-12">
             <div :id="elem_id" class="map">
+                <div :id="search_box_id" class="search-box">
+                    <input :id="search_input_id" class="search-input" placeholder="latitude, longitude OR address to search"/>
+                </div>
                 <div class="basemap-button">
                     <img id="basemap_sat" src="../../../assets/satellite_icon.jpg" @click="setBaseLayer('sat')" />
                     <img id="basemap_osm" src="../../../assets/map_icon.png" @click="setBaseLayer('osm')" />
@@ -89,9 +92,11 @@
     import { circular} from 'ol/geom/Polygon';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
-    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
+    import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle, zoomToCoordinates, checkIfValidlatitudeAndlongitude } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+    import Awesomplete from 'awesomplete'
+    import { api_endpoints } from '@/utils/hooks'
 
     export default {
         props:{
@@ -146,10 +151,16 @@
                 segmentStyle: MeasureStyles.segmentStyle,
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
+                
+                awe: null,
+                mapboxAccessToken: null,
+                search_box_id: uuid(),
+                search_input_id: uuid(),
             }
         },
-        created: function(){
-
+        created: async function(){
+            let temp_token = await this.retrieveMapboxAccessToken()
+            this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function(){
             let vm = this;
@@ -160,8 +171,8 @@
             vm.setBaseLayer('osm')
             vm.set_mode('layer')
             vm.addOptionalLayers()
-            //vm.map.addLayer(vm.apiarySitesQueryLayer);
             vm.displayAllFeatures()
+            vm.initAwesomplete()
         },
         components: {
 
@@ -176,6 +187,84 @@
             }
         },
         methods: {
+            retrieveMapboxAccessToken: async function(){
+                let ret_val = await $.ajax('/api/geocoding_address_search_token')
+                return ret_val
+            },
+            initAwesomplete: function(){
+                var vm = this;
+                var element_search = document.getElementById(vm.search_input_id);
+                this.awe = new Awesomplete(element_search);
+                $(element_search).on('keyup', function(ev){
+                    var keyCode = ev.keyCode || ev.which;
+                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)||(keyCode===8)||(keyCode===46)){
+                        vm.search(ev.target.value);
+                        return false;
+                    }
+                }).on('awesomplete-selectcomplete', function(ev){
+                    ev.preventDefault();
+                    ev.stopPropagation();
+
+                    let currentZoomLevel = vm.map.getView().getZoom()
+                    let targetZoomLevel = 14
+                    if (targetZoomLevel < currentZoomLevel){
+                        targetZoomLevel = currentZoomLevel
+                    }
+
+                    /* User selected one of the search results */
+                    for (var i=0; i<vm.suggest_list.length; i++){
+                        if (vm.suggest_list[i].value == ev.target.value){
+                            var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
+                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], targetZoomLevel)
+                        }
+                    }
+                    return false;
+                });
+            },
+            search: function(place){
+                var vm = this;
+
+                let searching_by_latlng = checkIfValidlatitudeAndlongitude(place)
+
+                if(!(searching_by_latlng)){
+                    var latlng = vm.map.getView().getCenter();
+                    $.ajax({
+                        url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
+                            access_token: vm.mapboxAccessToken,
+                            country: 'au',
+                            limit: 10,
+                            proximity: ''+latlng[0]+','+latlng[1],
+                            bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
+                            types: 'region,postcode,district,place,locality,neighborhood,address,poi'
+                        }),
+                        dataType: 'json',
+                        success: function(data, status, xhr) {
+                            vm.suggest_list = [];  // Clear the list first
+                            if (data.features && data.features.length > 0){
+                                for (var i = 0; i < data.features.length; i++){
+                                    vm.suggest_list.push({ label: data.features[i].place_name,
+                                                            value: data.features[i].place_name,
+                                                            feature: data.features[i]
+                                                            });
+                                }
+                            }
+
+                            vm.awe.list = vm.suggest_list;
+                            vm.awe.evaluate();
+                        }
+                    });
+                } else {
+                    let lat = searching_by_latlng[1]
+                    let lng = searching_by_latlng[4]
+                    let currentZoomLevel = vm.map.getView().getZoom()
+                    let targetZoomLevel = 14
+                    if (targetZoomLevel < currentZoomLevel){
+                        targetZoomLevel = currentZoomLevel
+                    }
+
+                    zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
+                }
+            },
             addJoint: function(point, styles){
                 let s = new Style({
                     image: new CircleStyle({
@@ -290,7 +379,6 @@
                 })
             },
             setBaseLayer: function(selected_layer_name){
-                console.log('in setBaseLayer')
                 let vm = this
                 if (selected_layer_name == 'sat') {
                     vm.tileLayerOsm.setVisible(false)
@@ -354,7 +442,9 @@
                         center: [115.95, -31.95],
                         zoom: 7,
                         projection: 'EPSG:4326'
-                    })
+                    }),
+                    pixelRatio: 1,  // We need this in order to make this map work correctly with the browser and/or display scaling factor(s) other than 100%
+                                    // Ref: https://github.com/openlayers/openlayers/issues/11464
                 });
 
                 vm.apiarySitesQuerySource = new VectorSource({ });
@@ -656,7 +746,12 @@
                 feature.setStyle(style_applied)
             },
             addEventListeners: function () {
+                let vm = this
 
+                let searchLatLng = document.getElementById(this.search_input_id)
+                searchLatLng.addEventListener('input', function(ev){
+                    vm.search(ev.target.value);
+                })
             },
             displayAllFeatures: function() {
                 if (this.apiarySitesQuerySource.getFeatures().length>0){
@@ -805,4 +900,9 @@
     .layer_option:hover {
         cursor: pointer;
     }
+    @import './map_address_search_scoped.css'
+</style>
+
+<style>
+    @import './map_address_search.css'
 </style>

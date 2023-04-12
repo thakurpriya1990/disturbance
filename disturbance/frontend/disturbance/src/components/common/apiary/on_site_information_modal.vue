@@ -150,13 +150,8 @@
                 this.isModalOpen = true
             },
             loadApiarySites: async function(){
-                console.log('in loadApiarySites')
-
                 await this.$http.get('/api/approvals/' + this.approval_id + '/apiary_site/').then(
                     (accept)=>{
-                        console.log('accept.body')
-                        console.log(accept.body)
-
                         this.apiary_sites_options = accept.body
                     },
                     (reject)=>{

@@ -803,9 +803,10 @@ class OrganisationRequestsViewSet(viewsets.ModelViewSet):
         try:
             with transaction.atomic():
                 instance = self.get_object()
-                request.data['request'] = u'{}'.format(instance.id)
-                request.data['staff'] = u'{}'.format(request.user.id)
-                serializer = OrganisationRequestCommsSerializer(data=request.data)
+                request_data = request.data.copy()
+                request_data['request'] = u'{}'.format(instance.id)
+                request_data['staff'] = u'{}'.format(request.user.id)
+                serializer = OrganisationRequestCommsSerializer(data=request_data)
                 serializer.is_valid(raise_exception=True)
                 comms = serializer.save()
                 # Save the files

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.forms import ModelForm
 
-from disturbance.components.main.models import MapLayer, MapColumn
+from disturbance.components.main.models import MapLayer, MapColumn, RegionDbca, DistrictDbca
 from disturbance.settings import KMI_SERVER_URL
 
 
@@ -32,4 +32,18 @@ class MapLayerAdmin(admin.ModelAdmin):
     list_filter = ['option_for_internal', 'option_for_external', 'display_all_columns',]
     form = MyForm
     inlines = [MapColumnInline,]
+
+
+# @admin.register(RegionDbca)
+# class RegionAdmin(admin.ModelAdmin):
+#     list_display = ['id', 'region_name', 'office', 'enabled']
+#     list_filter = ['enabled',]
+#     readonly_fields = ['region_name', 'office', 'enabled', 'object_id',]
+#
+#
+# @admin.register(DistrictDbca)
+# class DistrictAdmin(admin.ModelAdmin):
+#     list_display = ['id', 'district_name', 'office', 'enabled']
+#     list_filter = ['enabled',]
+#     readonly_fields = ['district_name', 'office', 'enabled', 'object_id',]
 

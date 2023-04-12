@@ -6,9 +6,10 @@ module.exports = {
     organisation_contacts: '/api/organisation_contacts.json',
     organisation_access_group_members: '/api/organisation_access_group_members',
     apiary_organisation_access_group_members: '/api/apiary_organisation_access_group_members',
+    users_api: '/api/users',
     users: '/api/users.json',
     profile: '/api/profile',
-    department_users: '/api/department_users',
+    //department_users: '/api/department_users',
     //other
     //countries: "https://restcountries.eu/rest/v1/?fullText=true",
     countries: '/api/countries',
@@ -76,4 +77,10 @@ module.exports = {
     //schema_question:"/api/schema_question/",
     schema_question:"/api/schema_question.json",
     schema_question_paginated:"/api/schema_question_paginated/",
+
+    history_version_compare_field: "/api/history/compare/field/",
+    history_version_compare: "/api/history/compare/",
+    history_versions: "/api/history/versions/",
+    history_version: "/api/history/version/",
+    geocoding_address_search: "https://api.mapbox.com/geocoding/v5/mapbox.places/",
 }

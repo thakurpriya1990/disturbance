@@ -34,10 +34,32 @@ def search(dictionary, search_list):
     result = []
     flat_dict = flatten(dictionary)
     for k, v in flat_dict.items():
-        if any(x.lower() in v.lower() for x in search_list):
+        if any(x.lower()==v.lower() for x in search_list):
             result.append( {k: v} )
 
+    return 
+
+def search2(dictionary, search_list):
+    """
+    To run:
+        from disturbance.utils import search2
+        search2(p.data, ['BRM', 'JM 1'])
+        search2(p.data, search_list=['finalSection.Section8-0', 'tenureSection.Section1-0.Section1-0-3'])
+            output:
+                {'finalSection.Section8-0': 'yes',
+                 'tenureSection.Section1-0.Section1-0-3': 'on'}
+    """
+    result = {}
+    flat_dict = flatten(dictionary)
+    import ipdb; ipdb.set_trace()
+    for k, v in flat_dict.items():
+        #import ipdb; ipdb.set_trace()
+        for search_item in search_list:
+            if k.lower()==search_item.lower():
+                result.update( {k: v} )
+
     return result
+
 
 def search_approval(approval, searchWords):
     qs=[]
@@ -276,6 +298,7 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
 
     To run:
         from disturbance.utils import search_keys
+        search_keys(p.schema, search_list=['name', 'label'])
         search_keys2(dictionary, search_list=['help_text', 'label'])
         search_keys2(dictionary, search_list=['name', 'label'])
     """
@@ -309,9 +332,8 @@ def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
      the schema -- given help_text, finds the equiv. label
 
     To run:
-        from disturbance.utils import search_keys
-        search_keys2(dictionary, search_list=['help_text', 'label'])
-        search_keys2(dictionary, search_list=['name', 'label'])
+        from disturbance.utils import search_keys_group
+        search_keys_group(p.schema, search_list=['name', 'label', 'group'])
     """
     search_item1 = search_list[0]
     search_item2 = search_list[1]

@@ -447,12 +447,9 @@ export default {
             return returnVal;
         },
         ok_button_disabled: function(){
-            console.log('ok button disabled')
             if (this.num_of_sites_selected > 0){
-                console.log('false')
                 return false
             }
-            console.log('true')
             return true
         },
         startDateCanBeModified: function() {
@@ -576,8 +573,6 @@ export default {
         //},
 
         featureGeometryUpdated: function(feature){
-            console.log('issuance')
-            console.log(feature)
             for (let i=0; i<this.apiary_sites_updated.length; i++){
                 if (this.apiary_sites_updated[i].id == feature.id){
                     this.apiary_sites_updated[i].coordinates_moved = feature.coordinates
@@ -585,12 +580,8 @@ export default {
             }
         },
         apiarySitesUpdated: function(apiary_sites) {
-            console.log('in proposed_apiary_issuance.vue')
-            console.log('apiarySitesUpdated')
-            console.log(apiary_sites)
             this.apiary_sites_updated = apiary_sites
             //this.proposal.proposal_apiary.apiary_sites = JSON.parse(JSON.stringify(apiary_sites))
-            //console.log(this.proposal.proposal_apiary.apiary_sites)
 
             // Update this.num_of_sites_selected
             let temp = 0
@@ -643,7 +634,6 @@ export default {
         */
         preview:function () {
             //this.sendData(true);
-            console.log("preview")
             this.previewData();
         },
         preview_originating_approval:function () {
@@ -737,7 +727,6 @@ export default {
             //let previewWindow = window.open(' ', '_blank');
             let previewWindow = window.open();
 
-            console.log("previewData")
             this.approval.preview = true;
             if (originating_target) {
                 this.approval.originating_target = originating_target;
@@ -758,8 +747,6 @@ export default {
                 delete this.approval.expiry_date;
             }
             let approval = JSON.parse(JSON.stringify(this.approval)); // Deep copy
-            console.log('approval to post')
-            console.log(approval)
 
             this.issuingApproval = true;
             if (this.state == 'final_approval'){
@@ -791,7 +778,6 @@ export default {
                 })
                     /*
                     .then((response) => {
-                        console.log(response);
                         previewWindow.document.write(response);
                         previewWindow.focus();
                     });
@@ -809,10 +795,6 @@ export default {
         },
         //sendData:function(preview=false,originating_target=null){
         sendData:function(preview=false){
-            console.log('**********')
-            console.log('in sendData')
-            console.log('**********')
-
             let vm = this;
             vm.errors = false;
             /*
@@ -837,8 +819,6 @@ export default {
                 delete this.approval.expiry_date;
             }
             let approval = JSON.parse(JSON.stringify(vm.approval)); // Deep copy
-            console.log('approval to post')
-            console.log(approval)
 
             vm.issuingApproval = true;
             if (vm.state == 'proposed_approval'){
@@ -885,7 +865,6 @@ export default {
                 })
                     .then(response => response.blob())
                     .then(function(myBlob) {
-                        console.log(myBlob);
                         //const blob = new Blob([response.body],{type: 'image/pdf'});
                         //const blob = new Blob([response.body],{type: 'application/pdf'});
                         const objectURL = URL.createObjectURL(myBlob);
@@ -968,8 +947,6 @@ export default {
                     let startDate = Object.keys($(vm.$refs.start_date)).length ?
                         $(vm.$refs.start_date).data('DateTimePicker').date() :
                         proposalApprovalStartDate;
-                    //console.log(startDate)
-                    //console.log($(vm.$refs.due_date).data('DateTimePicker').date())
                     if ($(vm.$refs.due_date).data('DateTimePicker').date() < startDate) {
                             vm.toDateError = true;
                             vm.toDateErrorString = 'Please select Expiry date that is after Start date';

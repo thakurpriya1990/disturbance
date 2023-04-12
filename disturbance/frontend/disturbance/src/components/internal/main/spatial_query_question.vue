@@ -37,6 +37,7 @@
         </div>
     </div>
 
+    <div v-if="showQuestionModal">
     <modal transition="modal fade" @ok="ok()" title="Spatial Query Question" large>
         <div class="container-fluid">
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -49,32 +50,6 @@
             </div>
             <div>
                 <form class="form-horizontal" name="spatial_query_question">
-
-                    <!--
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Question</label>
-                        </div>
-                        <div class="col-md-9">
-                            <select class="form-control" ref="select_question" name="select-question" v-model="spatialquery.question">
-                                <option v-for="item in spatialquery_selects.all_masterlist" :value="item.id" >(ID: {{item.id}}) {{item.question}}</option>
-                            </select>     
-                        </div>
-                    </div>
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Answer</label>
-                        </div>
-                        <div class="col-md-9" v-if="spatialquery.question">
-                            <select class="form-control" ref="select_option" name="select-option" v-model="spatialquery.answer_mlq" :disabled="!has_options(spatialquery.question)">
-                                <option v-for="item in selected_question(spatialquery.question).option" :value="item.id" >(ID: {{item.id}}) {{item.label}}</option>
-                            </select>     
-                        </div>
-                    </div>
-                    -->
-
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
@@ -264,6 +239,39 @@
             <button type="button" class="btn btn-primary" @click="saveSpatialquery()">Save</button>
         </div>
     </modal>
+    </div>
+
+    <div v-else-if="showTestModal">
+    <modal id="test-id"  @ok.prevent="ok()" title="Spatial Query Question - Test" large>
+        <div class="container-fluid">
+            <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
+                <b>Please answer the following mandatory question(s):</b>
+                <ul>
+                    <li v-for="error in missing_fields">
+                        {{ error.label }}
+                    </li>
+                </ul>
+            </div>
+            <div>
+                <form class="form-horizontal" name="proposal_id">
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Proposal Lodgement Number</label>
+                        </div>
+                        <div class="col-md-9">
+                            <input class="form-control" name="layer_name" v-model="proposal.lodgement_number"></input>
+                        </div>
+                    </div>
+                </form>
+                <textarea id="output" cols="100" rows="35" v-model="sqs_response"></textarea>
+            </div>
+        </div>
+        <div slot="footer">
+            <button type="button" class="btn btn-primary" @click="test_spatialquery()">Test</button>
+        </div>
+    </modal>
+    </div>
 
   </div>
 </template>
@@ -285,14 +293,11 @@ export default {
         alert,
         datatable,
         SchemaOption,
-        // SchemaHeader,
-        // SchemaExpander,
     },
     props:{
     },
     data:function () {
         let vm = this;
-        //vm.spatial_query_question_url = helpers.add_endpoint_join(api_endpoints.spatial_query_question_paginated, 'spatial_query_question_datatable_list/?format=datatables');
         vm.spatial_query_question_url = helpers.add_endpoint_join(api_endpoints.spatial_query_paginated, 'spatial_query_question_datatable_list/?format=datatables');
         return {
             spatial_query_question_id: 'spatial-query-question-datatable-'+vm._uid,
@@ -304,9 +309,12 @@ export default {
             isModalOpen:false,
             spatialquery_selects: [],
             missing_fields: [],
-            // spatial query questions table
-            //dtHeadersSpatialQueryQuestion: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
-            //dtHeadersSpatialQueryQuestion: ["ID", "QuestionEX", "aa", "Question", "Answer Type", "Action"],
+            question_id: Number,
+            showQuestionModal: false,
+            showTestModal: false,
+            showTestJsonResponse: false,
+            sqs_response: false,
+
             dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
                 language: {
@@ -321,18 +329,14 @@ export default {
                     data: function (data) {
                       // needed because the datatables url GET length was too long - browser returned an error - jm
                       // eg. http://localhost:8000/api/spatial_query_paginated/spatial_query_question_datatable_list/?format=datatables&draw=1&length=1
-		      for (var i = 10, len = data.columns.length; i < len; i++) {
-			//if (! data.columns[i].search.value) delete data.columns[i].search;
-			//if (data.columns[i].searchable === true) delete data.columns[i].searchable;
-			//if (data.columns[i].orderable === true) delete data.columns[i].orderable;
-			//if (data.columns[i].data === data.columns[i].name) delete data.columns[i].name;
-			delete data.columns[i].search;
-			delete data.columns[i].searchable;
-			delete data.columns[i].orderable;
-			delete data.columns[i].name;
-		      }
-		      //delete data.search.regex;
-		    }
+                      for (var i = 10, len = data.columns.length; i < len; i++) {
+                        delete data.columns[i].search;
+                        delete data.columns[i].searchable;
+                        delete data.columns[i].orderable;
+                        delete data.columns[i].name;
+                      }
+                      //delete data.search.regex;
+                    }
                 },
                 columnDefs: [
                     //{ visible: false, targets: [ 3, 5, 6] } 
@@ -442,6 +446,7 @@ export default {
                         mRender:function (data,type,full) {
                             var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
                             column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
+                            column += `<a class="test-row" data-rowid=\"__ROWID__\">Test</a><br/>`;
                             return column.replace(/__ROWID__/g, full.id);
                         }
                     },
@@ -472,6 +477,11 @@ export default {
                 help_text_url: false,
                 help_text_assessor_url: false,
             },
+            proposal: {
+                lodgement_number: '',
+                masterlist_question_id: '',
+            },
+
             answerTypes: [],
             addedHeaders: [],
             addedHeader: {
@@ -506,6 +516,21 @@ export default {
         },
     },
     methods: {
+        has_form_errors: function () {
+            if (!this.proposal.lodgement_number) {
+                this.missing_fields.push({'label':'Proposal lodgement number required (eg. P000123)'});
+            }
+
+            if (this.missing_fields.length>0) {
+                return true;
+            } 
+            return false
+        },
+
+        pretty: function(value) {
+            //return JSON.stringify(JSON.parse(value), null, 2);
+            return JSON.stringify(JSON.parse(value), null, 2);
+        },
         selected_question: function(selected_id) {
             return this.spatialquery_selects.all_masterlist.find( t => t.id === selected_id );
         },
@@ -569,15 +594,14 @@ export default {
                 self.showOptions = false;
                 self.showTables = false;
                 self.isModalOpen = false;
+                self.showQuestionModel = false;
+                self.showTestModel = false;
+                self.showTestJsonResponse = false;
             }
         },
         saveSpatialquery: async function() {
             const self = this;
             const data = self.spatialquery;
-            //data.options = this.addedOptions;
-            //data.options = helpers.copyObject(this.addedOptions);
-            // data.headers = this.addedHeaders;
-            // data.expanders = this.addedExpanders;
 
             if (data.id === '') {
                 console.log(data);
@@ -613,6 +637,42 @@ export default {
             }
             this.isNewEntry = false;
         },
+        test_spatialquery: async function(e) {
+            //e.preventDefault();
+            const self = this;
+            const data = self.proposal;
+            self.sqs_response = null;
+            this.missing_fields = [];
+             
+            if (self.has_form_errors()) {
+                self.isModalOpen = true;
+                return;
+            }
+
+            console.log(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number+'/sqs_data_single'));
+            await self.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number+'/sqs_data_single'),JSON.stringify(data),{
+                    emulateJSON:true,
+            }).then((response)=>{
+                //self.isModalOpen = true;
+                console.log(response);
+                self.sqs_response = JSON.stringify(response.body, null, 4);
+                //self.sqs_response = response;
+                //self.showTestJsonResponse = true;
+                //self.showTestModal = false;
+                self.isModalOpen = true;
+                //self.close();
+            },(error)=>{
+                swal(
+                    'Error',
+                    helpers.apiVueResourceError(error),
+                    //error.body,
+                    'error'
+                )
+            });
+
+            this.isNewEntry = false;
+        },
+
         addTableEntry: function() {
             this.isNewEntry = true;
             this.spatialquery.answer_type = '';
@@ -645,6 +705,8 @@ export default {
 
             this.showOptions = false;
             this.isModalOpen = true;
+
+            this.proposal.lodgement_number = '';
         },
         initEventListeners: function(){
             const self = this;
@@ -679,6 +741,9 @@ export default {
                 self.addedExpanders = self.$refs.spatial_query_question_table.row_of_data.data().expanders;
 
                 self.isModalOpen = true;
+                self.showQuestionModal = true;
+                self.showTestModal = false;
+                self.showTestJsonResponse = false;
             });
 
             self.$refs.spatial_query_question_table.vmDataTable.on('click','.delete-row', function(e) {
@@ -710,6 +775,19 @@ export default {
                 },(error) => {
                     //
                 });                
+            });
+
+            self.$refs.spatial_query_question_table.vmDataTable.on('click','.test-row', function(e) {
+                e.preventDefault();
+                self.isNewEntry = false;
+                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+                self.proposal.lodgement_number = self.$refs.spatial_query_question_table.row_of_data.data().lodgement_number;
+                self.proposal.masterlist_question_id = $(this).attr('data-rowid')
+                self.isModalOpen = true;
+                self.showTestModal = true;
+                self.showQuestionModal = false;
+                self.showTestJsonResponse = false;
+                self.sqs_response = ''
             });
         },
         initAnswerTypeSelector: function () {
@@ -767,6 +845,7 @@ export default {
             });
             this.initAnswerTypeSelector();
         },        
+
     },
     mounted: function() {
         this.form = document.forms.spatial_query_question;

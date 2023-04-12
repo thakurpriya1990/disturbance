@@ -169,18 +169,11 @@ class ApiaryLicenceReader():
                 #import ipdb; ipdb.set_trace()
                 self._write_to_migrated_apiary_licence_model()
                 self._create_licences()
-                #self._create_licence_pdf()
+                self._create_licence_pdf()
                 #import denied sites
             except Exception as e:
                 print(e)
                 import ipdb; ipdb.set_trace()
-
-        try:
-            self._create_licence_pdf()
-        except Exception as e:
-            print(e)
-            import ipdb; ipdb.set_trace()
-
 
     def _verify_data(self, verify=False):
         lines=[]
@@ -243,7 +236,7 @@ class ApiaryLicenceReader():
                 123 Something Road, Perth, WA, 6100, Import Test Org 3, 615503, DDD_03, john, Doe_1, john.doe_1@dbca.wa.gov.au, 08 555 5555
 
                 File No:Licence No:Expiry Date:Term:Trading Name:Licensee:ABN:Title:First Name:Surname:Other Contact:Address 1:Address 2:Address 3:Suburb:State:Country:Post:Telephone1:Telephone2:Mobile:Insurance Expiry:Survey Cert:Name:SPV:ATAP Expiry:Eco Cert Expiry:Vessels:Vehicles:Email1:Email2:Email3:Email4
-                2018/0012345-1:HQ12345:28-Feb-21:3 YEAR:MyCompany:MyCompany Pty Ltd::MR:Joe:Any::Po Box 1234:::ESPERANCE:WA:AUSTRALIA:6450:458021841:::23-Jun-18::::30-Jun-18::0:7:any@gmail.com:::
+                2018/001899-1:HQ70324:28-Feb-21:3 YEAR:4 U We Do:4 U We Do Pty Ltd::MR:Petrus:Grobler::Po Box 2483:::ESPERANCE:WA:AUSTRALIA:6450:458021841:::23-Jun-18::::30-Jun-18::0:7:groblerp@gmail.com:::
             To test:
                 from commercialoperator.components.proposals.models import create_organisation_data
                 create_migration_data('commercialoperator/utils/csv/orgs.csv')
@@ -255,42 +248,26 @@ class ApiaryLicenceReader():
                 error_lines=[]
                 for idx, row in enumerate(reader):
                     #import ipdb; ipdb.set_trace()
-                    if row[5].replace(' ','')=='-30.28512637300':
-                        import ipdb; ipdb.set_trace()
-
-                    #if idx==3:
-                    #    break
-                        
                     try:
                         #if not row[0].startswith('#') and row[4].strip().lower() == 'current':
-                        if not row[0].startswith('#') or not row[7].strip() == 'AJ & DE Dowsett' or not row[9].replace(' ','') == '':
-                            if row[4].startswith('Vacant') and row[9].strip() == '':
-                                # Vacant, with no ABN
-                                continue
-
+                        if not row[0].startswith('#') and not row[7].strip() == 'AJ & DE Dowsett':
                             data={}
-                            data.update({'permit_number': int(row[0].strip().split('.')[0]) if row[0].strip()!='' else None})
+                            data.update({'permit_number': row[0].strip() if row[0].strip()!='' else None})
                             start_date_raw = row[1].strip()
                             if start_date_raw:
-                                #start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
-                                start_date = datetime.datetime.strptime(start_date_raw, '%Y-%m-%d').date()
-                                #start_date = datetime.datetime.strptime(start_date_raw, '%Y-%m-%d %H:%M:%S').date()
+                                start_date = datetime.datetime.strptime(start_date_raw, '%d/%m/%Y').date()
                                 data.update({'start_date': start_date})
                             else:
-                                start_date = datetime.date.today()
-                                data.update({'start_date': datetime.date.today()})
-                                #continue
+                                continue
                             expiry_date_raw = row[2].strip()
                             if expiry_date_raw:
-                                expiry_date = datetime.datetime.strptime(row[2].strip(), '%Y-%m-%d').date()
-                                #expiry_date = datetime.datetime.strptime(row[2].strip(), '%Y-%m-%d %H:%M:%S').date()
+                                expiry_date = datetime.datetime.strptime(row[2].strip(), '%d/%m/%Y').date()
                                 data.update({'expiry_date': expiry_date})
                             else:
                                 data.update({'expiry_date': datetime.date.today()})
 
                             try:
-                                issue_date = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d').date()
-                                #issue_date = datetime.datetime.strptime(row[3].strip(), '%Y-%m-%d %H:%M:%S').date()
+                                issue_date = datetime.datetime.strptime(row[3].strip(), '%d/%m/%Y').date()
                                 data.update({'issue_date': issue_date})
                             # set issue_date to start_date
                             except:
@@ -311,7 +288,7 @@ class ApiaryLicenceReader():
                             #data.update({'term': row[3].strip()})
 
 
-                            data.update({'abn': str(row[9].translate(string.whitespace).replace(' ',''))})
+                            data.update({'abn': row[9].translate(string.whitespace).replace(' ','')})
                             data.update({'trading_name': row[7].strip()})
                             if row[8].strip() != '':
                                 data.update({'licencee': row[8].strip()})
@@ -342,14 +319,10 @@ class ApiaryLicenceReader():
                             #if country == 'A':
                                 #country = 'Australia'
                             country_str = 'Australia' if country_raw.lower().startswith('a') else country_raw
-                            try:
-                                country=Country.objects.get(printable_name__icontains=country_str)
-                            except Exception as e:
-                                country=Country.objects.get(iso_3166_1_a2='AU')
-
+                            country=Country.objects.get(printable_name__icontains=country_str)
                             data.update({'country': country.iso_3166_1_a2}) # 2 char 'AU'
                             if row[19].translate(string.whitespace) != '':
-                                data.update({'postcode': str(row[19].translate(string.whitespace).split('.')[0])})
+                                data.update({'postcode': row[19].translate(string.whitespace)})
                             else:
                                 data.update({'postcode': '6000'})
                             data.update({'phone_number1': row[20].translate(b' -()')})
@@ -366,10 +339,10 @@ class ApiaryLicenceReader():
 
                             # batch_no:approval_cpc_date:approval_minister_date:map_ref:forest_block:cog:roadtrack:zone:catchment:dra_permit
                             data.update({'batch_no': row[25].strip()})
-                            approval_cpc_date_raw = row[26].strip() if len(row)>26 else ''
+                            approval_cpc_date_raw = row[26].strip()
                             try:
                                 if approval_cpc_date_raw:
-                                    approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%Y-%m-%d').date()
+                                    approval_cpc_date = datetime.datetime.strptime(approval_cpc_date_raw, '%d/%m/%Y').date()
                                     data.update({'approval_cpc_date': approval_cpc_date})
                                 else:
                                     data.update({'approval_cpc_date': None})
@@ -379,7 +352,7 @@ class ApiaryLicenceReader():
                                 import ipdb; ipdb.set_trace()
 
                             if approval_minister_date_raw:
-                                approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%Y-%m-%d').date()
+                                approval_minister_date = datetime.datetime.strptime(approval_minister_date_raw, '%d/%m/%Y').date()
                                 data.update({'approval_minister_date': approval_minister_date})
                             else:
                                 data.update({'approval_minister_date': None})
@@ -408,9 +381,8 @@ class ApiaryLicenceReader():
                             elif data.get('abn')=='':
                                 data.update({'licencee_type': 'individual'})
                             else:
-                                print("Entry is not a valid organisation or individual licence record")
-                                import ipdb; ipdb.set_trace()
-                                #raise ImportException("Entry is not a valid organisation or individual licence record")
+                                #import ipdb; ipdb.set_trace()
+                                raise ImportException("Entry is not a valid organisation or individual licence record")
 
                             #if data['abn'] != '':
                             lines.append(data) # must be an org
@@ -422,7 +394,7 @@ class ApiaryLicenceReader():
                         print(e)
                         print(row)
                         error_lines.append(row)
-                        print 
+                        print
 
         except Exception as e:
             #logger.info('{}'.format(e))
@@ -461,7 +433,6 @@ class ApiaryLicenceReader():
 
     def _create_organisation(self, data, count, debug=False):
         #import ipdb; ipdb.set_trace()
-        #created_lo = False
         if debug:
             import ipdb; ipdb.set_trace()
         try:
@@ -850,7 +821,7 @@ class ApiaryLicenceReader():
 
     def _create_licence_pdf(self):
         approvals_migrated = Approval.objects.filter(current_proposal__application_type__name=ApplicationType.APIARY, migrated=True)
-        print('Total Approvals: {} - {}'.format(approvals_migrated.count(), approvals_migrated))
+        print('Total Approvals: {}'.format(approvals_migrated))
         for idx, a in enumerate(approvals_migrated):
             a.generate_doc(a.current_proposal.submitter)
             print('{}, Created PDF for Approval {}'.format(idx, a))

@@ -4,17 +4,46 @@ import requests
 import json
 import pytz
 from django.conf import settings
+from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.measure import Distance
 from django.core.cache import cache
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models.query_utils import Q
 from rest_framework import serializers
+from ledger.accounts.models import EmailUser
+
+from rest_framework.renderers import JSONRenderer
+#from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
 
 from disturbance.components.main.decorators import timeit
-from disturbance.components.main.models import CategoryDbca, RegionDbca, DistrictDbca, WaCoast
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
     SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT, SITE_STATUS_DENIED, SITE_STATUS_CURRENT, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
+
+import logging
+logger = logging.getLogger(__name__)
+
+#def retrieve_department_users():
+#    try:
+#        res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        res.raise_for_status()
+#        cache.set('department_users',json.loads(res.content).get('objects'),10800)
+#    except:
+#        raise
+#
+#
+#def get_department_user(email):
+#    try:
+#        res = requests.get('{}/api/users?email={}'.format(settings.CMS_URL,email), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+#        res.raise_for_status()
+#        data = json.loads(res.content).get('objects')
+#        if len(data) > 0:
+#            return data[0]
+#        else:
+#            return None
+#    except:
+#        raise
+#
 
 
 def retrieve_department_users():
@@ -27,16 +56,10 @@ def retrieve_department_users():
 
 
 def get_department_user(email):
-    try:
-        res = requests.get('{}/api/users?email={}'.format(settings.CMS_URL,email), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
-        res.raise_for_status()
-        data = json.loads(res.content).get('objects')
-        if len(data) > 0:
-            return data[0]
-        else:
-            return None
-    except:
-        raise
+    if (EmailUser.objects.filter(email__iexact=email.strip()) and 
+            EmailUser.objects.get(email__iexact=email.strip()).is_staff):
+        return True
+    return False
 
 
 def to_local_tz(_date):
@@ -82,6 +105,8 @@ def get_template_group(request):
 @timeit
 def get_category(wkb_geometry):
     from disturbance.components.proposals.models import SiteCategory
+    from disturbance.components.main.models import CategoryDbca
+
     category = SiteCategory.objects.get(name=SiteCategory.CATEGORY_REMOTE)
     zones = CategoryDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
     if zones:
@@ -121,6 +146,8 @@ def get_feature_in_wa_coastline_smoothed(wkb_geometry):
 
 
 def get_feature_in_wa_coastline(wkb_geometry, smoothed):
+    from disturbance.components.main.models import WaCoast
+
     try:
         features = WaCoast.objects.filter(wkb_geometry__contains=wkb_geometry, smoothed=smoothed)
         if features:
@@ -162,9 +189,12 @@ def get_tenure(wkb_geometry):
 
 
 def get_region_district(wkb_geometry):
+    from disturbance.components.main.models import RegionDbca
+    from disturbance.components.main.models import DistrictDbca
+
     try:
-        regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
-        districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry)
+        regions = RegionDbca.objects.filter(wkb_geometry__contains=wkb_geometry, enabled=True)
+        districts = DistrictDbca.objects.filter(wkb_geometry__contains=wkb_geometry, enabled=True)
         text_arr = []
         if regions:
             text_arr.append(regions.first().region_name)
@@ -181,7 +211,8 @@ def _get_vacant_apiary_site(search_text=''):
     from disturbance.components.proposals.models import ApiarySite
     queries = Q(is_vacant=True)
     if search_text:
-        queries &= Q(id__icontains=search_text)
+        # queries &= Q(id__icontains=search_text)
+        queries &= Q(id=search_text)
     qs_vacant_site = ApiarySite.objects.filter(queries).distinct()
     return qs_vacant_site
 
@@ -243,7 +274,8 @@ def get_qs_denied_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # ApiarySiteOnProposal conditions for include
@@ -280,7 +312,8 @@ def get_qs_pending_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_proposal_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # ApiarySiteOnProposal conditions for include
@@ -318,7 +351,8 @@ def get_qs_suspended_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -365,7 +399,8 @@ def get_qs_current_site(search_text='', available=None):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -454,7 +489,8 @@ def get_qs_not_to_be_reissued_site(search_text=''):
     q_include_apiary_site = Q()
     q_include_apiary_site &= Q(latest_approval_link__isnull=False)
     if search_text:
-        q_include_apiary_site &= Q(id__icontains=search_text)
+        # q_include_apiary_site &= Q(id__icontains=search_text)
+        q_include_apiary_site &= Q(id=search_text)
     qs_apiary_sites = ApiarySite.objects.filter(q_include_apiary_site)
 
     # 2.1. Include
@@ -692,9 +728,17 @@ def get_qs_proposal_for_export():
     q_include_proposal &= Q(id__in=(ApiarySite.objects.all().values('latest_proposal_link__id')))  # Include only the intermediate objects which are on the ApiarySite.latest_proposal_links
 
     # 1.2. Exclude
-    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Exclude pure 'draft' site
+    # q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,)) & Q(making_payment=False)  # Exclude pure 'draft' site
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DRAFT,))  # For this purpose, we don't want 'draft' sites.
     q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_DISCARDED,))
-    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site should be included in the approval as a 'current'
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_PENDING,))  # For this purpose, we don't want 'pending' sites.
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_APPROVED,))  # 'approved' site is included in the approval as a 'current'
+    # The followings should not exclude any records because ApiarySiteOnProposal should not be in these statuses, but added just in case there are.
+    # Otherwise, sites might be picked up multiple times.
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_CURRENT,))
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_NOT_TO_BE_REISSUED,))
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_SUSPENDED,))
+    q_exclude_proposal |= Q(site_status__in=(SITE_STATUS_TRANSFERRED,))
     q_exclude_proposal |= Q(apiary_site__in=ApiarySite.objects.filter(is_vacant=True))  # Vacant sites are already picked up above.  We don't want to pick up them again here.
 
     # 1.4. Issue query
@@ -720,8 +764,74 @@ def get_qs_approval_for_export():
     # 2.2. Exclude
     q_exclude_approval |= Q(apiary_site__in=qs_vacant_site)  # We don't want to pick up the vacant sites already retrieved above
     q_exclude_approval |= Q(site_status=SITE_STATUS_TRANSFERRED)
+    # The followings should not exclude any records because ApiarySiteOnApproval should not be in these statuses, but added just in case there are.
+    # Otherwise, sites might be picked up multiple times.
+    q_exclude_approval |= Q(site_status=SITE_STATUS_DRAFT)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_PENDING)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_APPROVED)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_DENIED)
+    q_exclude_approval |= Q(site_status=SITE_STATUS_DISCARDED)
 
     # 2.3. Issue query
     qs_on_approval = ApiarySiteOnApproval.objects.filter(q_include_approval).exclude(q_exclude_approval).distinct('apiary_site')
 
     return qs_on_approval
+
+
+def suffix(d):
+    return 'th' if 11 <= d <= 13 else {1: 'st', 2: 'nd', 3: 'rd'}.get(d % 10, 'th')
+
+
+def custom_strftime(format_str, t):
+    return t.strftime(format_str).replace('{S}', str(t.day) + suffix(t.day))
+
+
+def overwrite_districts_polygons(path_to_geojson_file):
+    from disturbance.components.main.models import DistrictDbca
+    try:
+        with transaction.atomic():
+            # Disable all the existing polygons
+            all_districts = DistrictDbca.objects.all()
+            all_districts.update(enabled=False)
+
+            with open(path_to_geojson_file) as f:
+                data = json.load(f)
+                for district in data['features']:
+                    json_str = json.dumps(district['geometry'])
+                    geom = GEOSGeometry(json_str)
+                    district_obj = DistrictDbca.objects.create(
+                        wkb_geometry=geom,
+                        district_name=district['properties']['DDT_DISTRICT_NAME'],
+                        office=district['properties']['DDT_OFFICE'],
+                        object_id=district['properties']['OBJECTID'],
+                    )
+                    district_obj.save()
+                    logger.info("Created District: {}".format(district['properties']['DDT_DISTRICT_NAME']))
+    except Exception as e:
+        logger.error('Error overwriting districts polygons: {}'.format(e))
+
+
+def overwrite_regions_polygons(path_to_geojson_file):
+    from disturbance.components.main.models import RegionDbca
+
+    try:
+        with transaction.atomic():
+            # Disable all the existing polygons
+            all_regions = RegionDbca.objects.all()
+            all_regions.update(enabled=False)
+
+            with open(path_to_geojson_file) as f:
+                data = json.load(f)
+                for region in data['features']:
+                    json_str = json.dumps(region['geometry'])
+                    geom = GEOSGeometry(json_str)
+                    region_obj = RegionDbca.objects.create(
+                        wkb_geometry=geom,
+                        region_name=region['properties']['DRG_REGION_NAME'],
+                        office=region['properties']['DRG_OFFICE'],
+                        object_id=region['properties']['OBJECTID'],
+                    )
+                    region_obj.save()
+                    logger.info("Created Region: {}".format(region['properties']['DRG_REGION_NAME']))
+    except Exception as e:
+        logger.error('Error overwriting regions polygons: {}'.format(e))

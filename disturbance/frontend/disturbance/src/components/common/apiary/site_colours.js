@@ -68,51 +68,51 @@ export default SiteColours
 export let existingSiteRadius = 5
 export let drawingSiteRadius = 7
 export function getStatusForColour(feature_or_apiary_site, vacant_suppress_discard = true, display_at_time_of_submitted = false){
-    let status = ''
+    let my_status = ''
     let is_vacant = false
     let is_vacant_when_submitted = false
     let making_payment = false
 
     if (feature_or_apiary_site.hasOwnProperty('ol_uid')){
         // feature_or_apiary_site is Feature object
-        status = feature_or_apiary_site.get("status");
+        my_status = feature_or_apiary_site.get("status");
         is_vacant = feature_or_apiary_site.get('is_vacant')
         making_payment = feature_or_apiary_site.get('making_payment')
         is_vacant_when_submitted = feature_or_apiary_site.get('apiary_site_is_vacant_when_submitted')
     } else {
         // feature_or_apiary_site is apiary_site object
-        status = feature_or_apiary_site.properties.status
+        my_status = feature_or_apiary_site.properties.status
         is_vacant = feature_or_apiary_site.properties.is_vacant
         making_payment = feature_or_apiary_site.properties.making_payment
         is_vacant_when_submitted = feature_or_apiary_site.properties.apiary_site_is_vacant_when_submitted
     }
 
     if (display_at_time_of_submitted){
-        status = 'pending'
+        my_status = 'pending'
         if (is_vacant_when_submitted){
-            status = 'vacant'
+            my_status = 'vacant'
         }
     } else {
         if (making_payment){
-            status = 'making_payment'
+            my_status = 'making_payment'
         } else {
             if (is_vacant){
                 // Vacant
-                if (status == 'pending'){
-                    status = 'pending_vacant'
+                if (my_status == 'pending'){
+                    my_status = 'pending_vacant'
                 } else {
-                    if (!vacant_suppress_discard && status == 'discarded'){
+                    if (!vacant_suppress_discard && my_status == 'discarded'){
                         // When the site is 'vacant' and 'discarded', status remains the 'discarded'
                     } else {
                         // Set 'vacant' to the site status
-                        status = 'vacant'
+                        my_status = 'vacant'
                     }
                 }
             }
         }
     }
 
-    return status
+    return my_status
 }
 export function getApiaryFeatureStyle(status, selected=false, stroke_width_when_selected=2){
     let additional_width = selected ? stroke_width_when_selected : 0
@@ -359,4 +359,21 @@ export function getDisplayNameFromStatus(status_name){
             return status_name
             break
     }
+}
+export function zoomToCoordinates(map, coordinates, zoomLevel){
+    let currentZoomLevel = map.getView().getZoom()
+    let targetZoomLevel = (zoomLevel) ? zoomLevel : currentZoomLevel
+    map.getView().animate({
+        zoom: targetZoomLevel,
+        center: coordinates
+    })
+}
+export function checkIfValidlatitudeAndlongitude(str) {
+    // Regular expression to check if string is a latitude and longitude
+    // const regexExp = /^((\-?|\+?)?\d+(\.\d+)?),\s*((\-?|\+?)?\d+(\.\d+)?)$/gi;
+    const regexExp = /^\s*((\-?|\+?)?\d+(\.\d+)?)[,\,\/]\s*((\-?|\+?)?\d+(\.\d+)?)$/gi;
+
+    let regResult = regexExp.exec(str)
+
+    return regResult
 }
