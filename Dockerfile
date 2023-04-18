@@ -71,7 +71,7 @@ vim \
 python3-gevent \
 software-properties-common \
 imagemagick \
-libspatialindex-dev
+libspatialindex-dev \
 npm
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
