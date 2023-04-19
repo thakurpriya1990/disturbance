@@ -927,7 +927,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
-            import ipdb; ipdb.set_trace()
+            #import ipdb; ipdb.set_trace()
             extracted_fields,special_fields, add_info_applicant = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             
             instance.data = extracted_fields
@@ -1814,7 +1814,7 @@ def _populate_data_from_item_original(item, repetition, suffix, sqs_value=None):
                     #print('radiobuttons/ textarea/ text/ date etc item', item)
             except Exception as e:
                 logger.error(e)
-                import ipdb; ipdb.set_trace()
+                #import ipdb; ipdb.set_trace()
     else:
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)

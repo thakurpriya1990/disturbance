@@ -504,13 +504,15 @@ def search_section(schema, section_label, question, data, answer):
         #import ipdb; ipdb.set_trace()
         question_label=question.question
         question_type=question.answer_type
+        #import ipdb; ipdb.set_trace()
 
         if item['type']=='section' and item['name']:
             item_name=item['name'].rstrip('0123456789')
             if item_name==section_label:
                 children=item['children']
                 if children:
-                    children_keys= search_keys_group(children, ['name', 'label', 'group'])
+                    #children_keys= search_keys_group(children, ['name', 'label', 'group'])
+                    children_keys= search_keys_group(item, ['name', 'label', 'group'])
                     if children_keys:
                         question_names=[]
                         for key in children_keys:
