@@ -49,6 +49,23 @@ class MapColumn(models.Model):
     def __str__(self):
         return '{0}, {1}'.format(self.map_layer, self.name)
 
+class DASMapLayer(models.Model):
+    display_name = models.CharField(max_length=100, blank=True, null=True)
+    layer_name = models.CharField(max_length=200, blank=True, null=True)
+    layer_url = models.CharField(max_length=256, blank=True, null=True)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
+    display_all_columns = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Disturbance map layer'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.display_name, self.layer_name)
+
+    
+
 
 @python_2_unicode_compatible
 class Region(models.Model):

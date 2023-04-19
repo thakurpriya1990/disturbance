@@ -74,6 +74,7 @@ router.register(
 router.register(
     r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet)
 router.register(r'map_layers', main_api.MapLayerViewSet)
+router.register(r'das_map_layers', main_api.DASMapLayerViewSet)
 
 router.register(
     r'spatial_query_paginated', proposal_api.SpatialQueryQuestionPaginatedViewSet)
