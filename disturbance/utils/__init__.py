@@ -51,9 +51,7 @@ def search2(dictionary, search_list):
     """
     result = {}
     flat_dict = flatten(dictionary)
-    import ipdb; ipdb.set_trace()
     for k, v in flat_dict.items():
-        #import ipdb; ipdb.set_trace()
         for search_item in search_list:
             if k.lower()==search_item.lower():
                 result.update( {k: v} )
@@ -318,10 +316,8 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
                 for j in result:
                     key_label = list(j.keys())[0]
                     if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
-                        #import ipdb; ipdb.set_trace()
                         help_list.append({search_item2: j[key_label], search_item1: i[key]})
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
             print(e)
 
     return help_list
@@ -355,14 +351,11 @@ def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
                 for j in result:
                     key_label = list(j.keys())[0]
                     if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
-                        #import ipdb; ipdb.set_trace()
                         found_key.update({search_item2: j[key_label]})
                     if key_label and key_label.endswith(search_item3) and key_label == corresponding_group_key: # and result.has_key(key):
-                        #import ipdb; ipdb.set_trace()
                         found_key.update({search_item3: j[key_label]})
                 help_list.append(found_key)
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
             print(e)
 
     return help_list
@@ -431,7 +424,6 @@ def search_multiple_keys(dictionary, primary_search='isRequired', search_list=['
                 #  help_list.append( {primary_search: tmp_dict} )
 
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
             print(e)
 
     return help_list
@@ -462,7 +454,6 @@ def flatten(old_data, new_data=None, parent_key='', sep='.', width=4):
                 flatten(elem, new_data, new_key, sep, width)
     else:
         if parent_key not in new_data:
-            #import ipdb; ipdb.set_trace()
             new_data[parent_key] = old_data
         else:
             raise AttributeError("key {} is already used".format(parent_key))
@@ -501,7 +492,6 @@ def search_section(schema, section_label, question, data, answer):
         question_names=[]
         found_fields=[]
         section_label=section_label.replace(" ","")
-        #import ipdb; ipdb.set_trace()
         question_label=question.question
         question_type=question.answer_type
 
@@ -526,7 +516,6 @@ def search_section(schema, section_label, question, data, answer):
         data = flatten(data[0])
         for flat_key in data.items():
             for item in question_names:
-                #import ipdb; ipdb.set_trace()
                 key_name=flat_key[0]
                 #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
                 if len(key_name[len(key_name.rstrip('0123456789')):])==4:
