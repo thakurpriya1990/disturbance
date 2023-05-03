@@ -1,5 +1,5 @@
 # Prepare the base environment.
-FROM dbcawa/disturbance:v2022.09.21.13.4401 as builder_base_disturbancedev
+FROM dbcawa/disturbance:latest as builder_base_disturbancedev
 
 RUN apt-get update
 RUN apt-get install --no-install-recommends -y npm patch
@@ -23,7 +23,7 @@ RUN cp /root/.profile /home/docker
 
 # For Linux
 RUN groupadd -g 20000 container
-RUN useradd -g 20000 -u 20000 container -s /bin/bash
+RUN useradd -g 20000 -u 200000 container -s /bin/bash
 
 RUN mkdir /home/container
 RUN chown container.container /home/container

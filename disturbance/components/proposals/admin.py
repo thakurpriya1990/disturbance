@@ -158,6 +158,7 @@ class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     inlines =[ProposalDocumentInline,]
+    raw_id_fields = ('applicant','proxy_applicant','submitter','previous_application', 'assigned_officer', 'assigned_approver')
 
 
 @admin.register(models.ProposalAssessorGroup)
