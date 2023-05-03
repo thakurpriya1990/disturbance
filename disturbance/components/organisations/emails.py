@@ -274,8 +274,9 @@ def send_organisation_request_email_notification(org_request, request, contact):
 
     url = request.build_absolute_uri('/internal/organisations/access/{}'.format(org_request.id))
     if "-internal" not in url:
-        url = "{0}://{1}{2}.{3}{4}".format(request.scheme, settings.SITE_PREFIX, '-internal', settings.SITE_DOMAIN,
-                                           url.split(request.get_host())[1])
+        #url = "{0}://{1}{2}.{3}{4}".format(request.scheme, settings.SITE_PREFIX, '-internal', settings.SITE_DOMAIN, url.split(request.get_host())[1])
+        site_prefix = request.META['HTTP_HOST'].split('.')[0]
+        url = "{0}://{1}{2}.{3}{4}".format(request.scheme, site_prefix, '-internal', settings.SITE_DOMAIN, url.split(request.get_host())[1])
 
     context = {
         'request': request.data,
