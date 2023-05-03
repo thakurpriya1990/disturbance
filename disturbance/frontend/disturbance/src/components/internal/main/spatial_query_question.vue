@@ -532,6 +532,9 @@ export default {
         isHelptextAssessorUrl: function () {
             return this.spatialquery? this.spatialquery.help_text_assessor_url : false;
         },
+        csrf_token: function() {
+            return helpers.getCookie('csrftoken')
+        },
     },
     methods: {
         has_form_errors: function () {
@@ -659,6 +662,7 @@ export default {
             //e.preventDefault();
             const self = this;
             const data = self.proposal;
+            data['csrfmiddlewaretoken'] = self.csrf_token
             this.missing_fields = [];
              
             if (self.has_form_errors()) {

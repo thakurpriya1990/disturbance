@@ -27,7 +27,7 @@ SQS_BASEURL = env('SQS_APIURL', '')
 SQS_APIURL = SQS_BASEURL + SQS_APIKEY if SQS_BASEURL.endswith('/') else SQS_BASEURL + os.sep + SQS_APIKEY
 
 SQS_USER = env('SQS_USER', '')
-SQS_PASS = env('SQS_USER', '')
+SQS_PASS = env('SQS_PASS', '')
 
 INSTALLED_APPS += [
     'reversion_compare',
