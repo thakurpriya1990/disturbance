@@ -31,7 +31,7 @@
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
                     <div :id="search_box_id" class="search-box">
-                        <input :id="search_input_id" class="search-input" placeholder="latitude, longitude OR address to search"/>
+                        <input :id="search_input_id" class="search-input" placeholder="longitude, latitude OR address to search"/>
                     </div>
                     <div v-show="fullscreen" id="filter_search_on_map">
 
@@ -475,7 +475,8 @@
                     if (targetZoomLevel < currentZoomLevel){
                         targetZoomLevel = currentZoomLevel
                     }
-                    zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
+                    //zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
+                    zoomToCoordinates(vm.map, [lat, lng], targetZoomLevel)
                 }
             },
             updateAvailabilityInstructions: function(availabilities_currently_selected, options){
