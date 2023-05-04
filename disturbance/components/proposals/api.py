@@ -4720,7 +4720,6 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
             else:
                 queryset = queryset.filter(activity=proposal_activity)
         proposal_status = request.GET.get('proposal_status')
-        print(proposal_status.lower())
         if proposal_status and not proposal_status.lower() == 'all':
             #processing_status = get_choice(proposal_status, Proposal.PROCESSING_STATUS_CHOICES)
             #queryset = queryset.filter(processing_status=processing_status)

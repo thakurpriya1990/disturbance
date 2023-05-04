@@ -17,7 +17,7 @@
                         <!-- filters on map here -->
 
                     </div>     
-                    <div v-if="loading_sites" class="spinner_on_map">
+                    <div v-if="loading_proposals" class="spinner_on_map">
                         <i class='fa fa-4x fa-spinner fa-spin'></i>
                     </div>
                     <div class="basemap-button">
@@ -124,59 +124,14 @@
             let default_show_availabilities = ['available', 'unavailable']
 
             return {
-                testFeature:[{"type": "FeatureCollection",
-                    "features": [{"id": "0",
-                    "type": "Feature",
-                    "geometry": {"type": "MultiPolygon",
-                        "coordinates": [[[[115.75599343109013, -32.337010262453965],
-                        [115.75599343109013, -32.337010262453965],
-                        [115.75613254534598, -32.33878640195625],
-                        [115.75599343109013, -32.337010262453965]]],
-                        [[[115.75599343109013, -32.337010262453965],
-                        [115.75599343109013, -32.337010262453965],
-                        [115.75599343109013, -32.337010262453965],
-                        [115.75599343109013, -32.337010262453965]]],
-                        [[[115.75587953993028, -32.336991435171484],
-                        [115.75794457703628, -32.33869333362149],
-                        [115.75847784826034, -32.33659069166652],
-                        [115.75607426614101, -32.33501694328151],
-                        [115.75587953993028, -32.336991435171484]]]]},
-                    "properties": {"Descriptn": "123"}}]},
-                    {"type": "FeatureCollection",
-                    "features": [{"id": "0",
-                    "type": "Feature",
-                    "geometry": {"type": "Polygon",
-                        "coordinates": [[[116.66646964700554, -34.332482402348944],
-                        [116.66781795488598, -34.3324874146459],
-                        [116.66781795488598, -34.3324874146459],
-                        [116.66786306555855, -34.33521911648545],
-                        [116.66646463470857, -34.33521911648545],
-                        [116.66646964700554, -34.332482402348944]]]},
-                    "properties": {"id": 1, "Descriptn": "blahblahblah"}}]}],
-                testFeature2:
-                    {"type": "FeatureCollection",
-                    "features": [{"id": "0",
-                    "type": "Feature",
-                    "geometry": {"type": "Polygon",
-                        "coordinates": [[[116.66646964700554, -34.332482402348944],
-                        [116.66781795488598, -34.3324874146459],
-                        [116.66781795488598, -34.3324874146459],
-                        [116.66786306555855, -34.33521911648545],
-                        [116.66646463470857, -34.33521911648545],
-                        [116.66646964700554, -34.332482402348944]]]},
-                    "properties": {"id": 1, "Descriptn": "blahblahblah"}}]},
                 newVectorLayer: null,
                 newVectorLayerCluster: null,
                 newQuerySource: null,
                 debug: true,
                 modalBindId: uuid(),
-
-                show_action_make_vacant: true,
-                show_action_contact_licence_holder: true,
-
                 map: null,
-                apiarySitesQuerySource: null,
-                apiarySitesClusterLayer: null,
+                proposalQuerySource: null,
+                proposalClusterLayer: null,
                 elem_id: uuid(),
                 popup_id: uuid(),
                 popup_closer_id: uuid(),
@@ -196,131 +151,15 @@
                 labelStyle: MeasureStyles.labelStyle,
                 segmentStyles: null,
 
-                filter_selected_names: 'select status',
-                search_text: '',
+                
                 fullscreen: false,
-                num_of_status_selection: 0,  // Store the number of selection at the UI (not cache)
-                num_of_availability_selection: 0,  // Store the number of selection at the UI (not cache)
+                
 
                 useSelect2: true,
                 select2Applied: false,
-                filterStatuses: [],
                 select2Obj: null,
 
-                show_hide_instructions: [ // This array is used as instructions when showing/hiding the apiary sites on the map
-                    // ApiarySite
-                    {
-                        'id': 'vacant',
-                        'text': 'Vacant',
-                        'show': default_show_statuses.includes('vacant'),
-                        'api': 'list_apiary_sites_vacant',
-                        'features_and_rows': [],
-                        'ajax_obj': null,
-                        'loading_sites': false,
-                    },
-                    // ApiarySiteOnProposal
-                    {
-                        'id': 'pending',
-                        'text': 'Pending',
-                        'show': default_show_statuses.includes('pending'),
-                        'api': 'list_apiary_sites_pending',
-                        'features_and_rows': [],
-                        'ajax_obj': null,
-                        'loading_sites': false,
-                    },
-                    {
-                        'id': 'denied',
-                        'text': 'Denied',
-                        'show': default_show_statuses.includes('denied'),
-                        'api': 'list_apiary_sites_denied',
-                        'features_and_rows': [],
-                        'ajax_obj': null,
-                        'loading_sites': false,
-                    },
-                    // ApiarySiteOnApproval
-                    {
-                        'id': 'current',
-                        'text': 'Current',
-                        'show': default_show_statuses.includes('current'),
-                        'api': 'list_apiary_sites_current',
-                        'features_and_rows': [],
-                        'ajax_obj': null,
-                        'options': [
-                            {
-                                'id': 'available',
-                                'text': 'Available',
-                                'show': default_show_availabilities.includes('available'),
-                                'api': 'list_apiary_sites_current_available',
-                                'features_and_rows': [],
-                                'ajax_obj': null,
-                                'loading_sites': false,
-                            },
-                            {
-                                'id': 'unavailable',
-                                'text': 'Unavailable',
-                                'show': default_show_availabilities.includes('unavailable'),
-                                'api': 'list_apiary_sites_current_unavailable',
-                                'features_and_rows': [],
-                                'ajax_obj': null,
-                                'loading_sites': false,
-                            }
-                        ]
-                    },
-                    {
-                        'id': 'not_to_be_reissued',
-                        'text': 'Not to be reissued',
-                        'show': default_show_statuses.includes('not_to_be_reissued'),
-                        'api': 'list_apiary_sites_not_to_be_reissued',
-                        'features_and_rows': [],
-                        'ajax_obj': null,
-                        'loading_sites': false,
-                    },
-                    {
-                        'id': 'suspended',
-                        'text': 'Suspended',
-                        'show': default_show_statuses.includes('suspended'),
-                        'api': 'list_apiary_sites_suspended',
-                        'features_and_rows': [],
-                        'ajax_obj': null,
-                        'loading_sites': false,
-                    },
-                ],
-                filter_status_options: [
-                    {
-                        'id': 'vacant',
-                        'text': 'Vacant',
-                    },
-                    {
-                        'id': 'pending',
-                        'text': 'Pending',
-                    },
-                    {
-                        'id': 'denied',
-                        'text': 'Denied',
-                    },
-                    {
-                        'id': 'current',
-                        'text': 'Current',
-                    },
-                    {
-                        'id': 'not_to_be_reissued',
-                        'text': 'Not to be reissued',
-                    },
-                    {
-                        'id': 'suspended',
-                        'text': 'Suspended',
-                    },
-                ],
-                filter_availability_options: [
-                    {
-                        'id': 'available',
-                        'text': 'Available',
-                    },
-                    {
-                        'id': 'unavailable',
-                        'text': 'Unavailable',
-                    },
-                ],
+                
                 awe: null,
                 mapboxAccessToken: null,
                 search_box_id: uuid(),
@@ -352,46 +191,6 @@
             }
         },
         watch: {
-            search_text: function(){
-                // Clear data storage in the filters
-                let vm = this
-
-                for (let site_status of vm.show_hide_instructions){
-                    if (site_status.options){
-                        for (let option of site_status.options){
-                            if (option.show){
-                                for (let feature_and_row of option.features_and_rows){
-                                    try {
-                                        // Remove the apiary_site from the map
-                                        vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-                                    } catch(err){
-                                        console.log(err)
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        if (site_status.show){
-                            //let rows_jquery = []
-                            for (let feature_and_row of site_status.features_and_rows){
-                                try {
-                                    // Remove the apiary_site from the map
-                                    vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-                                } catch(err){
-                                    console.log(err)
-                                }
-                            }
-                        }
-                    }
-                    site_status.features_and_rows = []
-                    if (site_status.options){
-                        for (let option of site_status.options){
-                            option.features_and_rows = []
-                        }
-                    }
-                }
-                vm.showHideApiarySites()
-            },
         },
         computed: {
             ruler_colour: function(){
@@ -401,22 +200,9 @@
                     return '#53c2cf';
                 }
             },
-            loading_sites: function(){
+            loading_proposals: function(){
                 let vm = this
-                for (let site_status of vm.show_hide_instructions){
-                    if (site_status.options){
-                        for (let option of site_status.options){
-                            if (option.show && option.loading_sites){
-                                return true
-                            }
-                        }
-                    }
-                    else {
-                        if (site_status.show && site_status.loading_sites){
-                            return true
-                        }
-                    }
-                }
+                
                 return false
             }
         },
@@ -455,134 +241,9 @@
                     return false;
                 });
             },
-            search: function(place){
-                var vm = this;
-
-                let searching_by_latlng = checkIfValidlatitudeAndlongitude(place)
-
-                if(!(searching_by_latlng)){
-                    var latlng = vm.map.getView().getCenter();
-                    $.ajax({
-                        url: api_endpoints.geocoding_address_search + encodeURIComponent(place)+'.json?'+ $.param({
-                            access_token: vm.mapboxAccessToken,
-                            country: 'au',
-                            limit: 10,
-                            proximity: ''+latlng[0]+','+latlng[1],
-                            bbox: '112.920934,-35.191991,129.0019283,-11.9662455',
-                            types: 'region,postcode,district,place,locality,neighborhood,address,poi'
-                        }),
-                        dataType: 'json',
-                        success: function(data, status, xhr) {
-                            vm.suggest_list = [];  // Clear the list first
-                            if (data.features && data.features.length > 0){
-                                for (var i = 0; i < data.features.length; i++){
-                                    vm.suggest_list.push({ label: data.features[i].place_name,
-                                                            value: data.features[i].place_name,
-                                                            feature: data.features[i]
-                                                            });
-                                }
-                            }
-
-                            vm.awe.list = vm.suggest_list;
-                            vm.awe.evaluate();
-                        }
-                    })
-                } else {
-                    let lat = searching_by_latlng[1]
-                    let lng = searching_by_latlng[4]
-                    let currentZoomLevel = vm.map.getView().getZoom()
-                    let targetZoomLevel = 14
-                    if (targetZoomLevel < currentZoomLevel){
-                        targetZoomLevel = currentZoomLevel
-                    }
-                    //zoomToCoordinates(vm.map, [lng, lat], targetZoomLevel)
-                    zoomToCoordinates(vm.map, [lat, lng], targetZoomLevel)
-                }
-            },
-            updateAvailabilityInstructions: function(availabilities_currently_selected, options){
-                let vm = this
-                if (availabilities_currently_selected.length === 0){
-                    for (let option of options){
-                        option.show = true
-                    }
-                } else {
-                    for (let option of options){
-                        if (availabilities_currently_selected.includes(option.id)){
-                            option.show = true
-                        } else {
-                            option.show = false
-                        }
-                    }
-                }
-            },
-            updateInstructions: function(){
-                let vm = this
-                let statuses_currently_selected = $(vm.$refs.filterStatus).select2('data').map(x => { return x.id })
-                let availabilities_currently_selected = $(vm.$refs.filterAvailability).select2('data').map(x => { return x.id })
-                let current_status_item = vm.show_hide_instructions.filter(x => { return x.id === 'current' })[0]  // We just interested in the 'current' status
-
-                if (availabilities_currently_selected.length === 0){
-                    // No availabilities selected
-                    if (statuses_currently_selected.length === 0){
-                        // No statuses selected --> Show all
-                        for (let site_status of vm.show_hide_instructions){
-                            site_status.show = true
-                        }
-                    } else {
-                        // some statuses selected --> Show whatever selected
-                        for (let site_status of vm.show_hide_instructions){
-                            if (statuses_currently_selected.includes(site_status.id)){
-                                site_status.show = true
-                            } else {
-                                site_status.show = false
-                            }
-                        }
-                    }
-                } else {
-                    // Some availability selected
-                    if (statuses_currently_selected.length === 0){
-                        // No statuses selected --> Show only current
-                        for (let site_status of vm.show_hide_instructions){
-                            if (site_status.id === 'current'){
-                                site_status.show = true
-                                continue
-                            }
-                            site_status.show = false
-                        }
-                    } else {
-                        // Some statuses selected
-                        for (let site_status of vm.show_hide_instructions){
-                            if (site_status.id === 'current'){
-                                if (statuses_currently_selected.includes(site_status.id)){
-                                    site_status.show = true
-                                    continue
-                                }
-                            }
-                            site_status.show = false
-                        }
-                    }
-                }
-                vm.updateAvailabilityInstructions(availabilities_currently_selected, current_status_item.options)
-            },
-            toggleFilterSearchRow: function(action){
-                // Attach/Detach filter-search elements to/from the map
-                let vm = this
-                let filter_search_elements = $('#filter_search_row')
-                let filter_search_row_wrapper = $('#filter_search_row_wrapper')
-                let wrapper_in_map = $('#filter_search_on_map')
-
-                let search_box = $('#' + vm.search_box_id)
-
-                if (action === 'enter'){
-                    filter_search_elements.prependTo(wrapper_in_map)
-                    search_box.css("top", "50px")
-                    search_box.css("left", "60px")
-                } else if (action === 'leave'){
-                    filter_search_elements.prependTo(filter_search_row_wrapper)
-                    search_box.css("top", "10px")
-                    search_box.css("left", "50px")
-                }
-            },
+            
+            
+            
             applySelect2: function(){
                 let vm = this
 
@@ -596,12 +257,10 @@
                         dropdownParent: $('#filters_parent'),
                     }).
                     on('select2:select', function(e){
-                        vm.updateInstructions()
-                        vm.showHideApiarySites()
+                        
                     }).
                     on('select2:unselect', function(e){
-                        vm.updateInstructions()
-                        vm.showHideApiarySites()
+                        
                     })
 
                     $(vm.$refs.filterAvailability).select2({
@@ -613,43 +272,27 @@
                         dropdownParent: $('#filters_parent'),
                     }).
                     on("select2:select",function (e) {
-                        vm.updateInstructions()
-                        vm.showHideApiarySites()
+                        
                     }).
                     on("select2:unselect",function (e) {
-                        vm.updateInstructions()
-                        vm.showHideApiarySites()
+                        
                     })
                     vm.select2Applied = true
                 }
             },
-            clearApiarySitesFromMap: function(){
+            clearProposalsFromMap: function(){
                 let vm = this
-                this.apiarySitesQuerySource.clear()
+                this.proposalQuerySource.clear()
             },
             clearAjaxObjects: function(){
                 let vm = this
-                for (let site_status of vm.show_hide_instructions){
-                    if (site_status.options){
-                        for (let option of site_status.options){
-                            if (option.ajax_obj != null) {
-                                option.ajax_obj.abort();
-                                option.ajax_obj = null;
-                            }
-                        }
-                    } else {
-                        if (site_status.ajax_obj != null) {
-                            site_status.ajax_obj.abort();
-                            site_status.ajax_obj = null;
-                        }
-                    }
-                }
+                
             },
-            addApiarySitesToMap: function(apiary_sites_geojson){
+            addProposalsToMap: function(proposal_geojson){
                 let vm = this
-                let features = (new GeoJSON()).readFeatures(apiary_sites_geojson);
+                let features = (new GeoJSON()).readFeatures(proposal_geojson);
                 console.log('feature', features);
-                this.apiarySitesQuerySource.addFeatures(features);
+                this.proposalQuerySource.addFeatures(features);
             },
             addEventListeners: function () {
                 let vm = this
@@ -661,76 +304,8 @@
                     vm.search(ev.target.value);
                 })
             },
-            getApiarySiteAvailableFromEvent(e){
-                let apiary_site_available = e.target.getAttribute("data-apiary-site-available");
-
-                if (!(apiary_site_available)){
-                    apiary_site_available = e.target.getElementsByTagName('span')[0].getAttribute('data-apiary-site-available')
-                }
-
-                return apiary_site_available
-            },
-            toggleAvailability: function(e){
-                let vm = this;
-                let apiary_site_id = e.target.getAttribute("data-toggle-availability");
-                let current_availability = this.getApiarySiteAvailableFromEvent(e)
-                let requested_availability = current_availability === 'true' ? false : true
-                e.stopPropagation()
-
-                vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'available': requested_availability }).then(
-                    async function(accept){
-                        // Update the site in the table
-                        let site_updated = accept.body
-                    },
-                    reject=>{
-                        swal(
-                            'Submit Error',
-                            helpers.apiVueResourceError(err),
-                            'error'
-                        )
-                    }
-                );
-            },
-            makeVacantClicked: function(e){
-                let vm = this;
-                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                let apiary_site_id = e.target.getAttribute("data-make-vacant");
-                e.stopPropagation()
-
-                swal({
-                    title: "Make Vacant",
-                    text: "Are you sure you want to make this apiary site: " + apiary_site_id + " vacant?",
-                    type: "question",
-                    showCancelButton: true,
-                    confirmButtonText: 'Yes, make vacant'
-                }).then(
-                    () => {
-                        vm.$http.patch('/api/apiary_site/' + apiary_site_id + '/', { 'status': 'vacant' }).then(
-                            async function(accept){
-                                // Remove the row from the table
-                                // TODO: Update table
-                                $(e.target).closest('tr').fadeOut('slow', function(){
-                                    // Remove the site table which the table is based on
-                                    vm.removeApiarySiteById(apiary_site_id)
-                                })
-
-                                // TODO: Update map
-                                // Remove the site from the map
-                                this.$refs.component_map.removeApiarySiteById(apiary_site_id)
-                            },
-                            reject=>{
-                                swal(
-                                    'Submit Error',
-                                    helpers.apiVueResourceError(err),
-                                    'error'
-                                )
-                            }
-                        );
-                    },
-                    err => {
-                    }
-                );
-            },
+            
+            
             toggleStatusFilterDropdown: function(){
                 $(".status_filter_dropdown").slideToggle("fast")
             },
@@ -941,12 +516,12 @@
                                     // Ref: https://github.com/openlayers/openlayers/issues/11464
                 });
 
-                vm.apiarySitesQuerySource = new VectorSource({ });                
+                vm.proposalQuerySource = new VectorSource({ });                
 
 
                 let clusterSource = new Cluster({
                     distance: 50,
-                    source: vm.apiarySitesQuerySource,
+                    source: vm.proposalQuerySource,
                     geometryFunction: (feature) => {
                         let resolution = this.map.getView().getResolution();
                         
@@ -980,7 +555,7 @@
                         return originalFeature[0].getGeometry();
                     }
                     });
-                vm.apiarySitesClusterLayer = new VectorLayer({
+                vm.proposalClusterLayer = new VectorLayer({
                     title: 'Cluster Layer',
                     source: clusterSource,
                     
@@ -1026,13 +601,13 @@
                         return style
                     },
                 });
-                vm.map.addLayer(vm.apiarySitesClusterLayer);
-                vm.apiarySitesClusterLayer.setZIndex(10)  
+                vm.map.addLayer(vm.proposalClusterLayer);
+                vm.proposalClusterLayer.setZIndex(10)  
 
                 //PA code begin
                 
                 vm.newVectorLayer = new VectorLayer({
-                    source: vm.apiarySitesQuerySource,
+                    source: vm.proposalQuerySource,
                     //name: 'layer1',
                     visible: true,
                     maxResolution: 10
@@ -1042,7 +617,7 @@
                 vm.newVectorLayerCluster = new VectorLayer({
                     source: new Cluster({
                         distance: 50,
-                        source: vm.apiarySitesQuerySource,
+                        source: vm.proposalQuerySource,
                         geometryFunction: (feature) => {
                             let resolution = this.map.getView().getResolution();
                             if (resolution < 0.05 && resolution > 0.0001){
@@ -1180,7 +755,7 @@
                                     // Therefore try to get the correct feature by the coordinate
                                     let geometry = feature.getGeometry();
                                     let coord = geometry.getCoordinates();
-                                    feature = vm.apiarySitesQuerySource.getFeaturesAtCoordinate(coord)
+                                    feature = vm.proposalQuerySource.getFeaturesAtCoordinate(coord)
                                 }
                                 vm.showPopup(feature[0])
                             } else {
@@ -1244,7 +819,7 @@
                 });
                 vm.map.on('moveend', function(e){
                     let extent = vm.map.getView().calculateExtent(vm.map.getSize());
-                    let features = vm.apiarySitesQuerySource.getFeaturesInExtent(extent)
+                    let features = vm.proposalQuerySource.getFeaturesInExtent(extent)
                     vm.$emit('featuresDisplayed', features)
                 });
                 //vm.map.on('postrender', function(){
@@ -1258,7 +833,7 @@
                 //});
                 if (vm.can_modify){
                     let modifyTool = new Modify({
-                        source: vm.apiarySitesQuerySource,
+                        source: vm.proposalQuerySource,
                     });
                     modifyTool.on("modifystart", function(attributes){
                             attributes.features.forEach(function(feature){
@@ -1290,7 +865,7 @@
                 }
             },
             showPopupById: function(apiary_site_id){
-                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                let feature = this.proposalQuerySource.getFeatureById(apiary_site_id)
                 this.showPopup(feature)
             },
             get_approval_link: function(feature){
@@ -1461,20 +1036,11 @@
             getDegrees: function(coords){
                 return coords[0].toFixed(6) + ', ' + coords[1].toFixed(6);
             },
-            removeApiarySiteById: function(apiary_site_id){
-                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                this.apiarySitesQuerySource.removeFeature(feature)
-            },
-            setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
-                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let style_applied = getApiaryFeatureStyle(getStatusForColour(feature, false, this.display_at_time_of_submitted), selected)
-                feature.setStyle(style_applied)
-            },
             displayAllFeatures: function() {
-                if (this.apiarySitesQuerySource.getFeatures().length>0){
+                if (this.proposalQuerySource.getFeatures().length>0){
                     let view = this.map.getView()
 
-                    let ext = this.apiarySitesQuerySource.getExtent()
+                    let ext = this.proposalQuerySource.getExtent()
                     let centre = [(ext[0] + ext[2])/2.0, (ext[1] + ext[3])/2.0]
                     //view.fit(ext)
                     let resolution = view.getResolutionForExtent(ext);
@@ -1530,100 +1096,6 @@
 
                 }
             },
-            showHideApiarySites: async function() {
-                /////
-                // This function shows/hides the apiary sites according to the show_hide_instructions object.
-                /////
-                let vm = this
-
-                let temp = vm.show_hide_instructions
-
-                vm.clearApiarySitesFromMap()
-                vm.clearAjaxObjects()
-
-                for (let site_status of vm.show_hide_instructions){
-                    if (site_status.options){
-                        // Options (sub categories) exist, which means this site_status is 'current' (for current implementation)
-                        for (let option of site_status.options){
-                            if (site_status.show && option.show){
-                                //if (option.ajax_obj != null) {
-                                //    option.ajax_obj.abort();
-                                //    option.ajax_obj = null;
-                                //}
-                                option.loading_sites = true
-                                option.ajax_obj = $.ajax('/api/apiary_site/' + option.api + '/?search_text=' + vm.search_text, {
-                                    dataType: 'json',
-                                    success: function(re, status, xhr){
-                                        //vm.addApiarySitesToMap(re)
-                                        option.loading_sites = false
-                                    },
-                                    error: function (jqXhr, textStatus, errorMessage) { // error callback 
-                                        option.loading_sites = false
-                                    }
-                                })
-                            } else {
-                                // Hide all the apiary_site
-                                for (let feature_and_row of option.features_and_rows){
-                                    // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                                    if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
-                                        try{
-                                            // Remove the apiary site from the map by using the cache
-                                            vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-
-                                            // Remove the apiary site from the table by using the cache
-                                            //vm.removeApiarySiteFromTable(feature_and_row.row_jquery)
-                                            //rows_jquery.push(feature_and_row.row_jquery)
-                                        } catch (err){
-                                            console.log(err)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        // No sub options
-                        if (site_status.show){
-                            // Show all the apiary sites in this site_status
-                            // Data have not been loaded yet
-                            // Fetch data from the server
-                            // Add the features to the map
-                            // Add the features to the table
-                            // Store data in the data storage
-
-                            /* Cancel all the previous requests */
-                            //if (site_status.ajax_obj != null) {
-                            //    site_status.ajax_obj.abort();
-                            //    site_status.ajax_obj = null;
-                            //}
-                            site_status.loading_sites = true
-                            site_status.ajax_obj = $.ajax('/api/apiary_site/' + site_status.api + '/?search_text=' + vm.search_text, {
-                                dataType: 'json',
-                                success: function(re, status, xhr){
-                                    //vm.addApiarySitesToMap(re)
-                                    site_status.loading_sites = false
-                                },
-                                error: function (jqXhr, textStatus, errorMessage) { // error callback 
-                                    console.log(errorMessage)
-                                    site_status.loading_sites = false
-                                }
-                            })
-                        } else {
-                            // Hide all the apiary_sites in this site_status
-                            for (let feature_and_row of site_status.features_and_rows){
-                                // Remove the apiary_site from the map.  There are no functions to show/hide a feature unlike the layer.
-                                if (feature_and_row && vm.apiarySitesQuerySource.hasFeature(feature_and_row.feature)){
-                                    try{
-                                        // Remove the apiary site from the map by using the cache
-                                        vm.apiarySitesQuerySource.removeFeature(feature_and_row.feature)
-                                    } catch (err){
-                                        console.log(err)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } // END: loop for show_hide_instructions
-            }, // END: showHideApiarySites()
 
             fetchProposalGeojson: function(){
                 let vm=this;
@@ -1639,7 +1111,7 @@
                             dataType: 'json',
                             success: function(re, status, xhr){
                                 for (let proposal of re){
-                                    vm.addApiarySitesToMap(proposal.shapefile_json);
+                                    vm.addProposalsToMap(proposal.shapefile_json);
 
                                 }
                             },
