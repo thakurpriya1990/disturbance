@@ -1453,7 +1453,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['POST',])
+    @detail_route(methods=['GET',])
     def sqs_data_test(self, request, *args, **kwargs):
         '''
         Initially developed to allow testing of SQS Server - providing and example API request from DAS
@@ -1521,12 +1521,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
         resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         meta = resp.cookies.get_dict()
-        meta['csrftoken']
-        meta['sessionid']
-        cookies = cookies={'csrftoken': meta['csrftoken'], 'sessionid': meta['sessionid']}
-        headers={'X-CSRFToken' : meta['csrftoken']}
+        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        headers={'X-CSRFToken' : csrftoken}
 
-        url = f'{settings.SQS_APIURL}/spatial_query/' 
+        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
         resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
 
         return Response(resp)
@@ -1571,12 +1571,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         meta = resp.cookies.get_dict()
-        meta['csrftoken']
-        meta['sessionid']
-        cookies = cookies={'csrftoken': meta['csrftoken'], 'sessionid': meta['sessionid']}
-        headers={'X-CSRFToken' : meta['csrftoken']}
+        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        headers={'X-CSRFToken' : csrftoken}
 
-        url = f'{settings.SQS_APIURL}/spatial_query/' 
+        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
         resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
 
         return Response(resp)

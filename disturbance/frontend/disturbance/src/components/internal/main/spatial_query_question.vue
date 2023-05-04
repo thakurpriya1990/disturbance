@@ -618,6 +618,10 @@ export default {
                 self.showQuestionModel = false;
                 self.showTestModel = false;
                 self.showTestJsonResponse = false;
+
+                self.request_time = null;
+                self.num_questions = null;
+                self.num_layers_utilised = null;
             }
         },
         saveSpatialquery: async function() {
@@ -738,6 +742,7 @@ export default {
 
             this.showOptions = false;
             this.isModalOpen = true;
+
 
             this.proposal.lodgement_number = '';
             this.proposal.all_mlqs = false;
