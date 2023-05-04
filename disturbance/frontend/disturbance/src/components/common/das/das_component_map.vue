@@ -703,6 +703,11 @@
                     vm.displayAllFeaturesShape();
                 }
             },
+            addShapeToMap: function(apiary_sites_geojson){
+                let vm = this
+                let features = (new GeoJSON()).readFeatures(apiary_sites_geojson)
+                this.shapeVectorSource.addFeatures(features)
+            },
             displayAllFeaturesShape: function() {
                 if (this.shapeVectorSource.getFeatures().length>0){
                     let view = this.map.getView()

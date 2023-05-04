@@ -82,6 +82,7 @@ router.register(
     r'spatial_query',
     proposal_api.SpatialQueryQuestionViewSet
 )
+router.register(r'das_map_proposal',proposal_api.DASMapFilterViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),

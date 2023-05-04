@@ -1427,6 +1427,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.shapefile_json=json.loads(shp_json)
                 else:
                     self.shapefile_json=shp_json
+                #The features id has to be unique for each shapefile_json
+                if 'features' in self.shapefile_json:
+                    if len(self.shapefile_json['features']) >0:
+                        if 'id' in self.shapefile_json['features'][0]:
+                            self.shapefile_json['features'][0]['id']=self.id
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
                 #     raise ValidationError('Please upload a valid shapefile')

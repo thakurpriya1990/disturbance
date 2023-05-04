@@ -1275,5 +1275,39 @@ class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
         model = SpatialQueryQuestion
         fields = '__all__'
 
+class DASMapFilterSerializer(BaseProposalSerializer):
+    submitter = EmailUserSerializer()
+    processing_status = serializers.SerializerMethodField(read_only=True)
+    customer_status = serializers.SerializerMethodField(read_only=True)
+    
+    
+    region = serializers.SerializerMethodField(read_only=True)
+    district = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'activity',
+                'title',
+                'region',
+                'district',
+                'customer_status',
+                'processing_status',
+                'submitter',                
+                'lodgement_number',
+                'shapefile_json',
+                )
+    
+    def get_region(self,obj):
+        if obj.region:
+            return obj.region.name
+        return None
+
+    def get_district(self,obj):
+        if obj.district:
+            return obj.district.name
+        return None
+
 
 
