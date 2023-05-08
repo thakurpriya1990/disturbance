@@ -181,11 +181,21 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
 
     # def get_category(self, relation):
     #     return relation.site_category.name
+    def _get_admin_user(self, org):
+        admins = org.contacts.filter(user_status__in=('active', 'suspended', 'contact_form',), is_admin=True)
+        admin = admins.first() if admins else None
+        return admin
 
     def get_surname(self, relation):
         relevant_applicant = relation.approval.relevant_applicant
         if isinstance(relevant_applicant, EmailUser):
             return relevant_applicant.last_name
+        elif isinstance(relevant_applicant, Organisation):
+            admin = self._get_admin_user(relevant_applicant)
+            if admin:
+                return admin.last_name
+            else:
+                return ''
         else:
             return ''
 
@@ -193,6 +203,12 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
         relevant_applicant = relation.approval.relevant_applicant
         if isinstance(relevant_applicant, EmailUser):
             return relevant_applicant.first_name
+        elif isinstance(relevant_applicant, Organisation):
+            admin = self._get_admin_user(relevant_applicant)
+            if admin:
+                return admin.first_name
+            else:
+                return ''
         else:
             return ''
 
@@ -207,6 +223,12 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
         relevant_applicant = relation.approval.relevant_applicant
         if isinstance(relevant_applicant, EmailUser):
             return relevant_applicant.phone_number
+        elif isinstance(relevant_applicant, Organisation):
+            admin = self._get_admin_user(relevant_applicant)
+            if admin:
+                return admin.phone_number
+            else:
+                return ''
         else:
             return ''
 
@@ -214,6 +236,12 @@ class ApiarySiteOnApprovalGeometryExportSerializer(ApiarySiteOnApprovalGeometryS
         relevant_applicant = relation.approval.relevant_applicant
         if isinstance(relevant_applicant, EmailUser):
             return relevant_applicant.phone_number
+        elif isinstance(relevant_applicant, Organisation):
+            admin = self._get_admin_user(relevant_applicant)
+            if admin:
+                return admin.mobile_number
+            else:
+                return ''
         else:
             return ''
 
