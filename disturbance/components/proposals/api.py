@@ -4745,3 +4745,40 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         
         serializer = DASMapFilterSerializer(queryset,context={'request':request}, many=True)
         return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    def filter_list(self, request, *args, **kwargs):
+        """ Used by the internal/external dashboard filters """
+        template_group = get_template_group(request)
+        region_qs = []
+        activity_qs = []
+        application_type_qs = []
+        if template_group == 'apiary':
+            qs = self.get_queryset().filter(
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
+            submitter_qs = qs.filter(
+                submitter__isnull=False).filter(
+                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        else:
+            qs = self.get_queryset().exclude(
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            submitter_qs = qs.filter(submitter__isnull=False).distinct(
+                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+
+        activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
+        submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
+        data = dict(
+            regions=region_qs,
+            #districts=district_qs,
+            activities=activity_qs,
+            submitters=submitters,
+            #application_types=application_type_qs,
+            processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
+            approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
+        )
+        return Response(data)

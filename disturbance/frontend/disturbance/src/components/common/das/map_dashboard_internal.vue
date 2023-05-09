@@ -6,16 +6,72 @@
                 <div v-show="!fullscreen" id="filter_search_row_wrapper">
                     <div class="filter_search_wrapper" style="margin-bottom: 5px;" id="filter_search_row">
                         <template v-show="select2Applied">
-                           
+                           <div class="row">
+                                <div >
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <template v-show="select2Applied">
+                                                <label for="">Region</label>
+                                                <select style="width:100%" class="form-control input-sm" ref="filterRegion" v-model="filterProposalRegion">
+                                                    <template v-if="">
+                                                        <option value="All">All</option>
+                                                        <option v-for="r in regions" :value="r">{{r}}</option>
+                                                    </template>
+                                                </select>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="">Activity</label>
+                                        <select class="form-control" v-model="filterProposalActivity">
+                                            <option value="All">All</option>
+                                            <option v-for="a in activity_titles" :value="a">{{a}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="">Status</label>
+                                        <select class="form-control" v-model="filterProposalStatus">
+                                            <option value="All">All</option>
+                                            <option v-for="s in proposal_status" :value="s.value">{{s.name}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label for="">Lodged From</label>
+                                    <div class="input-group date" ref="proposalDateFromPicker">
+                                        <input type="date" class="form-control" v-model="filterProposalLodgedFrom">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="">Lodged To</label>
+                                    <div class="input-group date" ref="proposalDateToPicker">
+                                        <input type="date" class="form-control" v-model="filterProposalLodgedTo">
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="">Submitter</label>
+                                        <select class="form-control" v-model="filterProposalSubmitter">
+                                            <option value="All">All</option>
+                                            <option v-for="s in proposal_submitters" :value="s.email">{{s.search_term}}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
                         </template>
                     </div>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
                     
                     <div v-show="fullscreen" id="filter_search_on_map">
-
                         <!-- filters on map here -->
-
+                        <!-- end filter here -->
                     </div>     
                     <div v-if="loading_proposals" class="spinner_on_map">
                         <i class='fa fa-4x fa-spinner fa-spin'></i>
@@ -117,7 +173,7 @@
     import {getCenter} from 'ol/extent'
 
     export default {
-        name: 'AvailableSites',
+        name: 'MapDashboard',
         data: function(){
             let vm = this
             let default_show_statuses = ['vacant', 'pending', 'denied', 'current', 'not_to_be_reissued', 'suspended']
@@ -130,6 +186,15 @@
                 debug: true,
                 modalBindId: uuid(),
                 map: null,
+                proposals: null,
+                filteredProposals: [],
+                filterProposalRegion: 'All',
+                filterProposalActivity: 'All',
+                filterProposalApplicationType: 'All',
+                filterProposalStatus: 'All',
+                filterProposalLodgedFrom: '',
+                filterProposalLodgedTo: '',
+                filterProposalSubmitter: 'All',
                 proposalQuerySource: null,
                 proposalClusterLayer: null,
                 elem_id: uuid(),
@@ -165,6 +230,29 @@
                 search_box_id: uuid(),
                 search_input_id: uuid(),
                 search_address_latlng_text: '',
+
+                //filters
+                activity_titles : [],
+                application_types : [],
+                regions: [],
+                proposal_submitters: [],
+                proposal_status: [],
+                external_status:[
+                    {value: 'draft', name: 'Draft'},
+                    {value: 'with_assessor', name: 'Under Review'},
+                    {value: 'approved', name: 'Approved'},
+                    {value: 'declined', name: 'Declined'},
+                ],
+                internal_status:[
+                    {value: 'draft', name: 'Draft'},
+                    {value: 'with_assessor', name: 'With Assessor'},
+                    {value: 'with_referral', name: 'With Referral'},
+                    {value: 'with_assessor_requirements', name: 'With Assessor (Requirements)'},
+                    {value: 'with_approver', name: 'With Approver'},
+                    {value: 'approved', name: 'Approved'},
+                    {value: 'declined', name: 'Declined'},
+                    {value: 'discarded', name: 'Discarded'},
+                ],
             }
         },
         components: {
@@ -188,9 +276,36 @@
             display_at_time_of_submitted: {
                 type: Boolean,
                 default: false
-            }
+            },
         },
         watch: {
+             filterProposalRegion: function () {
+                console.log('filterProposalRegion', this.filterProposalRegion)
+                this.applyFiltersFrontEnd();
+                this.$emit('filter-appied');
+            },
+            filterProposalActivity: function () {
+                this.applyFiltersFrontEnd();
+                //console.log('filterProposalActivity', this.filterProposalActivity)
+                this.$emit('filter-appied');
+            },
+            filterProposalStatus: function () {
+                this.applyFiltersFrontEnd();
+                console.log('filterProposalStatus', this.filterProposalStatus)
+                this.$emit('filter-appied');
+            },
+            filterProposalLodgedFrom: function () {
+                this.applyFiltersFrontEnd();
+                this.$emit('filter-appied');
+            },
+            filterProposalLodgedTo: function () {
+                this.applyFiltersFrontEnd();
+                this.$emit('filter-appied');
+            },
+            filterProposalSubmitter: function () {
+                this.applyFiltersFrontEnd();
+                this.$emit('filter-appied');
+            },
         },
         computed: {
             ruler_colour: function(){
@@ -207,6 +322,37 @@
             }
         },
         methods: {
+            applyFiltersFrontEnd: function () {
+                this.filteredProposals = [...this.proposals];
+                console.log('applyFiltersFrontEnd', this.filteredProposals)
+                // console.log('this.filteredProposals', this.filteredProposals)
+                console.log('this.filterProposalRegion', this.filterProposalRegion)
+                if ('All' != this.filterProposalRegion) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.region == this.filterProposalRegion)]
+                    console.log('this.filteredProposals after region filter', this.filteredProposals)
+                }
+                if ('All' != this.filterProposalActivity) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.activity == this.filterProposalActivity)]
+                    console.log('this.filteredProposals after activity filter', this.filteredProposals)
+                }
+                if ('All' != this.filterProposalStatus) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.processing_status == this.filterProposalStatus)]
+                    console.log('this.filteredProposals after status filter', this.filteredProposals)
+                }
+                if ('' != this.filterProposalLodgedFrom) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => new Date(proposal.lodgement_date) >= new Date(this.filterProposalLodgedFrom))]
+                    console.log('this.filteredProposals after date from filter', this.filteredProposals)
+                }
+                if ('' != this.filterProposalLodgedTo) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => new Date(proposal.lodgement_date) <= new Date(this.filterProposalLodgedTo))]
+                    console.log('this.filteredProposals after date to filter', this.filteredProposals)
+                }
+                if ('All' != this.filterProposalSubmitter) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.submitter == this.filterProposalSubmitter)]
+                    console.log('this.filteredProposals after submitter filter', this.filteredProposals)
+                }
+                this.loadFeatures(this.filteredProposals);
+            },
             retrieveMapboxAccessToken: async function(){
                 let ret_val = await $.ajax('/api/geocoding_address_search_token')
                 return ret_val
@@ -293,6 +439,21 @@
                 let features = (new GeoJSON()).readFeatures(proposal_geojson);
                 console.log('feature', features);
                 this.proposalQuerySource.addFeatures(features);
+            },
+            loadFeatures: function (proposals) {
+                let vm = this;
+                // Remove all features from the layer
+                vm.proposalQuerySource.clear();
+                console.log('proposal', proposals)
+                proposals.forEach(function (proposal) {
+                    let feature = (new GeoJSON()).readFeatures(proposal.shapefile_json);
+                    console.log(feature)
+                    let f=feature[0]
+                    f.setProperties({
+                        proposal: proposal,
+                    })
+                    vm.proposalQuerySource.addFeatures(feature);
+                });
             },
             addEventListeners: function () {
                 let vm = this
@@ -1096,24 +1257,41 @@
 
                 }
             },
+            fetchFilterLists: function(){
+                let vm = this;
 
-            fetchProposalGeojson: function(){
+                vm.$http.get(api_endpoints.filter_list_map).then((response) => {
+                    vm.regions = response.body.regions;
+                    vm.activity_titles = response.body.activities;
+                    vm.application_types = response.body.application_types;
+                    vm.proposal_submitters = response.body.submitters;
+                    //vm.proposal_status = response.body.processing_status_choices;
+                    vm.proposal_status = vm.level == 'internal' ? vm.internal_status: vm.external_status;
+                },(error) => {
+                    console.log(error);
+                })
+                //console.log(vm.regions);
+            },
+            fetchProposals: async function(){
                 let vm=this;
                 let _ajax_obj=null;
                 var ajax_data={"proposal_status": 'All'}
-                
+                let url = api_endpoints.das_map_proposal 
                 _ajax_obj = $.ajax({
-                            url: '/api/das_map_proposal',
+                            url: url,
                             
                             //type:'GET',
                             
                             data: ajax_data,
                             dataType: 'json',
                             success: function(re, status, xhr){
-                                for (let proposal of re){
-                                    vm.addProposalsToMap(proposal.shapefile_json);
+                                vm.proposals = re;
+                                vm.filteredProposals = [...vm.proposals]
+                                // for (let proposal of re){
+                                //     vm.addProposalsToMap(proposal.shapefile_json);
 
-                                }
+                                // }
+                                vm.loadFeatures(vm.proposals);
                             },
                             error: function (jqXhr, textStatus, errorMessage) { // error callback
                                 console.log(errorMessage);
@@ -1121,6 +1299,7 @@
                         })
             }//End fetch_ajax_data
         },
+        
         created: async function() {
             let temp_token = await this.retrieveMapboxAccessToken()
             this.mapboxAccessToken = temp_token.access_token
@@ -1131,7 +1310,8 @@
                 vm.addEventListeners()
             });
             vm.initMap()
-            vm.fetchProposalGeojson()
+            vm.fetchProposals()
+            vm.fetchFilterLists();
             vm.setBaseLayer('osm')
             vm.set_mode('layer')
             vm.addOptionalLayers()
