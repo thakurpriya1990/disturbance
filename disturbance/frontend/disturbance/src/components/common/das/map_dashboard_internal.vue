@@ -267,7 +267,7 @@
             },
             is_internal:{
                 type: Boolean,
-                default: false
+                default: true
             },
             can_modify: {
                 type: Boolean,
@@ -591,7 +591,7 @@
             },
             addOptionalLayers: function(){
                 let vm = this
-                this.$http.get('/api/map_layers/').then(response => {
+                this.$http.get('/api/das_map_layers/').then(response => {
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
@@ -906,6 +906,7 @@
                     if (vm.mode === 'layer'){
                         let feature = vm.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
                             return feature;
+                            
                         });
                         if (feature){
 
@@ -918,6 +919,8 @@
                                     let coord = geometry.getCoordinates();
                                     feature = vm.proposalQuerySource.getFeaturesAtCoordinate(coord)
                                 }
+                                let proposal = features[0].getProperties().proposal;
+                                console.log('selected proposal', proposal);
                                 vm.showPopup(feature[0])
                             } else {
                                 let geometry = feature.getGeometry();
@@ -1067,17 +1070,65 @@
             },
             showPopup: function(feature){
                 let unique_id = uuid()
+                // let proposal = feature.getProperties().proposal;
+                // console.log('selected proposal', proposal);
 
                 if (feature){
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
+                    let proposal = feature.getProperties().proposal;
+                    console.log('selected proposal', proposal);
                     let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
                     '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
                     //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
-                    let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
-                    let status_str = getDisplayNameFromStatus(a_status)
-                    let actions = this.get_actions(feature, this.contactLicenceHolder)
-                    let approval_link = this.get_approval_link(feature)
+                    // let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
+                    // let status_str = getDisplayNameFromStatus(a_status)
+                    // let actions = this.get_actions(feature, this.contactLicenceHolder)
+                    // let approval_link = this.get_approval_link(feature)
+                    let type = feature.getGeometry().getType();
+                    if (type === 'Polygon') {
+                        coord= feature.getGeometry().getInteriorPoint();
+                    } else if (type === 'LineString') {
+                        coord= feature.getGeometry().getCoordinateAt(0.5);
+                    } else if (type === 'Point') {
+                        coord= feature.getGeometry();
+                    } else if (type === 'MultiPolygon') {
+                        coord= new Point(getCenter(feature.getGeometry().getExtent()), 'XY');
+                    }
+                    coord=coord.getCoordinates();
+                    console.log(coord);
+                    let processing_status_str = proposal.processing_status_display
+                    console.log('processing_status_str', processing_status_str)
+                    let region_str = proposal.region
+                    
+                    let proposal_type_str= proposal.proposal_type
+                    let lodgement_date_str=moment(proposal.lodgement_date).format('DD/MM/YYYY')
+                    let submitter_str=proposal.submitter
+                    let approval_rows=''
+                    if(proposal.approval_lodgement_number){
+                        approval_rows= '<tr>' +
+                                  '<th scope="row">Approval</th>' +
+                                  '<td>' + 
+                                        '<table class="table">' +
+                                        '<tbody>' +
+                                        '<tr>' +
+                                        '<th scope="row">Status</th>' +
+                                        '<td>' + proposal.approval_status + '</td>' +
+                                        '</tr>' +
+                                        '<tr>' +
+                                        '<th scope="row">Start Date</th>' +
+                                        '<td>' + moment(proposal.approval_start_date).format('DD/MM/YYYY') + '</td>' +
+                                        '</tr>' +
+                                        '<tr>' +
+                                        '<th scope="row">Expiry date</th>' +
+                                        '<td>' + moment(proposal.approval_expiry_date).format('DD/MM/YYYY') + '</td>' +
+                                        '</tr>' +
+                                        '</tbody>' +
+                                        '</table>'
+                                  '</td>' +
+                                '</tr>' 
+                        
+                    }
                     let a_table = ''
                     if (this.is_internal){
                         a_table = '<table class="table">' +
@@ -1087,22 +1138,26 @@
                                   '<td><span id=' + unique_id + '></span></td>' +
                                 '</tr>' +
                                 '<tr>' +
+                                  '<th scope="row">Region</th>' +
+                                  '<td>' + region_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Proposal Type</th>' +
+                                  '<td>' + proposal_type_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Lodgement Date</th>' +
+                                  '<td>' + lodgement_date_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
                                   '<th scope="row">Status</th>' +
-                                  '<td>' + status_str + '</td>' +
+                                  '<td>' + processing_status_str + '</td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                  '<th scope="row">Category</th>' +
-                                  '<td>' + getDisplayNameOfCategory(feature.get('site_category')) + '</td>' +
-                                '</tr>' +
-                                '<tr>' +
-                                  '<th scope="row">Coordinates</th>' +
-                                  '<td>' + feature['values_']['geometry']['flatCoordinates'] + '</td>' +
-                                '</tr>' +
-                                approval_link + 
-                                '<tr>' +
-                                  '<th scope="row">Action</th>' +
-                                  '<td>' + actions + '</td>' +
-                                '</tr>' +
+                                  '<th scope="row">Submitter</th>' +
+                                  '<td>' + submitter_str + '</td>' +
+                                '</tr>' + 
+                                approval_rows +
                               '</tbody>' +
                             '</table>'
                     } else if (this.is_external){
@@ -1120,22 +1175,12 @@
                     }
 
                     let content = '<div style="padding: 0.25em;">' +
-                                      '<div style="background: darkgray; color: white; text-align: center; padding: 0.5em;" class="align-middle">' + svg_hexa + ' site: ' + feature.id_ + '</div>' +
+                                      '<div style="background: darkgray; color: white; text-align: center; padding: 0.5em;" class="align-middle">' + ' Proposal: ' + proposal.lodgement_number + '</div>' +
                                       a_table +
                                   '</div>'
 
                     this.content_element.innerHTML = content;
                     this.overlay.setPosition(coord);
-
-                    this.$http.get('/api/apiary_site/' + feature.id_ + '/relevant_applicant_name').then(
-                        res => {
-                            let applicant_name = res.body.relevant_applicant
-                            $('#' + unique_id).text(applicant_name)
-                        },
-                        err => {
-                            console.log({err})
-                        }
-                    )
                 }
             },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){

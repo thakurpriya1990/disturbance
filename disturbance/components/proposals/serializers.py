@@ -1276,13 +1276,11 @@ class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class DASMapFilterSerializer(BaseProposalSerializer):
-    submitter = serializers.CharField(source='submitter.email', read_only=True)
-    processing_status_display = serializers.SerializerMethodField(read_only=True)
-    customer_status = serializers.SerializerMethodField(read_only=True)
-    
-    
-    region = serializers.SerializerMethodField(read_only=True)
-    district = serializers.SerializerMethodField(read_only=True)
+    processing_status_display= serializers.SerializerMethodField()
+    approval_lodgement_number= serializers.SerializerMethodField()
+    approval_start_date= serializers.SerializerMethodField()
+    approval_expiry_date= serializers.SerializerMethodField()
+    approval_status= serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -1299,6 +1297,12 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'lodgement_number',
                 'shapefile_json',
                 'lodgement_date',
+                'proposal_type',
+                'approval_lodgement_number',
+                'approval_start_date',
+                'approval_expiry_date',
+                'approval_status',
+
                 )
     
     def get_region(self,obj):
@@ -1313,6 +1317,26 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     
     def get_processing_status_display(self,obj):
         return obj.get_processing_status_display()
+    
+    def get_approval_lodgement_number(self,obj):
+        if obj.approval:
+            return obj.approval.lodgement_number
+        return None
+    
+    def get_approval_start_date(self,obj):
+        if obj.approval:
+            return obj.approval.start_date
+        return None
+    
+    def get_approval_expiry_date(self,obj):
+        if obj.approval:
+            return obj.approval.expiry_date
+        return None
+    
+    def get_approval_status(self,obj):
+        if obj.approval:
+            return obj.approval.status
+        return None
 
 
 
