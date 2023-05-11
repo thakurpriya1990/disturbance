@@ -1277,10 +1277,13 @@ class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
 
 class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()
+    customer_status_display= serializers.SerializerMethodField()
     approval_lodgement_number= serializers.SerializerMethodField()
     approval_start_date= serializers.SerializerMethodField()
     approval_expiry_date= serializers.SerializerMethodField()
     approval_status= serializers.SerializerMethodField()
+    submitter_full_name = serializers.CharField(source='submitter.get_full_name')
+    submitter = serializers.CharField(source='submitter.email')
 
     class Meta:
         model = Proposal
@@ -1293,7 +1296,10 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'customer_status',
                 'processing_status',
                 'processing_status_display',
-                'submitter',                
+                'customer_status',
+                'customer_status_display',
+                'submitter', 
+                'submitter_full_name',
                 'lodgement_number',
                 'shapefile_json',
                 'lodgement_date',
@@ -1317,6 +1323,9 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     
     def get_processing_status_display(self,obj):
         return obj.get_processing_status_display()
+    
+    def get_customer_status_display(self,obj):
+        return obj.get_customer_status_display()
     
     def get_approval_lodgement_number(self,obj):
         if obj.approval:

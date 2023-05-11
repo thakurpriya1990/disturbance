@@ -1,5 +1,5 @@
 <template>
-    <div class="container">
+    <div class="">
         <!-- <div @click="fixCanvasCss">Fix</div> -->
         <FormSection :formCollapse="false" label="Proposals Map" Index="available_sites">
             <div class="map-wrapper">
@@ -66,6 +66,10 @@
                             </div>
                         </template>
                     </div>
+                </div>
+                <div class="d-flex justify-content-end align-items-center mb-2">
+                    <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
+                        Get GeoJSON</button>
                 </div>
                 <div :id="elem_id" class="map" style="position: relative;">
                     
@@ -267,15 +271,19 @@
             },
             is_internal:{
                 type: Boolean,
-                default: true
+                default: false
             },
             can_modify: {
                 type: Boolean,
                 default: false
             },
-            display_at_time_of_submitted: {
-                type: Boolean,
-                default: false
+            level:{
+                type: String,
+                required: true,
+                validator:function(val) {
+                    let options = ['internal','referral','external'];
+                    return options.indexOf(val) != -1 ? true: false;
+                }
             },
         },
         watch: {
@@ -324,32 +332,28 @@
         methods: {
             applyFiltersFrontEnd: function () {
                 this.filteredProposals = [...this.proposals];
-                console.log('applyFiltersFrontEnd', this.filteredProposals)
-                // console.log('this.filteredProposals', this.filteredProposals)
-                console.log('this.filterProposalRegion', this.filterProposalRegion)
                 if ('All' != this.filterProposalRegion) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.region == this.filterProposalRegion)]
-                    console.log('this.filteredProposals after region filter', this.filteredProposals)
                 }
                 if ('All' != this.filterProposalActivity) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.activity == this.filterProposalActivity)]
-                    console.log('this.filteredProposals after activity filter', this.filteredProposals)
                 }
                 if ('All' != this.filterProposalStatus) {
-                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.processing_status == this.filterProposalStatus)]
-                    console.log('this.filteredProposals after status filter', this.filteredProposals)
+                    if(this.is_external){
+                        this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.customer_status == this.filterProposalStatus)]
+                    }
+                    else{
+                        this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.processing_status == this.filterProposalStatus)]
+                    }
                 }
                 if ('' != this.filterProposalLodgedFrom) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => new Date(proposal.lodgement_date) >= new Date(this.filterProposalLodgedFrom))]
-                    console.log('this.filteredProposals after date from filter', this.filteredProposals)
                 }
                 if ('' != this.filterProposalLodgedTo) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => new Date(proposal.lodgement_date) <= new Date(this.filterProposalLodgedTo))]
-                    console.log('this.filteredProposals after date to filter', this.filteredProposals)
                 }
                 if ('All' != this.filterProposalSubmitter) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.submitter == this.filterProposalSubmitter)]
-                    console.log('this.filteredProposals after submitter filter', this.filteredProposals)
                 }
                 this.loadFeatures(this.filteredProposals);
             },
@@ -387,8 +391,18 @@
                     return false;
                 });
             },
-            
-            
+            download_content: function (content, fileName, contentType) {
+                var a = document.createElement("a");
+                var file = new Blob([content], { type: contentType });
+                a.href = URL.createObjectURL(file);
+                a.download = fileName;
+                a.click();
+            },
+            geoJsonButtonClicked: function () {
+                let vm = this
+                let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
+                vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
+            },
             
             applySelect2: function(){
                 let vm = this
@@ -444,7 +458,6 @@
                 let vm = this;
                 // Remove all features from the layer
                 vm.proposalQuerySource.clear();
-                console.log('proposal', proposals)
                 proposals.forEach(function (proposal) {
                     let feature = (new GeoJSON()).readFeatures(proposal.shapefile_json);
                     console.log(feature)
@@ -485,13 +498,6 @@
                     //vm.$refs.component_map.closePopup()
                     vm.closePopup()
                 }
-            },
-            zoomOnApiarySite: function(e) {
-                this.not_close_popup_by_mouseleave = true
-
-                let apiary_site_id = e.target.getAttribute("data-view-on-map");
-                this.zoomToApiarySiteById(apiary_site_id)
-                e.stopPropagation()
             },
             setBaseLayer: function(selected_layer_name){
                 let vm = this
@@ -1032,42 +1038,7 @@
                 let feature = this.proposalQuerySource.getFeatureById(apiary_site_id)
                 this.showPopup(feature)
             },
-            get_approval_link: function(feature){
-                let approval_link = ''
-                if (feature.get('approval_id') && this.is_internal){
-                    approval_link = '<tr>' + 
-                                        '<th scope="row">Licence</th>' +
-                                        '<td><a href="/internal/approval/' + feature.get('approval_id') + '">' + feature.get('lodgement_number') + '</a></td>' +
-                                    '</tr>'
-                }
-                return approval_link
-            },
-            get_actions: function(feature, contactLicenceHolder){
-                let action_list = []
-
-                let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
-
-                if (this.is_internal && this.show_action_make_vacant){
-                    if (['denied', 'not_to_be_reissued',].includes(a_status)){
-                        let display_text = 'Make Vacant'
-                        let ret = '<a data-make-vacant="' + feature.id_ + '">' + display_text + '</a>';
-                        action_list.push(ret);
-                    }
-                }
-                if (this.is_external && this.show_action_contact_licence_holder){
-                    if (['current',].includes(a_status)){
-                        let available = feature.get('available')
-                        if (available){
-                            let display_text = 'Contact licence holder'
-                            //let ret = '<a data-contact-licence-holder="' + feature.id_ + '" :onclick="this.contactLicenceHolder(' + feature.id_ + ')">' + display_text + '</a>';
-                            let ret = '<a data-contact-licence-holder="' + feature.id_ + '">' + display_text + '</a>';
-                            action_list.push(ret);
-                        }
-                    }
-                }
-                let ret_str = action_list.join('<br />')
-                return ret_str
-            },
+            
             showPopup: function(feature){
                 let unique_id = uuid()
                 // let proposal = feature.getProperties().proposal;
@@ -1078,13 +1049,6 @@
                     let coord = geometry.getCoordinates();
                     let proposal = feature.getProperties().proposal;
                     console.log('selected proposal', proposal);
-                    let svg_hexa = "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='20' width='15'>" +
-                    '<g transform="translate(0, 4) scale(0.9)"><path d="M 14.3395,12.64426 7.5609998,16.557828 0.78249996,12.64426 0.7825,4.8171222 7.5609999,0.90355349 14.3395,4.8171223 Z" id="path837" style="fill:none;stroke:#ffffff;stroke-width:1.565;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>'
-                    //let status_str = feature.get('is_vacant') ? getDisplayNameFromStatus(feature.get('status')) + ' (vacant)' : getDisplayNameFromStatus(feature.get('status'))
-                    // let a_status = getStatusForColour(feature, false, this.display_at_time_of_submitted)
-                    // let status_str = getDisplayNameFromStatus(a_status)
-                    // let actions = this.get_actions(feature, this.contactLicenceHolder)
-                    // let approval_link = this.get_approval_link(feature)
                     let type = feature.getGeometry().getType();
                     if (type === 'Polygon') {
                         coord= feature.getGeometry().getInteriorPoint();
@@ -1096,14 +1060,13 @@
                         coord= new Point(getCenter(feature.getGeometry().getExtent()), 'XY');
                     }
                     coord=coord.getCoordinates();
-                    console.log(coord);
                     let processing_status_str = proposal.processing_status_display
-                    console.log('processing_status_str', processing_status_str)
+                    let customer_status_str = proposal.customer_status_display
                     let region_str = proposal.region
                     
                     let proposal_type_str= proposal.proposal_type
-                    let lodgement_date_str=moment(proposal.lodgement_date).format('DD/MM/YYYY')
-                    let submitter_str=proposal.submitter
+                    let lodgement_date_str= proposal.lodgement_date ? moment(proposal.lodgement_date).format('DD/MM/YYYY') : ''
+                    let submitter_str=proposal.submitter_full_name
                     let approval_rows=''
                     if(proposal.approval_lodgement_number){
                         approval_rows= '<tr>' +
@@ -1161,16 +1124,34 @@
                               '</tbody>' +
                             '</table>'
                     } else if (this.is_external){
-                        a_table = '<table class="table" style="white-space: nowrap;">' +
+                        a_table = '<table class="table">' +
                               '<tbody>' +
                                 '<tr>' +
-                                  '<th scope="row">Status</th>' +
-                                  '<td>' + status_str + '</td>' +
+                                  '<th scope="row">Holder/Applicant</th>' +
+                                  '<td><span id=' + unique_id + '></span></td>' +
                                 '</tr>' +
                                 '<tr>' +
-                                  '<th scope="row">Action</th>' +
-                                  '<td>' + actions + '</td>' +
+                                  '<th scope="row">Region</th>' +
+                                  '<td>' + region_str + '</td>' +
                                 '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Proposal Type</th>' +
+                                  '<td>' + proposal_type_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Lodgement Date</th>' +
+                                  '<td>' + lodgement_date_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Status</th>' +
+                                  '<td>' + customer_status_str + '</td>' +
+                                '</tr>' +
+                                '<tr>' +
+                                  '<th scope="row">Submitter</th>' +
+                                  '<td>' + submitter_str + '</td>' +
+                                '</tr>' + 
+                                approval_rows +
+                              '</tbody>' +
                             '</table>'
                     }
 
