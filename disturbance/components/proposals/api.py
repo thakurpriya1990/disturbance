@@ -19,6 +19,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 from reversion.models import Version
+from django.core.cache import cache
 
 from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
@@ -4686,10 +4687,16 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
 
 
     def list(self, request, *args, **kwargs):
+        #Turning off the caching for now. Can be added if dashboard performance is poor.
+        # cache_key = settings.CACHE_KEY_MAP_PROPOSALS
+        # queryset = cache.get(cache_key)
+        # if queryset is None:
+        #     queryset = self.get_queryset()
+        #     cache.set(cache_key, queryset, settings.CACHE_TIMEOUT_2_HOURS)
+        # logger.debug(f"{cache_key}:{queryset}")
         queryset = self.get_queryset()
         search_text = request.GET.get('search[value]', '')
-        total_count = queryset.count()        
-
+        total_count = queryset.count()
         def get_choice(status, choices=Proposal.PROCESSING_STATUS_CHOICES):
             for i in choices:
                 if i[1]==status:
