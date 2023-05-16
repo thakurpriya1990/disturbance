@@ -2,6 +2,8 @@ import re
 from telnetlib import NEW_ENVIRON
 import traceback
 import os
+import requests
+from requests.auth import HTTPBasicAuth
 
 import json
 from dateutil import parser
@@ -1454,27 +1456,19 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
-    def sqs_data(self, request, *args, **kwargs):
+    def sqs_data_test(self, request, *args, **kwargs):
         '''
         Initially developed to allow testing of SQS Server - providing and example API request from DAS
         ''' 
         from rest_framework.reverse import reverse_lazy
         from rest_framework.test import APIClient
-        import requests
-
-        proposal = self.get_object()
-        #geojson = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}
-        geojson=proposal.shapefile_json
 
         #import ipdb; ipdb.set_trace()
+        proposal = self.get_object()
+        geojson=proposal.shapefile_json
 
         base_api_url = reverse_lazy('api-root', request=request)
-        #masterlist_questions_gbl = requests.get(base_api_url + 'spatial_query/grouped_by_layer.json', headers={}).json()
         masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
-
-        #api_client = APIClient()
-        #masterlist_questions_gbl = api_client.post('spatial_query/grouped_by_layer.json')
-        #masterlist_questions_gbq = api_client.post('spatial_query/grouped_by_question.json')
 
         data = dict(
             proposal=dict(
@@ -1484,32 +1478,36 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
-            #masterlist_questions = masterlist_questions_gbl,
-            #masterlist_questions_gbq = masterlist_questions_gbq,
             masterlist_questions = masterlist_questions_gbq,
             geojson = geojson,
         )
         return Response(data)
 
-    @detail_route(methods=['GET',])
-    def _sqs_data_single(self, request, *args, **kwargs):
+    @detail_route(methods=['POST',])
+    def sqs_data(self, request, *args, **kwargs):
         '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS for Sinfle MLQ question
-        For 'refresh' button on DAS form
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS
         ''' 
-        from rest_framework.reverse import reverse_lazy
-        from rest_framework.test import APIClient
-        import requests
+        lodgement_number = request.data.get('lodgement_number')
+        proposal = Proposal.objects.get(lodgement_number=lodgement_number)
 
-        GEOJSON = {"type":"FeatureCollection","features":[{"type":"Feature","properties":{},"geometry":{"type":"Polygon","coordinates":[[[124.12353515624999,-30.391830328088137],[124.03564453125,-31.672083485607377],[126.69433593749999,-31.615965936476076],[127.17773437499999,-29.688052749856787],[124.12353515624999,-30.391830328088137]]]}}]}
+        geojson=proposal.shapefile_json
 
-        MASTERLIST_QUESTION_SINGLE = [{'question_group': '8.0 Proposal subtitle (Textbox Component)?', 'questions': [{'id': 54, 'question': '8.0 Proposal subtitle (Textbox Component)?', 'answer_mlq': '', 'layer_name': 'cddp:dpaw_regions', 'layer_url': 'https://kmi.dbca.wa.gov.au/geoserver/cddp/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=cddp:dpaw_regions&maxFeatures=50&outputFormat=application%2Fjson', 'expiry': '2024-01-01', 'visible_to_proponent': True, 'buffer': 300, 'how': 'Overlapping', 'column_name': 'region', 'operator': 'IsNotNull', 'value': '', 'prefix_answer': '', 'no_polygons_proponent': -1, 'answer': '', 'prefix_info': '', 'no_polygons_assessor': -1, 'assessor_info': '', 'regions': 'All'}]}]
+        masterlist_question_qs = SpatialQueryQuestion.objects.filter()
+        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        masterlist_questions = json.loads(rendered)
 
-        #import ipdb; ipdb.set_trace()
-        #base_api_url = reverse_lazy('api-root', request=request)
-        #masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
+        # group by question
+        questions = [i['question'] for i in masterlist_questions]
+        unique_questions = list(set(questions))
+        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+        for question_dict in question_group_list:
+            for sqq_record in masterlist_questions:
+                #print(j['layer_name'])
+                if question_dict['question_group'] in sqq_record.values():
+                    question_dict['questions'].append(sqq_record)
 
-        proposal = self.get_object()
         data = dict(
             proposal=dict(
                 system=settings.SYSTEM_NAME_SHORT,
@@ -1518,34 +1516,38 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
-            masterlist_questions = MASTERLIST_QUESTION_SINGLE,
-            geojson = GEOJSON,
+            masterlist_questions = question_group_list,
+            geojson = geojson,
         )
-        return Response(data)
+
+        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        meta = resp.cookies.get_dict()
+        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        headers={'X-CSRFToken' : csrftoken}
+
+        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+
+        return Response(resp)
 
     @detail_route(methods=['POST',])
     @api_exception_handler
     def sqs_data_single(self, request, *args, **kwargs):
         '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS for Sinfle MLQ question
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS for single MLQ question
         For 'refresh' button on DAS form
 
         To test (from DAS shell): 
             requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
         ''' 
-        from rest_framework.reverse import reverse_lazy
-        from rest_framework.test import APIClient
-        import requests
 
-        #import ipdb; ipdb.set_trace()
         mlq_id = request.data.get('masterlist_question_id')
         lodgement_number = request.data.get('lodgement_number')
         proposal = Proposal.objects.get(lodgement_number=lodgement_number)
 
-        base_api_url = reverse_lazy('api-root', request=request)
-        masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/single_question.json', data={'masterlist_question_id':mlq_id}, headers={}).json()
-
-        #import ipdb; ipdb.set_trace()
         geojson=proposal.shapefile_json
 
         # serialize masterlist question
@@ -1567,8 +1569,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
             geojson = geojson,
         )
 
-        # send query to SQS
-        resp = requests.post(url=f'http://localhost:8002/api/v1/das/{settings.SQS_APIKEY}/spatial_query/', json=data).json()
+        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+        #import ipdb; ipdb.set_trace()
+        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        meta = resp.cookies.get_dict()
+        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        headers={'X-CSRFToken' : csrftoken}
+
+        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
 
         return Response(resp)
 
@@ -4266,22 +4277,22 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
         return Response(question_group_list)
 
-    @list_route(methods=['GET', ])
-    @api_exception_handler
-    def single_question(self, request, *args, **kwargs):
-        """ http://localhost:8001/api/spatial_query/single_question.json 
-        """
-        #import ipdb; ipdb.set_trace()
-        mlq_id = request.data.get('masterlist_question_id')
-        mlq_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
-        serializer = self.get_serializer(mlq_qs, many=True)
-        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-        question_json = json.loads(rendered)
-
-        # will contain just a single question
-        question_group_list = [{'question_group': question_json[0]['question'], 'questions': question_json}]
-
-        return Response(question_group_list)
+#    @list_route(methods=['GET', ])
+#    @api_exception_handler
+#    def single_question(self, request, *args, **kwargs):
+#        """ http://localhost:8001/api/spatial_query/single_question.json 
+#        """
+#        #import ipdb; ipdb.set_trace()
+#        mlq_id = request.data.get('masterlist_question_id')
+#        mlq_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
+#        serializer = self.get_serializer(mlq_qs, many=True)
+#        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#        question_json = json.loads(rendered)
+#
+#        # will contain just a single question
+#        question_group_list = [{'question_group': question_json[0]['question'], 'questions': question_json}]
+#
+#        return Response(question_group_list)
 
 
     @list_route(methods=['GET', ])

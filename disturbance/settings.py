@@ -22,7 +22,13 @@ ANNUAL_RENTAL_FEE_GST_EXEMPT = True
 FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
 APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
 
-SQS_APIKEY = env('SQS_APIKEY')
+SQS_APIKEY = env('SQS_APIKEY', '')
+SQS_BASEURL = env('SQS_APIURL', '')
+#SQS_APIURL = SQS_BASEURL + SQS_APIKEY if SQS_BASEURL.endswith('/') else SQS_BASEURL + os.sep + SQS_APIKEY # adds the APIKEY TOKEN
+SQS_APIURL = SQS_BASEURL if SQS_BASEURL.endswith('/') else SQS_BASEURL + os.sep
+
+SQS_USER = env('SQS_USER', '')
+SQS_PASS = env('SQS_PASS', '')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -54,7 +60,7 @@ WSGI_APPLICATION = 'disturbance.wsgi.application'
 '''REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'disturbance.perms.OfficerPermission',
-    )
+    ),
 }'''
 
 #REST_FRAMEWORK = {
@@ -74,6 +80,7 @@ REST_FRAMEWORK = {
     #),
     #'DEFAULT_PAGINATION_CLASS': 'rest_framework_datatables.pagination.DatatablesPageNumberPagination',
     #'PAGE_SIZE': 20,
+    #'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'
 }
 
 USE_DJANGO_JQUERY= True
@@ -157,6 +164,7 @@ PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 APIARY_URL = env('APIARY_URL', [])
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
+VERSION_NO="1.0.1"
 
 BASE_URL=env('BASE_URL')
 
