@@ -2,11 +2,13 @@
 <div class="container" id="internalDash">
     <ProposalDashTable level="internal" :url="proposals_url"/>
     <ReferralDashTable :url="referrals_url"/>
+    <MapDashboard level="internal" :is_internal="true" />
 </div>
 </template>
 <script>
 import ProposalDashTable from '@common-utils/proposals_dashboard.vue'
 import ReferralDashTable from '@common-utils/referrals_dashboard.vue'
+import MapDashboard from '@/components/common/das/map_dashboard_internal.vue'
 import {
   api_endpoints,
   helpers
@@ -29,7 +31,8 @@ export default {
     watch: {},
     components: {
         ProposalDashTable,
-        ReferralDashTable
+        ReferralDashTable,
+        MapDashboard,
     },
     computed: {
     },

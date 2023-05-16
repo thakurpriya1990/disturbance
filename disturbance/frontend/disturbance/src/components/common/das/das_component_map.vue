@@ -266,7 +266,7 @@
             },
             addOptionalLayers: function(){
                 let vm = this
-                this.$http.get('/api/map_layers/').then(response => {
+                this.$http.get('/api/das_map_layers/').then(response => {
                     let layers = response.body
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
@@ -702,6 +702,11 @@
                     vm.map.addLayer(vm.shapeVectorLayer);
                     vm.displayAllFeaturesShape();
                 }
+            },
+            addShapeToMap: function(apiary_sites_geojson){
+                let vm = this
+                let features = (new GeoJSON()).readFeatures(apiary_sites_geojson)
+                this.shapeVectorSource.addFeatures(features)
             },
             displayAllFeaturesShape: function() {
                 if (this.shapeVectorSource.getFeatures().length>0){

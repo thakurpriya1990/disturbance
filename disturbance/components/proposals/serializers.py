@@ -1275,5 +1275,77 @@ class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
         model = SpatialQueryQuestion
         fields = '__all__'
 
+class DASMapFilterSerializer(BaseProposalSerializer):
+    processing_status_display= serializers.SerializerMethodField()
+    customer_status_display= serializers.SerializerMethodField()
+    approval_lodgement_number= serializers.SerializerMethodField()
+    approval_start_date= serializers.SerializerMethodField()
+    approval_expiry_date= serializers.SerializerMethodField()
+    approval_status= serializers.SerializerMethodField()
+    submitter_full_name = serializers.CharField(source='submitter.get_full_name')
+    submitter = serializers.CharField(source='submitter.email')
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'activity',
+                'title',
+                'region',
+                'district',
+                'customer_status',
+                'processing_status',
+                'processing_status_display',
+                'customer_status',
+                'customer_status_display',
+                'submitter', 
+                'submitter_full_name',
+                'lodgement_number',
+                'shapefile_json',
+                'lodgement_date',
+                'proposal_type',
+                'approval_lodgement_number',
+                'approval_start_date',
+                'approval_expiry_date',
+                'approval_status',
+
+                )
+    
+    def get_region(self,obj):
+        if obj.region:
+            return obj.region.name
+        return None
+
+    def get_district(self,obj):
+        if obj.district:
+            return obj.district.name
+        return None
+    
+    def get_processing_status_display(self,obj):
+        return obj.get_processing_status_display()
+    
+    def get_customer_status_display(self,obj):
+        return obj.get_customer_status_display()
+    
+    def get_approval_lodgement_number(self,obj):
+        if obj.approval:
+            return obj.approval.lodgement_number
+        return None
+    
+    def get_approval_start_date(self,obj):
+        if obj.approval:
+            return obj.approval.start_date
+        return None
+    
+    def get_approval_expiry_date(self,obj):
+        if obj.approval:
+            return obj.approval.expiry_date
+        return None
+    
+    def get_approval_status(self,obj):
+        if obj.approval:
+            return obj.approval.status
+        return None
+
 
 

@@ -1811,6 +1811,7 @@ def _populate_data_from_item_original(item, repetition, suffix, sqs_value=None):
                     #print('radiobuttons/ textarea/ text/ date etc item', item)
             except Exception as e:
                 logger.error(e)
+
     else:
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)

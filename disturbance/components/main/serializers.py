@@ -2,7 +2,7 @@ from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
 from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, \
-    ActivityMatrix, WaCoast, MapLayer, MapColumn
+    ActivityMatrix, WaCoast, MapLayer, MapColumn, DASMapLayer
 from ledger.accounts.models import EmailUser
 
 
@@ -133,6 +133,32 @@ class MapLayerSerializer(serializers.ModelSerializer):
             'layer_name',
             'display_all_columns',
             'columns',
+        )
+
+    def get_layer_full_name(self, obj):
+        return obj.layer_name.strip()
+
+    def get_layer_group_name(self, obj):
+        return obj.layer_name.strip().split(':')[0]
+
+    def get_layer_name(self, obj):
+        return obj.layer_name.strip().split(':')[1]
+    
+class DASMapLayerSerializer(serializers.ModelSerializer):
+    layer_full_name = serializers.SerializerMethodField()
+    layer_group_name = serializers.SerializerMethodField()
+    layer_name = serializers.SerializerMethodField()
+    #columns = MapColumnSerializer(many=True)
+
+    class Meta:
+        model = DASMapLayer
+        fields = (
+            'display_name',
+            'layer_full_name',
+            'layer_group_name',
+            'layer_name',
+            'display_all_columns',
+            #'columns',
         )
 
     def get_layer_full_name(self, obj):
