@@ -72,8 +72,7 @@ python3-gevent \
 software-properties-common \
 imagemagick \
 libspatialindex-dev \
-npm \
-ipdb
+npm 
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
 apt-get update && \

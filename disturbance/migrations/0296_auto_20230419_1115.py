@@ -27,16 +27,16 @@ class Migration(migrations.Migration):
                 'verbose_name': 'Disturbance map layer',
             },
         ),
-        migrations.RemoveField(
-            model_name='spatialqueryquestion',
-            name='priority',
-        ),
-        migrations.RemoveField(
-            model_name='spatialqueryquestion',
-            name='value_type',
-        ),
-        migrations.RemoveField(
-            model_name='spatialqueryquestion',
-            name='widget_type',
-        ),
+#        migrations.RemoveField(
+#            model_name='spatialqueryquestion',
+#            name='priority',
+#        ),
+#        migrations.RemoveField(
+#            model_name='spatialqueryquestion',
+#            name='value_type',
+#        ),
+#        migrations.RemoveField(
+#            model_name='spatialqueryquestion',
+#            name='widget_type',
+#        ),
     ]

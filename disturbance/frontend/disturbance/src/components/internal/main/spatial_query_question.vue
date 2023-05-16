@@ -532,6 +532,9 @@ export default {
         isHelptextAssessorUrl: function () {
             return this.spatialquery? this.spatialquery.help_text_assessor_url : false;
         },
+        csrf_token: function() {
+            return helpers.getCookie('csrftoken')
+        },
     },
     methods: {
         has_form_errors: function () {
@@ -615,6 +618,10 @@ export default {
                 self.showQuestionModel = false;
                 self.showTestModel = false;
                 self.showTestJsonResponse = false;
+
+                self.request_time = null;
+                self.num_questions = null;
+                self.num_layers_utilised = null;
             }
         },
         saveSpatialquery: async function() {
@@ -659,6 +666,7 @@ export default {
             //e.preventDefault();
             const self = this;
             const data = self.proposal;
+            data['csrfmiddlewaretoken'] = self.csrf_token
             this.missing_fields = [];
              
             if (self.has_form_errors()) {
@@ -733,10 +741,10 @@ export default {
             this.spatialquery.help_text_assessor_url=false;
 
             this.showOptions = false;
-            this.isModalOpen = true;
-
             this.proposal.lodgement_number = '';
             this.proposal.all_mlqs = false;
+            this.showQuestionModal = true;
+            this.isModalOpen = true;
         },
         initEventListeners: function(){
             const self = this;
