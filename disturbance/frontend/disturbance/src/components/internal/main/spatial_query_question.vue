@@ -741,11 +741,10 @@ export default {
             this.spatialquery.help_text_assessor_url=false;
 
             this.showOptions = false;
-            this.isModalOpen = true;
-
-
             this.proposal.lodgement_number = '';
             this.proposal.all_mlqs = false;
+            this.showQuestionModal = true;
+            this.isModalOpen = true;
         },
         initEventListeners: function(){
             const self = this;
