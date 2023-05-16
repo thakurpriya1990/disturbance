@@ -21,6 +21,7 @@ from rest_framework.renderers import JSONRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 from reversion.models import Version
+from django.core.cache import cache
 
 from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
@@ -112,6 +113,7 @@ from disturbance.components.proposals.serializers import (
     DTSpatialQueryQuestionSerializer,
     SpatialQueryQuestionSerializer,
     SchemaMasterlistOptionSerializer,
+    DASMapFilterSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -2095,6 +2097,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         result_page = paginator.paginate_queryset(proposals, request)
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+   
 
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
@@ -4668,3 +4672,131 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 #            raise serializers.ValidationError(str(e))
 
 
+class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Proposal.objects.all()
+    serializer_class = DASMapFilterSerializer
+    permission_classes = []
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) |
+                Q(application_type__name__in=[ApplicationType.DISTURBANCE,])).exclude(shapefile_json__isnull=True)
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
+            queryset= queryset.exclude(shapefile_json__isnull=True)
+            return queryset
+
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return Proposal.objects.none()
+
+
+    def list(self, request, *args, **kwargs):
+        #Turning off the caching for now. Can be added if dashboard performance is poor.
+        # cache_key = settings.CACHE_KEY_MAP_PROPOSALS
+        # queryset = cache.get(cache_key)
+        # if queryset is None:
+        #     queryset = self.get_queryset()
+        #     cache.set(cache_key, queryset, settings.CACHE_TIMEOUT_2_HOURS)
+        # logger.debug(f"{cache_key}:{queryset}")
+        queryset = self.get_queryset()
+        search_text = request.GET.get('search[value]', '')
+        total_count = queryset.count()
+        def get_choice(status, choices=Proposal.PROCESSING_STATUS_CHOICES):
+            for i in choices:
+                if i[1]==status:
+                    return i[0]
+            return None
+
+        # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
+        regions = request.GET.get('regions')
+        if regions:
+            if queryset.model is Proposal:
+                queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
+            elif queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
+            #elif queryset.model is Approval:
+            #    queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
+
+        
+        application_type = request.GET.get('application_type')
+        if application_type and not application_type.lower() =='all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__application_type__name=application_type)
+            else:
+                queryset = queryset.filter(application_type__name=application_type)
+        proposal_activity = request.GET.get('proposal_activity')
+        if proposal_activity and not proposal_activity.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__activity=proposal_activity)
+            else:
+                queryset = queryset.filter(activity=proposal_activity)
+        proposal_status = request.GET.get('proposal_status')
+        if proposal_status and not proposal_status.lower() == 'all':
+            #processing_status = get_choice(proposal_status, Proposal.PROCESSING_STATUS_CHOICES)
+            #queryset = queryset.filter(processing_status=processing_status)
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__processing_status=proposal_status)
+            else:
+                queryset = queryset.filter(processing_status=proposal_status)
+        
+        submitter = request.GET.get('submitter')
+        if submitter and not submitter.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__submitter__email=submitter)
+            else:
+                queryset = queryset.filter(submitter__email=submitter)
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        if queryset.model is Proposal:
+            if date_from:
+                queryset = queryset.filter(lodgement_date__gte=date_from)
+
+            if date_to:
+                queryset = queryset.filter(lodgement_date__lte=date_to)
+        
+        serializer = DASMapFilterSerializer(queryset,context={'request':request}, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    def filter_list(self, request, *args, **kwargs):
+        """ Used by the internal/external dashboard filters """
+        template_group = get_template_group(request)
+        region_qs = []
+        activity_qs = []
+        application_type_qs = []
+        if template_group == 'apiary':
+            qs = self.get_queryset().filter(
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
+            submitter_qs = qs.filter(
+                submitter__isnull=False).filter(
+                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        else:
+            qs = self.get_queryset().exclude(
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            submitter_qs = qs.filter(submitter__isnull=False).distinct(
+                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+
+        activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
+        submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
+        data = dict(
+            regions=region_qs,
+            #districts=district_qs,
+            activities=activity_qs,
+            submitters=submitters,
+            #application_types=application_type_qs,
+            processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
+            approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
+        )
+        return Response(data)

@@ -74,6 +74,7 @@ router.register(
 router.register(
     r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet)
 router.register(r'map_layers', main_api.MapLayerViewSet)
+router.register(r'das_map_layers', main_api.DASMapLayerViewSet)
 
 router.register(
     r'spatial_query_paginated', proposal_api.SpatialQueryQuestionPaginatedViewSet)
@@ -81,6 +82,7 @@ router.register(
     r'spatial_query',
     proposal_api.SpatialQueryQuestionViewSet
 )
+router.register(r'das_map_proposal',proposal_api.DASMapFilterViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),

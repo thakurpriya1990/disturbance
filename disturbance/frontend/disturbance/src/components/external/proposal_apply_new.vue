@@ -566,8 +566,10 @@ export default {
                 vm.display_region_selectbox = true;
                 vm.display_activity_matrix_selectbox = true;
             }
-            
-            vm.chainedSelectDistricts2(vm.proposal.region, regions);
+            if(vm.proposal.region){
+                vm.chainedSelectDistricts2(vm.proposal.region, regions);
+            }
+            // vm.chainedSelectDistricts2(vm.proposal.region, regions);
             if(vm.activity_matrix){
                 vm.chainedSelectSubActivities1(vm.proposal.activity, true);
             }
