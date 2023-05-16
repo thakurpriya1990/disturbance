@@ -257,18 +257,31 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Proposal Lodgement Number</label>
+                            <label class="control-label pull-left">Proposal Lodgement No.</label>
                         </div>
-                        <div class="col-md-9">
-                            <input class="form-control" name="layer_name" v-model="proposal.lodgement_number"></input>
+                        <div class="col-md-2">
+                            <input class="form-control" name="layer_name" placeholder="P000123" v-model="proposal.lodgement_number"></input>
                         </div>
+                        <div class="col-md-2">
+                            <label class="control-label pull-right">All MLQ's</label>
+                        </div>
+                        <div class="col-md-1">
+                            <input class="med" type="checkbox" id="all_mlqs" name="all_mlqs" title="Request with all non-expired MasterList Questions" v-model="proposal.all_mlqs">
+                        </div>
+                        <div v-if="request_time" class="col-md-4">
+                            <p><b>Request Time:   </b> {{request_time}}ms</p>
+                            <p><b>No. Questions:  </b> {{num_questions}}</p>
+                            <p><b>Layers Utilised:</b> {{num_layers_utilised}}</p>
+                        </div>
+
                     </div>
                 </form>
                 <textarea id="output" cols="100" rows="35" v-model="sqs_response"></textarea>
             </div>
         </div>
         <div slot="footer">
-            <button type="button" class="btn btn-primary" @click="test_spatialquery()">Test</button>
+            <button type="button" v-if="requesting" disabled class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
+            <button type="button" v-else class="btn btn-primary" @click="test_spatialquery()">Test</button>
         </div>
     </modal>
     </div>
@@ -314,6 +327,10 @@ export default {
             showTestModal: false,
             showTestJsonResponse: false,
             sqs_response: false,
+            requesting: false,
+            request_time: null,
+            num_questions: null,
+            num_layers_utilised: null,
 
             dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
@@ -480,6 +497,7 @@ export default {
             proposal: {
                 lodgement_number: '',
                 masterlist_question_id: '',
+                all_mlqs: false,
             },
 
             answerTypes: [],
@@ -641,7 +659,6 @@ export default {
             //e.preventDefault();
             const self = this;
             const data = self.proposal;
-            self.sqs_response = null;
             this.missing_fields = [];
              
             if (self.has_form_errors()) {
@@ -649,8 +666,16 @@ export default {
                 return;
             }
 
-            console.log(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number+'/sqs_data_single'));
-            await self.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number+'/sqs_data_single'),JSON.stringify(data),{
+            let url = self.proposal.all_mlqs ? '/sqs_data' : '/sqs_data_single'
+            const start_time = new Date()
+            self.requesting = true;
+            self.request_time = null;
+            self.num_questions = null;
+            self.num_layers_utilised = null;
+            const uniq = (items) => [...new Set(items)];
+
+            console.log(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number + url));
+            await self.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number + url),JSON.stringify(data),{
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;
@@ -661,6 +686,9 @@ export default {
                 //self.showTestModal = false;
                 self.isModalOpen = true;
                 //self.close();
+                self.requesting = false;
+                self.num_questions = response.body['layer_data'].length;
+                self.num_layers_utilised = uniq(response.body['layer_data'].map((item) => item.layer_name)).length // unique layers used
             },(error)=>{
                 swal(
                     'Error',
@@ -670,6 +698,7 @@ export default {
                 )
             });
 
+            self.request_time = new Date() - start_time
             this.isNewEntry = false;
         },
 
@@ -707,6 +736,7 @@ export default {
             this.isModalOpen = true;
 
             this.proposal.lodgement_number = '';
+            this.proposal.all_mlqs = false;
         },
         initEventListeners: function(){
             const self = this;
@@ -782,6 +812,7 @@ export default {
                 self.isNewEntry = false;
                 self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
                 self.proposal.lodgement_number = self.$refs.spatial_query_question_table.row_of_data.data().lodgement_number;
+                self.proposal.all_mlqs = self.$refs.spatial_query_question_table.row_of_data.data().all_mlqs;
                 self.proposal.masterlist_question_id = $(this).attr('data-rowid')
                 self.isModalOpen = true;
                 self.showTestModal = true;
@@ -860,5 +891,8 @@ export default {
 <style lang="css" scoped>
 .control-label label > div {
     text-align: left;
+}
+.med {
+    transform: scale(1.5);
 }
 </style>

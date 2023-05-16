@@ -22,7 +22,12 @@ ANNUAL_RENTAL_FEE_GST_EXEMPT = True
 FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
 APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
 
-SQS_APIKEY = env('SQS_APIKEY')
+SQS_APIKEY = env('SQS_APIKEY', '')
+SQS_BASEURL = env('SQS_APIURL', '')
+SQS_APIURL = SQS_BASEURL + SQS_APIKEY if SQS_BASEURL.endswith('/') else SQS_BASEURL + os.sep + SQS_APIKEY
+
+SQS_USER = env('SQS_USER', '')
+SQS_PASS = env('SQS_USER', '')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -54,7 +59,7 @@ WSGI_APPLICATION = 'disturbance.wsgi.application'
 '''REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'disturbance.perms.OfficerPermission',
-    )
+    ),
 }'''
 
 #REST_FRAMEWORK = {
@@ -74,6 +79,7 @@ REST_FRAMEWORK = {
     #),
     #'DEFAULT_PAGINATION_CLASS': 'rest_framework_datatables.pagination.DatatablesPageNumberPagination',
     #'PAGE_SIZE': 20,
+    #'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'
 }
 
 USE_DJANGO_JQUERY= True

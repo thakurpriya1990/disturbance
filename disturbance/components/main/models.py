@@ -155,6 +155,8 @@ class WaCoast(models.Model):
 @python_2_unicode_compatible
 class ApplicationType(models.Model):
     DISTURBANCE = 'Disturbance'
+    DISTURBANCE_UAT = 'Disturbance Training'
+    DISTURBANCE_DEMO = 'Disturbance Demo'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
     APIARY = 'Apiary'
     TEMPORARY_USE = 'Temporary Use'
@@ -163,6 +165,8 @@ class ApplicationType(models.Model):
 
     APPLICATION_TYPES = (
         (DISTURBANCE, 'Disturbance'),
+        (DISTURBANCE_UAT, 'Disturbance Training'),
+        (DISTURBANCE_DEMO, 'Disturbance Demo'),
         (POWERLINE_MAINTENANCE, 'Powerline Maintenance'),
         (APIARY, 'Apiary'),
         (TEMPORARY_USE, 'Temporary Use'),

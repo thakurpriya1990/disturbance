@@ -264,7 +264,6 @@ class CommentDataSearch(object):
         return res
 
     def extract_comment_data(self,item,post_data):
-        #import ipdb; ipdb.set_trace()
         values = []
         res = {
             'name': item,
@@ -927,7 +926,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
-            #import ipdb; ipdb.set_trace()
             extracted_fields,special_fields, add_info_applicant = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             
             instance.data = extracted_fields
@@ -968,7 +966,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             }
 
-            import ipdb; ipdb.set_trace()
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
             viewset.perform_update(serializer)
@@ -1814,7 +1811,7 @@ def _populate_data_from_item_original(item, repetition, suffix, sqs_value=None):
                     #print('radiobuttons/ textarea/ text/ date etc item', item)
             except Exception as e:
                 logger.error(e)
-                #import ipdb; ipdb.set_trace()
+
     else:
         if 'repetition' in item:
             item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
@@ -1876,7 +1873,6 @@ class PrefillData(object):
         
         try:
             for item in schema:
-                #import ipdb; ipdb.set_trace()
                 self.data.update(self._populate_data_from_item(item, 0, ''))
                
         except:
@@ -1891,14 +1887,10 @@ class PrefillData(object):
         else:
             raise Exception('Missing name in item %s' % item['label'])
 
-        #import ipdb; ipdb.set_trace()
         if 'children' not in item:
             if item['type'] =='checkbox':
-                #import ipdb; ipdb.set_trace()
                 if sqs_value:
-                    #import ipdb; ipdb.set_trace()
                     for val in sqs_value:
-                        #import ipdb; ipdb.set_trace()
                         if val==item['label']:
                             item_data[item['name']]='on'
                             item_layer_data={
@@ -1916,7 +1908,6 @@ class PrefillData(object):
                         #Get value from SQS. Value should be an array of the correct options.
                         #sqs_value=item['options'][1]['value']
                         #sqs_value=[sqs_value]
-                        #import ipdb; ipdb.set_trace()
                         sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
                         sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
                         
@@ -1946,10 +1937,8 @@ class PrefillData(object):
                     elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
                         #Get value from SQS
                         #sqs_value=item['options'][1]['value']
-                        #import ipdb; ipdb.set_trace()
                         sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
                         sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
-                        #import ipdb; ipdb.set_trace()
                         sqs_value = self.get_first_radiobutton(sqs_values) if item['type']=='radiobuttons' else ''.join(sqs_values)
                         if item['options']:
                             for op in item['options']:
@@ -1969,11 +1958,9 @@ class PrefillData(object):
                         #All the other types e.g. textarea, text, date.
                         #This is where we can add API call to SQS to get the answer.
                         #sqs_value="test"
-                        #import ipdb; ipdb.set_trace()
                         #sqs_value = [self.sqs_builder.find(question=item['label'], answer=option['label']) for option in item['options']]
                         sqs_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
                         item_data[item['name']]= sqs_value
-                        #import ipdb; ipdb.set_trace()
                         #item_layer_data = self.update_layer_info(list)
                         item_layer_data={
                         'name': item['name'],
@@ -1989,7 +1976,6 @@ class PrefillData(object):
                         #print(item)
                         #print('radiobuttons/ textarea/ text/ date etc item', item)
         else:
-            #import ipdb; ipdb.set_trace()
             #sqs_values = []
             if 'repetition' in item:
                 item_data = self.generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
@@ -2005,7 +1991,6 @@ class PrefillData(object):
                     #sqs_values=['Nature reserve']
                     #if item['label'] == 
                     #sqs_values = sqs_query()['proponent_answer']
-                    #import ipdb; ipdb.set_trace()
                     #sqs_value = ['Nature reserve',2]
                     sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label'], widget_type='checkbox') for child in item['children']]
                     sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
@@ -2037,7 +2022,6 @@ class PrefillData(object):
         return item_data
 
     def check_checkbox_item(self, item_name,item,item_data,repetition,suffix):
-        #import ipdb; ipdb.set_trace()
         checkbox_item=False
         for child_item in item.get('children'):
             if child_item['type']=='checkbox':
@@ -2057,7 +2041,6 @@ class PrefillData(object):
         return tmp_dict.get(min(tmp_dict.keys()))
 
     def update_layer_info(self, _list):
-        #import ipdb; ipdb.set_trace()
         return {
             'name': item['name'],
             'layer_name': 'layer name',

@@ -36,6 +36,7 @@ var/
 *.bak
 *.csv
 *.xls*
+!CDDP_Layers_v1.xlsx
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
