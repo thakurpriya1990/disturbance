@@ -22,12 +22,21 @@
                 <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
                 <div>
                     <div class="row">
-                        <div class="col-sm-2 pull-right">
+                        <div class="col-sm-2">
                             <input
                                 :disabled="valid_button_disabled"
                                 @click="validate_map_docs"
                                 type="button"
                                 value="Validate"
+                                class="btn btn-primary w-100"
+                            />
+                        </div>
+                        <div class="col-sm-2">
+                            <input
+                                :disabled="prefill_button_disabled"
+                                @click="prefill_proposal"
+                                type="button"
+                                value="Prefill"
                                 class="btn btn-primary w-100"
                             />
                         </div>
@@ -137,7 +146,13 @@
             },
             proposal_id: function(){
                 return (this.proposal && this.proposal.id) ? this.proposal.id : null;
-            }
+            },
+            prefill_button_disabled: function(){
+                if(this.is_external && this.proposal && !this.proposal.readonly && this.proposal.shapefile_json){
+                    return false;
+                }
+                return true;
+            },
         },
         methods:{
              incrementComponentMapKey: function() {
@@ -158,6 +173,58 @@
                     vm.errorString=helpers.apiVueResourceError(err);
                     });
                 vm.$refs.component_map.updateShape();
+            },
+            prefill_proposal: function(){
+                let vm = this;
+                vm.showError=false;
+                vm.errorString='';
+                
+                swal({
+                    title: "Prefill Proposal",
+                    text: "Are you sure you want to prefill this Proposal? Prefilling the proposal will clear all the existing data.",
+                    type: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: 'Prefill Proposal',
+                    confirmButtonColor:'#d9534f'
+                }).then(() => {
+
+                    //vm.prefilling=true;
+                    swal({
+                            title: "Loading...",
+                            //text: "Loading...",
+                            allowOutsideClick: false,
+                            allowEscapeKey:false,
+                            onOpen: () =>{
+                                swal.showLoading()
+                            }
+                    })
+                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
+                    //vm.proposal = res.body;
+                    //vm.refreshFromResponse(res);
+                    swal.hideLoading();
+                    swal.close();
+                    vm.$emit('refreshFromResponse',res);
+                    //vm.prefilling=false;
+                    },err=>{
+                    console.log(err);
+                    //vm.prefilling=false;
+                    vm.showError=true;
+                    vm.errorString=helpers.apiVueResourceError(err);
+                    });
+
+                },(error) => {
+                });
+                
+                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
+                    //vm.proposal = res.body;
+                    //vm.refreshFromResponse(res);
+                    vm.$emit('refreshFromResponse',res);
+                    },err=>{
+                    console.log(err);
+                    vm.showError=true;
+                    vm.errorString=helpers.apiVueResourceError(err);
+                    });
+                //vm.$refs.component_map.updateShape();
             },
             refreshFromResponse:function(response){
                 let vm = this;

@@ -2180,6 +2180,79 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+        
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def prefill_proposal(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.apiary_group_application_type:
+                pass
+            else:
+                if instance.shapefile_json:
+                    proposal = instance
+
+                    geojson=proposal.shapefile_json
+
+                    masterlist_question_qs = SpatialQueryQuestion.objects.filter()
+                    serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+                    rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+                    masterlist_questions = json.loads(rendered)
+
+                    # group by question
+                    questions = [i['question'] for i in masterlist_questions]
+                    unique_questions = list(set(questions))
+                    question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+                    for question_dict in question_group_list:
+                        for sqq_record in masterlist_questions:
+                            #print(j['layer_name'])
+                            if question_dict['question_group'] in sqq_record.values():
+                                question_dict['questions'].append(sqq_record)
+
+                    data = dict(
+                        proposal=dict(
+                            system=settings.SYSTEM_NAME_SHORT,
+                            id=proposal.id,
+                            schema=proposal.schema,
+                            data=proposal.data,
+
+                        ),
+                        masterlist_questions = question_group_list,
+                        geojson = geojson,
+                    )
+
+                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+                    resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    meta = resp.cookies.get_dict()
+                    csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+                    sessionid = meta['sessionid'] if 'sessionid' in meta else None
+                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+                    headers={'X-CSRFToken' : csrftoken}
+
+                    url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+                    #import ipdb; ipdb.set_trace()
+                    resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+                    if resp and resp['data']:
+                        instance.data=resp['data']
+                    if resp and resp['layer_data']:
+                        instance.layer_data=resp['layer_data']
+                    if resp and resp['add_info_assessor']:
+                        instance.add_info_assessor= resp['add_info_assessor']
+                    instance.save()
+                else:
+                    raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+            instance.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+            #return redirect(reverse('external'))
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):

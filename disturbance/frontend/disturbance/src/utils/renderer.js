@@ -629,10 +629,11 @@ module.exports = {
             }
             else{
                     var name = `${c.name}-add-info-applicant`;
+                    var blank_val=null;
                     var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
                     applicant_visibility = !applicant_visibility;
                     boxes.push(
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={blank_val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
                     )                
             }
         if (boxes.length > 0){

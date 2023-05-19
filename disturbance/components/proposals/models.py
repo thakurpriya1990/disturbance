@@ -1440,6 +1440,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         except:
             raise ValidationError('Please upload a valid shapefile')
         
+    def prefill_proposal(self, request):
+        import geopandas as gpd 
+        try:
+            #TODO : validate shapefile and all the other related filese are present
+            if self.shapefile_json:
+                print('yes')
+                
+            else:
+                raise ValidationError('Please upload a valid shapefile') 
+        except:
+            raise ValidationError('Please upload a valid shapefile')
+        
 
 
     def submit(self,request,viewset):
