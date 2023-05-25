@@ -134,6 +134,7 @@ urlpatterns = [
     url(r'^external/', views.ExternalView.as_view(), name='external'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
     url(r'^gisdata/$', views.gisdata, name='gisdata'),
+    url(r'^layers_used_csv/$',proposal_views.LayersUsedCsvView.as_view(), name='layers_used_csv'),
     # url(r'^ledgerpay/$', views.ledgerpay, name='ledgerpay'),
     # url(r'^ledgerpay/$', LedgerPayView.as_view(), name='ledgerpay'),
     url(r'^account/$', views.ExternalView.as_view(), name='manage-account'),
