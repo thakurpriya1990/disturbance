@@ -70,7 +70,6 @@
                         </div>
                     </div>
 
-
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
@@ -282,6 +281,9 @@
         <div slot="footer">
             <button type="button" v-if="requesting" disabled class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
             <button type="button" v-else class="btn btn-primary" @click="test_spatialquery()">Test</button>
+            <!--
+            <button type="button" class="btn btn-primary" @click="test_spatialquery()">Test</button>
+            -->
         </div>
     </modal>
     </div>
@@ -404,6 +406,9 @@ export default {
                         data: "buffer",
                     },
 
+                    //{ 
+                    //    data: "layer",
+                    //},
                     { 
                         data: "layer_name",
                     },

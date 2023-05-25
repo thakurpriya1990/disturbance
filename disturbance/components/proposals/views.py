@@ -12,6 +12,8 @@ from disturbance.components.approvals.models import Approval
 from disturbance.components.compliances.models import Compliance
 
 from reversion.models import Version
+import csv
+from datetime import datetime
 
 
 class ProposalView(TemplateView):
@@ -141,3 +143,23 @@ class PreviewLicencePDFView(View):
 
     def get_object(self):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
+
+
+class LayersUsedCsvView(TemplateView):
+
+    def get(self, request, *args, **kwargs):
+        rows = []
+        rows.append(('Proposal Number', 'Proposal Submitter', 'Proposal Section', 'Layer Name', 'Layer Version', 'Layer Modified Date', 'SQS Timestamp'))
+        for proposal in Proposal.objects.filter(layer_data__isnull=False):
+            for data in proposal.layer_data:
+                rows.append((proposal.lodgement_number, proposal.submitter, data['name'], data['layer_name'], data['layer_version'], data['layer_modified_date'], data['sqs_timestamp']))
+
+        response = HttpResponse(content_type='text/csv')
+        response['Content-Disposition'] = f'attachment; filename=layers_used_{datetime.now().strftime("%Y%m%dT%H%M")}.csv'  
+        writer = csv.writer(response)
+        #writer.writerow(['Proposal Number, Proposal Section, Layer Name, Layer Version, Layer Modified Date, SQS Timestamp'])
+        for row in rows:
+            writer.writerow(row)  
+        return response
+
+
