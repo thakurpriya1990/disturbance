@@ -279,11 +279,11 @@
             </div>
         </div>
         <div slot="footer">
+            <!--
             <button type="button" v-if="requesting" disabled class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
             <button type="button" v-else class="btn btn-primary" @click="test_spatialquery()">Test</button>
-            <!--
-            <button type="button" class="btn btn-primary" @click="test_spatialquery()">Test</button>
             -->
+            <button type="button" class="btn btn-primary" @click="test_spatialquery()">Test</button>
         </div>
     </modal>
     </div>
@@ -692,7 +692,7 @@ export default {
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;
-                console.log(response);
+                console.log('Response: ' + JSON.stringify(response));
                 self.sqs_response = JSON.stringify(response.body, null, 4);
                 //self.sqs_response = response;
                 //self.showTestJsonResponse = true;
@@ -703,10 +703,10 @@ export default {
                 self.num_questions = response.body['layer_data'].length;
                 self.num_layers_utilised = uniq(response.body['layer_data'].map((item) => item.layer_name)).length // unique layers used
             },(error)=>{
+                //console.log('Error: ' + JSON.stringify(error))
                 swal(
                     'Error',
                     helpers.apiVueResourceError(error),
-                    //error.body,
                     'error'
                 )
             });

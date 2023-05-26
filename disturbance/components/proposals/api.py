@@ -1521,7 +1521,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         )
 
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
+        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        if resp.status_code != 200:
+            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
+
         meta = resp.cookies.get_dict()
         csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
         sessionid = meta['sessionid'] if 'sessionid' in meta else None
@@ -1530,6 +1534,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
         resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+        if resp.status_code != 200:
+            return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response(resp)
 
@@ -1550,6 +1556,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         geojson=proposal.shapefile_json
 
+        #import ipdb; ipdb.set_trace()
         # serialize masterlist question
         masterlist_question_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
         serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
@@ -1570,8 +1577,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         )
 
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
+        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         #import ipdb; ipdb.set_trace()
-        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        if resp.status_code != 200:
+            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
+
         meta = resp.cookies.get_dict()
         csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
         sessionid = meta['sessionid'] if 'sessionid' in meta else None
@@ -1579,9 +1590,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         headers={'X-CSRFToken' : csrftoken}
 
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+        if resp.status_code != 200:
+            return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        return Response(resp)
+        return Response(resp.json())
 
 
     @detail_route(methods=['POST',])
