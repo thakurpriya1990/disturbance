@@ -262,9 +262,11 @@
                             <input class="form-control" name="layer_name" placeholder="P000123" v-model="proposal.lodgement_number"></input>
                         </div>
                         <div class="col-md-2">
+                            <label class="control-label pull-right">Grouped MLQ's</label>
                             <label class="control-label pull-right">All MLQ's</label>
                         </div>
                         <div class="col-md-1">
+                            <input class="med" type="checkbox" id="group_mlqs" name="group_mlqs" title="Request non-expired Grouped MasterList Questions (grouped by Radiobutton, Checkbox, Select, Multiselect)" v-model="proposal.group_mlqs"><br>
                             <input class="med" type="checkbox" id="all_mlqs" name="all_mlqs" title="Request with all non-expired MasterList Questions" v-model="proposal.all_mlqs">
                         </div>
                         <div v-if="request_time" class="col-md-4">
@@ -280,10 +282,17 @@
         </div>
         <div slot="footer">
             <!--
-            <button type="button" v-if="requesting" disabled class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
+            <button type="button" style="bckground-color: red;" v-if="requesting" disabled class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
             <button type="button" v-else class="btn btn-primary" @click="test_spatialquery()">Test</button>
             -->
+            <!--
             <button type="button" class="btn btn-primary" @click="test_spatialquery()">Test</button>
+            -->
+            <!--
+            <button type="button" style="background-color: red;" v-if="requesting" class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
+            -->
+            <button type="button" v-if="requesting" class="btn btn-default" @click="test_spatialquery()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
+            <button type="button" v-else class="btn btn-primary" @click="test_spatialquery()">Test</button>
         </div>
     </modal>
     </div>
@@ -314,6 +323,15 @@ export default {
     data:function () {
         let vm = this;
         vm.spatial_query_question_url = helpers.add_endpoint_join(api_endpoints.spatial_query_paginated, 'spatial_query_question_datatable_list/?format=datatables');
+//        vm.proposal = {
+//            lodgement_number: '',
+//            masterlist_question_id: '',
+//            group_mlqs: true,
+//            all_mlqs: false,
+//        };
+        //vm.proposal.group_mlqs=true;
+
+
         return {
             spatial_query_question_id: 'spatial-query-question-datatable-'+vm._uid,
             pSpatialQueryQuestionBody: 'pSpatialQueryQuestionBody' + vm._uid,
@@ -502,6 +520,7 @@ export default {
             proposal: {
                 lodgement_number: '',
                 masterlist_question_id: '',
+                group_mlqs: true,
                 all_mlqs: false,
             },
 
@@ -539,6 +558,9 @@ export default {
         },
         csrf_token: function() {
             return helpers.getCookie('csrftoken')
+        },
+        group_mlqs: function() {
+            return this.proposal.group_mlqs
         },
     },
     methods: {
@@ -747,6 +769,7 @@ export default {
 
             this.showOptions = false;
             this.proposal.lodgement_number = '';
+            this.proposal.group_mlqs = true;
             this.proposal.all_mlqs = false;
             this.showQuestionModal = true;
             this.isModalOpen = true;
@@ -823,8 +846,10 @@ export default {
             self.$refs.spatial_query_question_table.vmDataTable.on('click','.test-row', function(e) {
                 e.preventDefault();
                 self.isNewEntry = false;
+                self.proposal.group_mlqs = true;
                 self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
                 self.proposal.lodgement_number = self.$refs.spatial_query_question_table.row_of_data.data().lodgement_number;
+                //self.proposal.group_mlqs = self.$refs.spatial_query_question_table.row_of_data.data().group_mlqs;
                 self.proposal.all_mlqs = self.$refs.spatial_query_question_table.row_of_data.data().all_mlqs;
                 self.proposal.masterlist_question_id = $(this).attr('data-rowid')
                 self.isModalOpen = true;

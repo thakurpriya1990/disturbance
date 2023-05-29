@@ -157,7 +157,6 @@ class LayersUsedCsvView(TemplateView):
         response = HttpResponse(content_type='text/csv')
         response['Content-Disposition'] = f'attachment; filename=layers_used_{datetime.now().strftime("%Y%m%dT%H%M")}.csv'  
         writer = csv.writer(response)
-        #writer.writerow(['Proposal Number, Proposal Section, Layer Name, Layer Version, Layer Modified Date, SQS Timestamp'])
         for row in rows:
             writer.writerow(row)  
         return response
