@@ -54,6 +54,14 @@ module.exports = {
         else if ( resp.status === 404) {
             error_str = 'The resource you are looking for does not exist.';
         }
+        else {
+            console.error(JSON.stringify(resp));
+            try {
+                error_str = JSON.stringify(resp.data.errors).substring(0, 400);
+            } catch (error) {
+                error_str = JSON.stringify(resp).substring(0, 400);
+            }
+	}
         return error_str;
     },
 
