@@ -5663,6 +5663,7 @@ class SectionQuestion(models.Model):
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
 
+from disturbance.components.main.models import DASMapLayer
 class SpatialQueryQuestion(models.Model):
     OVERLAPPING = 'Overlapping'
     OUTSIDE = 'Outside'
@@ -5716,6 +5717,7 @@ class SpatialQueryQuestion(models.Model):
     question = models.TextField('Question (Masterlist Question)')
     answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
 
+    layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE, blank=True, null=True)
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)
