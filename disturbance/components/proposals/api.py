@@ -1583,6 +1583,59 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return Response(resp)
 
+    @detail_route(methods=['POST',])
+    @api_exception_handler
+    def refresh(self, request, *args, **kwargs):
+        '''
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS for single MLQ question
+        For 'refresh' button on DAS form
+
+        To test (from DAS shell): 
+            requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
+        ''' 
+
+        mlq_label = request.data.get('label')
+        schema_name= request.data.get('parent_name')
+        # proposal_id = request.data.get('proposal_id')
+        # proposal = Proposal.objects.get(id=proposal_id)
+        proposal = self.get_object()
+
+        geojson=proposal.shapefile_json
+
+        # serialize masterlist question
+        masterlist_question_qs = SpatialQueryQuestion.objects.filter(question=mlq_label)
+        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        masterlist_question_json = json.loads(rendered)
+        masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
+
+        data = dict(
+            proposal=dict(
+                system=settings.SYSTEM_NAME_SHORT,
+                id=proposal.id,
+                schema=proposal.schema,
+                data=proposal.data,
+
+            ),
+            masterlist_questions = masterlist_question,
+            geojson = geojson,
+        )
+
+        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+        #import ipdb; ipdb.set_trace()
+        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        meta = resp.cookies.get_dict()
+        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        headers={'X-CSRFToken' : csrftoken}
+
+        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+        print(resp)
+
+        return Response(resp)
+
 
     @detail_route(methods=['POST',])
     def get_revision(self, request, *args, **kwargs):
