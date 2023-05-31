@@ -406,6 +406,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     add_info_applicant=JSONField(blank=True, null=True) #To store addition info provided by applicant for the question answered by GIS.
     add_info_assessor=JSONField(blank=True, null=True) #To store addition info provided by assessor for the question answered by GIS.
     layer_data = JSONField(blank=True, null=True)
+    refresh_timestamp = JSONField(blank=True, null=True)
     schema = JSONField(blank=False, null=False)
     proposed_issuance_approval = JSONField(blank=True, null=True)
     #hard_copy = models.ForeignKey(Document, blank=True, null=True, related_name='hard_copy')

@@ -16,7 +16,9 @@
             <template v-if="help_text_assessor_url && assessorMode">
                 <HelpTextUrl  :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
-
+            <template v-if="!assessorMode">
+                <RefreshSelect :parent_name="name" :assessorMode="assessorMode" :layer_data="layer_val" />
+            </template>
 
             <template v-if="assessorMode">
                 <template v-if="!showingComment">
@@ -82,6 +84,7 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 import LayerInfo from './layer_info.vue'
+import RefreshSelect from './refresh_select.vue'
 export default {
     name:"selectComp",
     props:{
@@ -154,7 +157,7 @@ export default {
             return has_value;
         },
     },
-    components: { Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo},
+    components: { Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo, RefreshSelect},
     methods:{
         toggleComment(){
             this.showingComment = ! this.showingComment;

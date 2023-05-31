@@ -2575,7 +2575,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            print('in draft')
             # Ensure the current user is a member of the organisation that created the draft application.
             is_authorised_to_modify_draft(request, instance)
 

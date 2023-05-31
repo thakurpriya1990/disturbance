@@ -15,6 +15,9 @@
             <template v-if="help_text_assessor_url && assessorMode">
                 <HelpTextUrl :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
+            <template v-if="!assessorMode">
+                <Refresh :parent_name="name" :assessorMode="assessorMode" :layer_data="layer_val" />
+            </template>
 
 
             <template v-if="assessorMode">
@@ -41,10 +44,11 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 import LayerInfo from './layer_info.vue'
+import Refresh from './refresh.vue'
 export default {
     name:"text",
     props:["type","name","id", "comment_value","value","isRequired","help_text","help_text_assessor","assessorMode","label","readonly","assessor_readonly", "help_text_url", "help_text_assessor_url", "comment_boxes", "layer_val",],
-    components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo,},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo, Refresh},
     data(){
         let vm = this;
         return {
