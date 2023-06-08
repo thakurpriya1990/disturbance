@@ -17,6 +17,7 @@ from disturbance.components.proposals.models import (
                                     ProposalTypeSection,
                                     MasterlistQuestion,
                                     SpatialQueryQuestion,
+                                    CddpQuestionGroup,
                                 )
 from disturbance.components.organisations.models import (
                                 Organisation
@@ -1246,6 +1247,18 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
     def get_proposal_type(self, obj):
         return ProposalTypeSchemaSerializer(obj.proposal_type).data
 
+class CddpQuestionGroupSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CddpQuestionGroup
+        fields = ('id', 'name')
+
+
+#    def get_options(self, obj):
+#        #import ipdb; ipdb.set_trace()
+#        #return obj.question.option.values_list('id','label','value')
+#        return obj.question.option.values()
+
 
 class SpatialQueryQuestionSerializer(serializers.ModelSerializer):
     '''
@@ -1253,11 +1266,36 @@ class SpatialQueryQuestionSerializer(serializers.ModelSerializer):
     '''
 #    options = serializers.SerializerMethodField()
     #name = serializers.CharField(read_only=True)
+    #allowed_editors = EmailUserSerializer(many=True)
 
     class Meta:
         model = SpatialQueryQuestion
-        fields = '__all__'
+        #fields = '__all__'
+        fields = (
+	  'id',
+	  'question',
+	  'answer_mlq',
+	  'layer_name',
+	  'layer_url',
+	  'expiry',
+	  'visible_to_proponent',
+	  'buffer',
+	  'how',
+	  'column_name',
+	  'operator',
+	  'value',
+	  'prefix_answer',
+	  'no_polygons_proponent',
+	  'answer',
+	  'prefix_info',
+	  'no_polygons_assessor',
+	  'assessor_info',
+	  'regions',
+	  'layer',
+	  'group',
+        )
         #fields = ('id', 'question', 'options')
+        #datatables_always_serialize = fields
 
 
 #    def get_options(self, obj):
@@ -1270,10 +1308,42 @@ class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
     '''
     Serializer for Datatable SpatialQueryQuestion.
     '''
+    #group=serializers.CharField(source='group.id')
+    group = CddpQuestionGroupSerializer(many=False)
+    allowed_editors = EmailUserSerializer(many=True)
+    #allowed_editors = serializers.SerializerMethodField(many=True, read_only=True)
 
     class Meta:
         model = SpatialQueryQuestion
-        fields = '__all__'
+        #fields = '__all__'
+        fields = (
+	  'id',
+	  'question',
+	  'answer_mlq',
+	  'layer_name',
+	  'layer_url',
+	  'expiry',
+	  'visible_to_proponent',
+	  'buffer',
+	  'how',
+	  'column_name',
+	  'operator',
+	  'value',
+	  'prefix_answer',
+	  'no_polygons_proponent',
+	  'answer',
+	  'prefix_info',
+	  'no_polygons_assessor',
+	  'assessor_info',
+	  'regions',
+	  'layer',
+	  'group',
+          'allowed_editors',
+        )
+        datatables_always_serialize = fields
+
+    def _get_allowed_editors(self, obj):
+        return obj.email
 
 class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()

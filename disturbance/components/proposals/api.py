@@ -77,6 +77,7 @@ from disturbance.components.proposals.models import (
     ProposalTypeSection,
     SectionQuestion,
     MasterlistQuestion,
+    CddpQuestionGroup,
     SpatialQueryQuestion,
 )
 from disturbance.components.proposals.serializers import (
@@ -112,6 +113,7 @@ from disturbance.components.proposals.serializers import (
     SchemaProposalTypeSerializer,
     DTSpatialQueryQuestionSerializer,
     SpatialQueryQuestionSerializer,
+    CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
     DASMapFilterSerializer,
 )
@@ -1523,23 +1525,30 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         #import ipdb; ipdb.set_trace()
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
-        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        if resp.status_code != 200:
-            logger.error(f'Cookie API call error: {resp.content}')
-            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
-
-        meta = resp.cookies.get_dict()
-        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-        sessionid = meta['sessionid'] if 'sessionid' in meta else None
-        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-        headers={'X-CSRFToken' : csrftoken}
+#        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
+#        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#        if resp.status_code != 200:
+#            logger.error(f'Cookie API call error: {resp.content}')
+#            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
+#
+#        meta = resp.cookies.get_dict()
+#        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+#        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+#        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+#        headers={'X-CSRFToken' : csrftoken}
+#
+#        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+#        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+#        if resp.status_code != 200:
+#            logger.error(f'SpatialQuery API call error: {resp.content}')
+#            return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
         return Response(resp.json())
 
@@ -1595,25 +1604,34 @@ class ProposalViewSet(viewsets.ModelViewSet):
             geojson = geojson,
         )
 
-        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
-        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#        import ipdb; ipdb.set_trace()
+#        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+#        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
+#        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#        #import ipdb; ipdb.set_trace()
+#        if resp.status_code != 200:
+#            logger.error(f'Cookie API call error: {resp.content}')
+#            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
+#
+#        meta = resp.cookies.get_dict()
+#        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+#        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+#        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+#        headers={'X-CSRFToken' : csrftoken}
+#
+#        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+#        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+#        if resp.status_code != 200:
+#            logger.error(f'SpatialQuery API call error: {resp.content}')
+#            return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         #import ipdb; ipdb.set_trace()
-        if resp.status_code != 200:
-            logger.error(f'Cookie API call error: {resp.content}')
-            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
-
-        meta = resp.cookies.get_dict()
-        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-        sessionid = meta['sessionid'] if 'sessionid' in meta else None
-        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-        headers={'X-CSRFToken' : csrftoken}
-
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
         return Response(resp.json())
 
@@ -4354,14 +4372,19 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 if a[0] not in excl_how_choices
             ]
 
-            qs = MasterlistQuestion.objects.all()
-            masterlist = SchemaMasterlistOptionSerializer(qs, many=True).data
+            qs_mlq = MasterlistQuestion.objects.all()
+            masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
+
+            #import ipdb; ipdb.set_trace()
+            qs_cddp = CddpQuestionGroup.objects.all()
+            cddp_groups = CddpQuestionGroupSerializer(qs_cddp, many=True).data
 
             return Response(
                 {
                     'operators': operators,
                     'how': how,
                     'all_masterlist': masterlist,
+                    'cddp_groups': cddp_groups,
                 },
                 status=status.HTTP_200_OK
             )
@@ -4399,7 +4422,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             )
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('save_spatialquery()', ve)
+            log = '{0} {1}'.format('delete_spatialquery()', ve)
             logger.exception(log)
             raise
 

@@ -6,6 +6,7 @@ from disturbance.components.proposals.models import (
         ProposalApproverGroup, 
         HelpPage,
         ApiaryReferralGroup,
+        CddpQuestionGroup,
         MasterlistQuestion,
         QuestionOption,
         SectionQuestion,
@@ -18,6 +19,30 @@ from django.conf import settings
 import pytz
 from datetime import datetime, timedelta
 #from . import errors
+
+
+class CddpQuestionGroupAdminForm(forms.ModelForm):
+    class Meta:
+        model = CddpQuestionGroup
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(CddpQuestionGroupAdminForm, self).__init__(*args, **kwargs)
+        if self.instance:
+            self.fields['members'].queryset = EmailUser.objects.filter(is_staff=True)
+
+    def clean(self):
+        super(CddpQuestionGroupAdminForm, self).clean()
+        if self.instance and CddpQuestionGroup.objects.all().exists():
+            try:
+                original_members = CddpQuestionGroup.objects.get(id=self.instance.id).members.all()
+                current_members = self.cleaned_data.get('members')
+                for o in original_members:
+                    if o not in current_members:
+                        if self.instance.member_is_assigned(o):
+                            raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
+            except:
+                pass
 
 
 class ProposalAssessorGroupAdminForm(forms.ModelForm):
