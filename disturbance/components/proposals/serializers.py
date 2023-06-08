@@ -17,6 +17,7 @@ from disturbance.components.proposals.models import (
                                     ProposalTypeSection,
                                     MasterlistQuestion,
                                     SpatialQueryQuestion,
+                                    CddpQuestionGroup,
                                 )
 from disturbance.components.organisations.models import (
                                 Organisation
@@ -27,7 +28,8 @@ from rest_framework import serializers
 from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, \
     ProposalApiaryTemporaryUseSerializer
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
-    ProposalDeclinedDetailsSerializer, EmailUserSerializer
+    ProposalDeclinedDetailsSerializer, EmailUserSerializer, EmailSerializer
+from drf_writable_nested import UniqueFieldsMixin , WritableNestedModelSerializer
 
 
 logger = logging.getLogger(__name__)
@@ -1247,34 +1249,58 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
     def get_proposal_type(self, obj):
         return ProposalTypeSchemaSerializer(obj.proposal_type).data
 
+class CddpQuestionGroupSerializer(serializers.ModelSerializer):
 
-class SpatialQueryQuestionSerializer(serializers.ModelSerializer):
-    '''
-    Serializer for Schema builder using Masterlist questions.
-    '''
-#    options = serializers.SerializerMethodField()
-    #name = serializers.CharField(read_only=True)
 
     class Meta:
-        model = SpatialQueryQuestion
-        fields = '__all__'
-        #fields = ('id', 'question', 'options')
+        model = CddpQuestionGroup
+        fields = ('id', 'name')
 
 
-#    def get_options(self, obj):
-#        #import ipdb; ipdb.set_trace()
-#        #return obj.question.option.values_list('id','label','value')
-#        return obj.question.option.values()
-
-
-class DTSpatialQueryQuestionSerializer(serializers.ModelSerializer):
+class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
     '''
     Serializer for Datatable SpatialQueryQuestion.
     '''
+    group = CddpQuestionGroupSerializer()
+    allowed_editors = EmailSerializer(many=True, read_only=True)
+    can_user_edit = serializers.SerializerMethodField()
 
     class Meta:
         model = SpatialQueryQuestion
-        fields = '__all__'
+        #fields = '__all__'
+        fields = (
+	  'id',
+	  'question',
+	  'answer_mlq',
+	  'layer_name',
+	  'layer_url',
+	  'expiry',
+	  'visible_to_proponent',
+	  'buffer',
+	  'how',
+	  'column_name',
+	  'operator',
+	  'value',
+	  'prefix_answer',
+	  'no_polygons_proponent',
+	  'answer',
+	  'prefix_info',
+	  'no_polygons_assessor',
+	  'assessor_info',
+	  'regions',
+	  'layer',
+	  'group',
+          'allowed_editors',
+          'can_user_edit',
+        )
+        datatables_always_serialize = fields
+
+    def _get_allowed_editors(self, obj):
+        return obj.email
+
+    def get_can_user_edit(self, obj):
+        user = self.context['request'].user if self.context and 'request' in self.context else None
+        return user in obj.allowed_editors or user.is_superuser if user else False
 
 class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()

@@ -187,6 +187,20 @@ class ProposalApproverGroupAdmin(admin.ModelAdmin):
             return False
         return super(ProposalApproverGroupAdmin, self).has_delete_permission(request, obj)
 
+
+@admin.register(models.CddpQuestionGroup)
+class CddpQuestionGroupAdmin(admin.ModelAdmin):
+    list_display = ['name','default']
+    filter_horizontal = ('members',)
+    form = forms.CddpQuestionGroupAdminForm
+    readonly_fields = ['default']
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.default:
+            return False
+        return super(CddpQuestionGroupAdmin, self).has_delete_permission(request, obj)
+
+
 @admin.register(models.ApiaryReferralGroup)
 class ApiaryReferralGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)

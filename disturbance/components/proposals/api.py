@@ -77,6 +77,7 @@ from disturbance.components.proposals.models import (
     ProposalTypeSection,
     SectionQuestion,
     MasterlistQuestion,
+    CddpQuestionGroup,
     SpatialQueryQuestion,
 )
 from disturbance.components.proposals.serializers import (
@@ -111,7 +112,8 @@ from disturbance.components.proposals.serializers import (
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
     DTSpatialQueryQuestionSerializer,
-    SpatialQueryQuestionSerializer,
+    #SpatialQueryQuestionSerializer,
+    CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
     DASMapFilterSerializer,
 )
@@ -1494,12 +1496,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         geojson=proposal.shapefile_json
 
         masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_questions = json.loads(rendered)
 
         # group by question
-#        import ipdb; ipdb.set_trace()
         questions = [i['question'] for i in masterlist_questions]
         unique_questions = list(set(questions))
         question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
@@ -1522,24 +1523,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         )
 
         #import ipdb; ipdb.set_trace()
-        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
-        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        if resp.status_code != 200:
-            logger.error(f'Cookie API call error: {resp.content}')
-            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
-
-        meta = resp.cookies.get_dict()
-        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-        sessionid = meta['sessionid'] if 'sessionid' in meta else None
-        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-        headers={'X-CSRFToken' : csrftoken}
-
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
         return Response(resp.json())
 
@@ -1563,7 +1552,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         # get all masterlist questions
         masterlist_question_qs_all = SpatialQueryQuestion.objects.filter()
-        serializer_all = SpatialQueryQuestionSerializer(masterlist_question_qs_all, many=True)
+        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, many=True)
         rendered_all = JSONRenderer().render(serializer_all.data).decode('utf-8')
         masterlist_questions_all = json.loads(rendered_all)
 
@@ -1577,12 +1566,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     if question_dict['question_group'] in sqq_record.values():
                         question_dict['questions'].append(sqq_record)
         else:
-            serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
             question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
 
-        #import ipdb; ipdb.set_trace()
         data = dict(
             proposal=dict(
                 system=settings.SYSTEM_NAME_SHORT,
@@ -1595,25 +1583,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             geojson = geojson,
         )
 
-        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-        url = f'{settings.SQS_APIURL}csrf_token/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/csrf_token/'
-        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         #import ipdb; ipdb.set_trace()
-        if resp.status_code != 200:
-            logger.error(f'Cookie API call error: {resp.content}')
-            return Response({'errors': resp.content}, status=status.HTTP_401_UNAUTHORIZED)
-
-        meta = resp.cookies.get_dict()
-        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-        sessionid = meta['sessionid'] if 'sessionid' in meta else None
-        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-        headers={'X-CSRFToken' : csrftoken}
-
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies)
+        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
         return Response(resp.json())
 
@@ -4358,7 +4334,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     """ For the 'New Question' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
     queryset = SpatialQueryQuestion.objects.all()
-    serializer_class = SpatialQueryQuestionSerializer
+    serializer_class = DTSpatialQueryQuestionSerializer
 
     def get_queryset(self):
         return self.queryset
@@ -4479,14 +4455,19 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 if a[0] not in excl_how_choices
             ]
 
-            qs = MasterlistQuestion.objects.all()
-            masterlist = SchemaMasterlistOptionSerializer(qs, many=True).data
+            qs_mlq = MasterlistQuestion.objects.all()
+            masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
+
+            #import ipdb; ipdb.set_trace()
+            qs_cddp = CddpQuestionGroup.objects.all()
+            cddp_groups = CddpQuestionGroupSerializer(qs_cddp, many=True).data
 
             return Response(
                 {
                     'operators': operators,
                     'how': how,
                     'all_masterlist': masterlist,
+                    'cddp_groups': cddp_groups,
                 },
                 status=status.HTTP_200_OK
             )
@@ -4524,7 +4505,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             )
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('save_spatialquery()', ve)
+            log = '{0} {1}'.format('delete_spatialquery()', ve)
             logger.exception(log)
             raise
 
@@ -4538,6 +4519,20 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             logger.exception()
             raise serializers.ValidationError(str(e))
 
+    @basic_exception_handler
+    def create(self, request, *args, **kwargs):
+
+
+        with transaction.atomic():
+
+            #import ipdb; ipdb.set_trace()
+            serializer = DTSpatialQueryQuestionSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response(serializer.data)
+
+    #def update(self, request, *args, **kwargs):
     @detail_route(methods=['POST', ])
     def save_spatialquery(self, request, *args, **kwargs):
         '''
@@ -4548,12 +4543,16 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             with transaction.atomic():
 
-                serializer = SpatialQueryQuestionSerializer(
+                serializer = DTSpatialQueryQuestionSerializer(
                     instance, data=request.data
                 )
                 #import ipdb; ipdb.set_trace()
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+
+#                if instance.group_id != request.data['group']['id']:
+#                    instance.group_id = request.data['group']['id']
+#                    instance.save()
 
             return Response(
                 {'spatialquery_id': instance.id},

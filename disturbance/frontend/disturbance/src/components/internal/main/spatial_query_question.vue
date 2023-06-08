@@ -22,6 +22,7 @@
                     <div class="row">
                         <div class="col-md-12">
                             <div class="form-group">
+                                <!--{{profile}}-->
 
                                 <datatable ref="spatial_query_question_table"
                                     :id="spatial_query_question_id" 
@@ -89,6 +90,21 @@
                             <input class="form-control" name="layer_url" v-model="spatialquery.layer_url"></input>
                         </div>
                     </div>
+
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >CDDP Group</label>
+                        </div>
+                        <div class="col-md-3">
+                           {{spatialquery.group}}
+                            <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group">
+                                <option v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
+                                <!--<option v-for="(g, gid) in spatialquery_selects.cddp_groups" :value="g.id" v-bind:key="`purpose_${gid}`">{{g.name}}</option> -->
+                            </select>     
+                        </div>
+                    </div>
+
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
@@ -301,6 +317,7 @@
 </template>
 
 <script>
+import Vue from 'vue'
 import datatable from '@/utils/vue/datatable.vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
@@ -351,8 +368,9 @@ export default {
             request_time: null,
             num_questions: null,
             num_layers_utilised: null,
+            profile: {},
 
-            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
+            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Group", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -431,6 +449,9 @@ export default {
                         data: "layer_name",
                     },
                     { 
+                        data: "group.name",
+                    },
+                    { 
                         data: "how",
                     },
                     { 
@@ -484,8 +505,14 @@ export default {
                         data: "id",
                         width: "10%",
                         mRender:function (data,type,full) {
-                            var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
-                            column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
+                            var column;
+                            if (full.can_user_edit) {
+                                column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
+                                column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
+                            } else {
+                                column = `<a href="/" onclick="return false;" style="color: grey;" title="CDDP Group '${full.group.name}'">Edit</a><br/>`;
+                                column += `<a href="/" onclick="return false;" style="color: grey;" title="CDDP Group '${full.group.name}'">Delete</a><br/>`;
+			    }
                             column += `<a class="test-row" data-rowid=\"__ROWID__\">Test</a><br/>`;
                             return column.replace(/__ROWID__/g, full.id);
                         }
@@ -516,6 +543,10 @@ export default {
                 help_text_assessor:'',
                 help_text_url: false,
                 help_text_assessor_url: false,
+                group: {
+                    id: '',
+                    name: ''
+                },
             },
             proposal: {
                 lodgement_number: '',
@@ -564,7 +595,7 @@ export default {
         },
     },
     methods: {
-        has_form_errors: function () {
+        has_test_form_errors: function () {
             if (!this.proposal.lodgement_number) {
                 this.missing_fields.push({'label':'Proposal lodgement number required (eg. P000123)'});
             }
@@ -654,16 +685,24 @@ export default {
         saveSpatialquery: async function() {
             const self = this;
             const data = self.spatialquery;
+            self.missing_fields = [];
+             
+            if (self.has_form_errors()) {
+                self.isModalOpen = true;
+                return;
+            }
 
             if (data.id === '') {
                 console.log(data);
 
+                //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
                 await self.$http.post(api_endpoints.spatial_query, JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                     self.close();
                 }, (error) => {
+                    console.log('Error: ' + JSON.stringify(error))
                     swal(
                         'Save Error',
                         helpers.apiVueResourceError(error),
@@ -673,12 +712,15 @@ export default {
 
             } else {
 
+                //data.group = data.group.id;
+
                 await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
                         emulateJSON:true,
                 }).then((response)=>{
                     self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                     self.close();
                 },(error)=>{
+                    console.log('Error: ' + JSON.stringify(error))
                     swal(
                         'Save Error',
                         helpers.apiVueResourceError(error),
@@ -694,9 +736,9 @@ export default {
             const self = this;
             const data = self.proposal;
             data['csrfmiddlewaretoken'] = self.csrf_token
-            this.missing_fields = [];
+            self.missing_fields = [];
              
-            if (self.has_form_errors()) {
+            if (self.has_test_form_errors()) {
                 self.isModalOpen = true;
                 return;
             }
@@ -725,7 +767,7 @@ export default {
                 self.num_questions = response.body['layer_data'].length;
                 self.num_layers_utilised = uniq(response.body['layer_data'].map((item) => item.layer_name)).length // unique layers used
             },(error)=>{
-                //console.log('Error: ' + JSON.stringify(error))
+                console.log('Error: ' + JSON.stringify(error))
                 swal(
                     'Error',
                     helpers.apiVueResourceError(error),
@@ -737,6 +779,31 @@ export default {
             this.isNewEntry = false;
         },
 
+        has_form_errors: function () {
+            console.log
+            if (this.spatialquery.question==='') { this.missing_fields.push({'label':'Question field is required'}); }
+            if (this.spatialquery.answer_mlq==='') { this.missing_fields.push({'label':'Answer field is required'}); }
+            if (this.spatialquery.layer_name==='') { this.missing_fields.push({'label':'Layer Name field is required'}); }
+            if (this.spatialquery.layer_url==='') { this.missing_fields.push({'label':'Layer URL field is required'}); }
+            if (this.spatialquery.group==='') { this.missing_fields.push({'label':'CDDP Group field is required'}); }
+            if (this.spatialquery.how==='') { this.missing_fields.push({'label':'Intersector operator field is required'}); }
+            if (this.spatialquery.column_name==='') { this.missing_fields.push({'label':'Column name field is required'}); }
+            if (this.spatialquery.operator==='') { this.missing_fields.push({'label':'Operator field is required'}); }
+            if (this.spatialquery.buffer==='') { this.missing_fields.push({'label':'Buffer field is required'}); }
+
+            //if (this.spatialquery.operator && (this.spatialquery.operator == 'Equals' || this.spatialquery.operator != 'GreaterThan' || this.spatialquery.operator != 'LessThan')) { 
+            if(['Equals','GreaterThan','LessThan'].includes(this.spatialquery.operator)) {
+                if (!this.spatialquery.value) { 
+                    this.missing_fields.push({'label':'Value field is required (for Equals/GreaterThan/LessThan operators)'}); 
+                }
+            }
+
+            if (this.missing_fields.length>0) {
+                return true;
+            } 
+            return false
+        },
+
         addTableEntry: function() {
             this.isNewEntry = true;
             this.spatialquery.answer_type = '';
@@ -744,6 +811,7 @@ export default {
             this.spatialquery.answer_mlq = '';
             this.spatialquery.layer_name = '';
             this.spatialquery.layer_url = '';
+            this.spatialquery.group = '';
             this.spatialquery.expiry = '';
             this.spatialquery.visible_to_proponent = '';
             this.spatialquery.buffer = '';
@@ -787,6 +855,7 @@ export default {
                 self.spatialquery.answer_mlq = self.$refs.spatial_query_question_table.row_of_data.data().answer_mlq;
                 self.spatialquery.layer_name = self.$refs.spatial_query_question_table.row_of_data.data().layer_name;
                 self.spatialquery.layer_url = self.$refs.spatial_query_question_table.row_of_data.data().layer_url;
+                self.spatialquery.group = self.$refs.spatial_query_question_table.row_of_data.data().group;
                 self.spatialquery.expiry = self.$refs.spatial_query_question_table.row_of_data.data().expiry;
                 self.spatialquery.visible_to_proponent = self.$refs.spatial_query_question_table.row_of_data.data().visible_to_proponent;
                 self.spatialquery.buffer = self.$refs.spatial_query_question_table.row_of_data.data().buffer;
@@ -915,9 +984,21 @@ export default {
             this.initAnswerTypeSelector();
         },        
 
+        fetchProfile: function(){
+            let vm = this;
+            Vue.http.get(api_endpoints.profile).then((response) => {
+                vm.profile = response.body
+
+            },(error) => {
+                console.log(error);
+
+            })
+        },
+
     },
     mounted: function() {
         this.form = document.forms.spatial_query_question;
+        this.fetchProfile();
         this.$nextTick(() => {
             this.initEventListeners();
             this.initSelects();
@@ -932,5 +1013,10 @@ export default {
 }
 .med {
     transform: scale(1.5);
+}
+a.disabled {
+  color: grey;
+  pointer-events: none;
+  cursor: default;
 }
 </style>
