@@ -98,8 +98,8 @@
                         </div>
                         <div class="col-md-3">
                            {{spatialquery.group}}
-                            <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group.id">
-                                <option v-for="group in spatialquery_selects.cddp_groups" :value="group.id" >{{group.name}}</option>
+                            <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group">
+                                <option v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
                                 <!--<option v-for="(g, gid) in spatialquery_selects.cddp_groups" :value="g.id" v-bind:key="`purpose_${gid}`">{{g.name}}</option> -->
                             </select>     
                         </div>
@@ -505,8 +505,14 @@ export default {
                         data: "id",
                         width: "10%",
                         mRender:function (data,type,full) {
-                            var column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
-                            column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
+                            var column;
+                            if (full.can_user_edit) {
+                                column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
+                                column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
+                            } else {
+                                column = `<a href="/" onclick="return false;" style="color: grey;" title="CDDP Group '${full.group.name}'">Edit</a><br/>`;
+                                column += `<a href="/" onclick="return false;" style="color: grey;" title="CDDP Group '${full.group.name}'">Delete</a><br/>`;
+			    }
                             column += `<a class="test-row" data-rowid=\"__ROWID__\">Test</a><br/>`;
                             return column.replace(/__ROWID__/g, full.id);
                         }
@@ -537,6 +543,10 @@ export default {
                 help_text_assessor:'',
                 help_text_url: false,
                 help_text_assessor_url: false,
+                group: {
+                    id: '',
+                    name: ''
+                },
             },
             proposal: {
                 lodgement_number: '',
@@ -675,7 +685,7 @@ export default {
         saveSpatialquery: async function() {
             const self = this;
             const data = self.spatialquery;
-            this.missing_fields = [];
+            self.missing_fields = [];
              
             if (self.has_form_errors()) {
                 self.isModalOpen = true;
@@ -685,12 +695,14 @@ export default {
             if (data.id === '') {
                 console.log(data);
 
+                //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
                 await self.$http.post(api_endpoints.spatial_query, JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                     self.close();
                 }, (error) => {
+                    console.log('Error: ' + JSON.stringify(error))
                     swal(
                         'Save Error',
                         helpers.apiVueResourceError(error),
@@ -700,7 +712,7 @@ export default {
 
             } else {
 
-                data.group = data.group.id;
+                //data.group = data.group.id;
 
                 await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
                         emulateJSON:true,
@@ -724,7 +736,7 @@ export default {
             const self = this;
             const data = self.proposal;
             data['csrfmiddlewaretoken'] = self.csrf_token
-            this.missing_fields = [];
+            self.missing_fields = [];
              
             if (self.has_test_form_errors()) {
                 self.isModalOpen = true;
@@ -769,14 +781,15 @@ export default {
 
         has_form_errors: function () {
             console.log
-            if (!this.spatialquery.question) { this.missing_fields.push({'label':'Question field is required'}); }
-            if (!this.spatialquery.answer_mlq) { this.missing_fields.push({'label':'Answer field is required'}); }
-            if (!this.spatialquery.layer_name) { this.missing_fields.push({'label':'Layer Name field is required'}); }
-            if (!this.spatialquery.layer_url) { this.missing_fields.push({'label':'Layer URL field is required'}); }
-            if (!this.spatialquery.group) { this.missing_fields.push({'label':'CDDP Group field is required'}); }
-            if (!this.spatialquery.how) { this.missing_fields.push({'label':'Intersector operator field is required'}); }
-            if (!this.spatialquery.column_name) { this.missing_fields.push({'label':'Column name field is required'}); }
-            if (!this.spatialquery.operator) { this.missing_fields.push({'label':'Operator field is required'}); }
+            if (this.spatialquery.question==='') { this.missing_fields.push({'label':'Question field is required'}); }
+            if (this.spatialquery.answer_mlq==='') { this.missing_fields.push({'label':'Answer field is required'}); }
+            if (this.spatialquery.layer_name==='') { this.missing_fields.push({'label':'Layer Name field is required'}); }
+            if (this.spatialquery.layer_url==='') { this.missing_fields.push({'label':'Layer URL field is required'}); }
+            if (this.spatialquery.group==='') { this.missing_fields.push({'label':'CDDP Group field is required'}); }
+            if (this.spatialquery.how==='') { this.missing_fields.push({'label':'Intersector operator field is required'}); }
+            if (this.spatialquery.column_name==='') { this.missing_fields.push({'label':'Column name field is required'}); }
+            if (this.spatialquery.operator==='') { this.missing_fields.push({'label':'Operator field is required'}); }
+            if (this.spatialquery.buffer==='') { this.missing_fields.push({'label':'Buffer field is required'}); }
 
             //if (this.spatialquery.operator && (this.spatialquery.operator == 'Equals' || this.spatialquery.operator != 'GreaterThan' || this.spatialquery.operator != 'LessThan')) { 
             if(['Equals','GreaterThan','LessThan'].includes(this.spatialquery.operator)) {
@@ -1000,5 +1013,10 @@ export default {
 }
 .med {
     transform: scale(1.5);
+}
+a.disabled {
+  color: grey;
+  pointer-events: none;
+  cursor: default;
 }
 </style>

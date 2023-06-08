@@ -4,6 +4,12 @@ from rest_framework import serializers
 from disturbance.components.proposals.models import Proposal, Referral, ProposalDeclinedDetails
 
 
+class EmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailUser
+        fields = ('email',)
+
+
 class EmailUserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField(read_only=True)
     class Meta:
