@@ -29,13 +29,13 @@ class SpatialQueryBuilder():
         Returns masterlistquestions as JSON, needed to query SQS via API call.
         Questions returned are grouped by layer_name.
         """
-        from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
+        from disturbance.components.proposals.serializers import DTSpatialQueryQuestionSerializer
         from disturbance.components.proposals.models import SpatialQueryQuestion
         #import ipdb; ipdb.set_trace()
         queryset = self.queryset
         if not queryset:
             queryset = SpatialQueryQuestion.objects.all()
-        serializer = SpatialQueryQuestionSerializer(queryset, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(queryset, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         sqq_json = json.loads(rendered)
 

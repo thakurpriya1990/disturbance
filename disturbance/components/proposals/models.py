@@ -258,6 +258,73 @@ class ProposalApproverGroup(models.Model):
     def members_email(self):
         return [i.email for i in self.members.all()]
 
+class CddpQuestionGroup(models.Model):
+    name = models.CharField(max_length=255)
+    members = models.ManyToManyField(EmailUser)
+    default = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return self.name
+
+#    def clean(self):
+#        try:
+#            default = CddpQuestionGroup.objects.get(default=True)
+#        except CddpQuestionGroup.DoesNotExist:
+#            default = None
+#
+#        if self.pk:
+#            if not self.default and not self.region:
+#                raise ValidationError('Only default can have no region set for proposal assessor group. Please specifiy region')
+#        else:
+#            if default and self.default:
+#                raise ValidationError('There can only be one default proposal approver group')
+
+#    def member_is_assigned(self,member):
+#        for p in self.current_proposals:
+#            if p.assigned_approver == member:
+#                return True
+#        return False
+
+    @property
+    def current_cddp_questions(self):
+        return SpatialQueryQuestion.objects.filter(group=self.name)
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
+#class __ApiaryAssessorGroup(models.Model):
+#    #site = models.OneToOneField(Site, default='1')
+#    members = models.ManyToManyField(EmailUser)
+#
+#    def __str__(self):
+#        return 'Apiary Assessors Group'
+#
+#    @property
+#    def all_members(self):
+#        all_members = []
+#        all_members.extend(self.members.all())
+#        member_ids = [m.id for m in self.members.all()]
+#        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+#        return all_members
+#
+#    @property
+#    def filtered_members(self):
+#        return self.members.all()
+#
+#    class Meta:
+#        app_label = 'disturbance'
+#        verbose_name_plural = 'Apiary Assessors Group'
+#
+#    @property
+#    def members_email(self):
+#        return [i.email for i in self.members.all()]
+
+
+
 class DefaultDocument(Document):
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -5705,6 +5772,7 @@ class SpatialQueryQuestion(models.Model):
     answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
 
     layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE, blank=True, null=True)
+    group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)
     layer_name = models.CharField(max_length=100)
     layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)
@@ -5734,6 +5802,25 @@ class SpatialQueryQuestion(models.Model):
     def __str__(self):
         #return '{} - {}'.format(self.question.id, self.layer_name)
         return '{} - {}'.format(self.question, self.layer_name)
+
+    def __cddp_group(self):
+        #import ipdb; ipdb.set_trace()
+        try:
+            check_group = CddpQuestionGroup.objects.filter(id=self.group.id)
+            if check_group:
+                return check_group[0]
+        except CddpQuestionGroup.DoesNotExist:
+            pass
+        default_group = CddpQuestionGroup.objects.get(default=True)
+
+        return default_group
+
+    @property
+    def allowed_editors(self):
+        group = self.__cddp_group()
+        return group.members.all() if group else []
+
+
 
 #    def get_options(self):
 #        return "\n".join([q.label for q in self.question.option.all()])
