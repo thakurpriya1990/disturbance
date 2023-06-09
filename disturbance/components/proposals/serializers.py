@@ -1250,10 +1250,16 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
 
 class CddpQuestionGroupSerializer(serializers.ModelSerializer):
 
+    can_user_edit = serializers.SerializerMethodField()
 
     class Meta:
         model = CddpQuestionGroup
-        fields = ('id', 'name')
+        fields = ('id', 'name', 'can_user_edit',)#'allowed_editors',)
+
+    def get_can_user_edit(self, obj):
+        user = self.context['request'].user if self.context and 'request' in self.context else None
+        can_user_edit = obj.name in CddpQuestionGroup.objects.filter(members__in=[user]).values_list('name', flat=True)
+        return True if can_user_edit or (user and user.is_superuser) else False
 
 
 class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
@@ -1261,8 +1267,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
     Serializer for Datatable SpatialQueryQuestion.
     '''
     group = CddpQuestionGroupSerializer()
-    allowed_editors = EmailSerializer(many=True, read_only=True)
-    can_user_edit = serializers.SerializerMethodField()
 
     class Meta:
         model = SpatialQueryQuestion
@@ -1289,17 +1293,12 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 	  'regions',
 	  'layer',
 	  'group',
-          'allowed_editors',
-          'can_user_edit',
         )
         datatables_always_serialize = fields
 
     def _get_allowed_editors(self, obj):
         return obj.email
 
-    def get_can_user_edit(self, obj):
-        user = self.context['request'].user if self.context and 'request' in self.context else None
-        return user in obj.allowed_editors or user.is_superuser if user else False
 
 class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()

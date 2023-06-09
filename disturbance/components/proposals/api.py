@@ -4206,6 +4206,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
         return response
 
+
 class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     """ For the 'New Question' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
     queryset = SpatialQueryQuestion.objects.all()
@@ -4335,7 +4336,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             #import ipdb; ipdb.set_trace()
             qs_cddp = CddpQuestionGroup.objects.all()
-            cddp_groups = CddpQuestionGroupSerializer(qs_cddp, many=True).data
+            cddp_groups = CddpQuestionGroupSerializer(qs_cddp, context={'request': request}, many=True).data
 
             return Response(
                 {
