@@ -97,11 +97,13 @@
                             <label class="control-label pull-left" >CDDP Group</label>
                         </div>
                         <div class="col-md-3">
-                           {{spatialquery.group}}
+                           <!--{{spatialquery.group}}-->
                             <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group">
-                                <option v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
-                                <!--<option v-for="(g, gid) in spatialquery_selects.cddp_groups" :value="g.id" v-bind:key="`purpose_${gid}`">{{g.name}}</option> -->
+                                <option v-if="group.can_user_edit" v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
                             </select>     
+                        </div>
+                        <div v-if="has_no_editable_groups()" class="col-md-6">
+                            <p style="color:red;">You are currently not a member of any CDDP Group. To create a new Spatial Query Question, you must first be added to at least one CDDP Group.</p>
                         </div>
                     </div>
 
@@ -506,12 +508,12 @@ export default {
                         width: "10%",
                         mRender:function (data,type,full) {
                             var column;
-                            if (full.can_user_edit) {
+                            if (full.group.can_user_edit) {
                                 column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
                                 column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
                             } else {
-                                column = `<a href="/" onclick="return false;" style="color: grey;" title="CDDP Group '${full.group.name}'">Edit</a><br/>`;
-                                column += `<a href="/" onclick="return false;" style="color: grey;" title="CDDP Group '${full.group.name}'">Delete</a><br/>`;
+                                column = `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Edit</a><br/>`;
+                                column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Delete</a><br/>`;
 			    }
                             column += `<a class="test-row" data-rowid=\"__ROWID__\">Test</a><br/>`;
                             return column.replace(/__ROWID__/g, full.id);
@@ -605,7 +607,11 @@ export default {
             } 
             return false
         },
-
+        has_no_editable_groups: function() {
+            // Check if current  user is member of any groups
+            var group_arr = this.spatialquery_selects.cddp_groups.map(obj => obj.can_user_edit ? obj.name : null).filter(obj => obj)
+            return group_arr.length === 0;
+        },
         pretty: function(value) {
             //return JSON.stringify(JSON.parse(value), null, 2);
             return JSON.stringify(JSON.parse(value), null, 2);
@@ -782,7 +788,7 @@ export default {
         has_form_errors: function () {
             console.log
             if (this.spatialquery.question==='') { this.missing_fields.push({'label':'Question field is required'}); }
-            if (this.spatialquery.answer_mlq==='') { this.missing_fields.push({'label':'Answer field is required'}); }
+            //if (this.spatialquery.answer_mlq==='') { this.missing_fields.push({'label':'Answer field is required'}); }
             if (this.spatialquery.layer_name==='') { this.missing_fields.push({'label':'Layer Name field is required'}); }
             if (this.spatialquery.layer_url==='') { this.missing_fields.push({'label':'Layer URL field is required'}); }
             if (this.spatialquery.group==='') { this.missing_fields.push({'label':'CDDP Group field is required'}); }
