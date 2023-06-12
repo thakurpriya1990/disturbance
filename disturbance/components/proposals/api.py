@@ -1593,6 +1593,59 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return Response(resp.json())
 
+    @detail_route(methods=['POST',])
+    @api_exception_handler
+    def refresh(self, request, *args, **kwargs):
+        '''
+        Initially developed to allow testing of SQS Server - providing and example API request from DAS for single MLQ question
+        For 'refresh' button on DAS form
+
+        To test (from DAS shell): 
+            requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
+        ''' 
+
+        mlq_label = request.data.get('label')
+        schema_name= request.data.get('parent_name')
+        # proposal_id = request.data.get('proposal_id')
+        # proposal = Proposal.objects.get(id=proposal_id)
+        proposal = self.get_object()
+
+        geojson=proposal.shapefile_json
+
+        # serialize masterlist question
+        masterlist_question_qs = SpatialQueryQuestion.objects.filter(question=mlq_label)
+        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        masterlist_question_json = json.loads(rendered)
+        masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
+
+        data = dict(
+            proposal=dict(
+                system=settings.SYSTEM_NAME_SHORT,
+                id=proposal.id,
+                schema=proposal.schema,
+                data=proposal.data,
+
+            ),
+            masterlist_questions = masterlist_question,
+            geojson = geojson,
+        )
+
+        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+        #import ipdb; ipdb.set_trace()
+        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        meta = resp.cookies.get_dict()
+        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        headers={'X-CSRFToken' : csrftoken}
+
+        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+        print(resp)
+
+        return Response(resp)
+
 
     @detail_route(methods=['POST',])
     def get_revision(self, request, *args, **kwargs):
@@ -2190,6 +2243,79 @@ class ProposalViewSet(viewsets.ModelViewSet):
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+        
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def prefill_proposal(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.apiary_group_application_type:
+                pass
+            else:
+                if instance.shapefile_json:
+                    proposal = instance
+
+                    geojson=proposal.shapefile_json
+
+                    masterlist_question_qs = SpatialQueryQuestion.objects.filter()
+                    serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+                    rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+                    masterlist_questions = json.loads(rendered)
+
+                    # group by question
+                    questions = [i['question'] for i in masterlist_questions]
+                    unique_questions = list(set(questions))
+                    question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+                    for question_dict in question_group_list:
+                        for sqq_record in masterlist_questions:
+                            #print(j['layer_name'])
+                            if question_dict['question_group'] in sqq_record.values():
+                                question_dict['questions'].append(sqq_record)
+
+                    data = dict(
+                        proposal=dict(
+                            system=settings.SYSTEM_NAME_SHORT,
+                            id=proposal.id,
+                            schema=proposal.schema,
+                            data=proposal.data,
+
+                        ),
+                        masterlist_questions = question_group_list,
+                        geojson = geojson,
+                    )
+
+                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+                    resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    meta = resp.cookies.get_dict()
+                    csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+                    sessionid = meta['sessionid'] if 'sessionid' in meta else None
+                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+                    headers={'X-CSRFToken' : csrftoken}
+
+                    url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+                    #import ipdb; ipdb.set_trace()
+                    resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+                    if resp and resp['data']:
+                        instance.data=resp['data']
+                    if resp and resp['layer_data']:
+                        instance.layer_data=resp['layer_data']
+                    if resp and resp['add_info_assessor']:
+                        instance.add_info_assessor= resp['add_info_assessor']
+                    instance.save()
+                else:
+                    raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+            instance.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+            #return redirect(reverse('external'))
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
@@ -2512,7 +2638,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
-            print('in draft')
             # Ensure the current user is a member of the organisation that created the draft application.
             is_authorised_to_modify_draft(request, instance)
 

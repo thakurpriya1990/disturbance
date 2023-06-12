@@ -18,6 +18,7 @@ import HelpTextUrl from '../components/forms/help_text_url.vue'
 import CommentRadioCheckBox from '../components/forms/comment_icon_checkbox_radio.vue'
 import IFrame from '../components/forms/iframe.vue'
 import LayerInfo from '../components/forms/layer_info.vue'
+import RefreshRadio from '../components/forms/refresh_radio.vue'
 import {helpers,api_endpoints} from "@/utils/hooks.js"
 
 module.exports = {
@@ -58,10 +59,10 @@ module.exports = {
 
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
         var layer_val = (layerData) ? layerData.find(at => at.name == c.name) : null;
+        //console.log(layerData);
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
         var add_info_applicant_val = (addInfoApplicant) ? (addInfoApplicant[c.name]) ? addInfoApplicant[c.name] : null : null;
         var add_info_assessor_val = (addInfoAssessor) ? (addInfoAssessor[c.name]) ? addInfoAssessor[c.name] : null : null;
-        console.log(c.name, add_info_assessor_val);
         var comment_val= null;
         if(commentData){
             if(commentData.constructor != Object){
@@ -124,7 +125,7 @@ module.exports = {
             case 'text':
         		readonly = (c.readonly) ? (c.readonly): (readonly);
                 _elements.push(
-                    <TextField type="text" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val}/>
+                    <TextField type="text" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val} proposal_id={proposalId}/>
                 )
                 break;
             case 'text_info':
@@ -195,6 +196,7 @@ module.exports = {
                             <HelpText help_text={help_text_assessor} assessorMode={assessorMode} isForAssessor={true}/>
                             <HelpTextUrl help_text_url={help_text_url}/>
                             <HelpTextUrl help_text_url={help_text_assessor_url} assessorMode={assessorMode} isForAssessor={true}/>
+                            <RefreshRadio parent_name={c.name} assessorMode={assessorMode} layer_data={layer_val} />
                             <CommentRadioCheckBox assessor_readonly={assessor_visibility} name={c.name} comment_value={comment_val} assessorMode={assessorMode} label={c.label} comment_boxes={JSON.stringify(comment_boxes)}/>
                             <LayerInfo layer_value={layer_val} assessorMode={assessorMode}/>
                             {c.options.map(op =>{
@@ -212,7 +214,7 @@ module.exports = {
                   value = ( data[c.name] )? data[c.name][0] : null ;
                 }
                 _elements.push(
-                    <Group label={c.label} name={c.name} id={id} help_text={help_text} help_text_url={help_text_url} isRemovable={true}>
+                    <Group label={c.label} name={c.name} id={id} help_text={help_text} help_text_url={help_text_url} isRemovable={true} assessorMode={assessorMode} layer_data={layer_val} >
                         {c.children.map(c=>{
                             return (
                                 <div>
@@ -629,10 +631,11 @@ module.exports = {
             }
             else{
                     var name = `${c.name}-add-info-applicant`;
+                    var blank_val=null;
                     var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
                     applicant_visibility = !applicant_visibility;
                     boxes.push(
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={blank_val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
                     )                
             }
         if (boxes.length > 0){

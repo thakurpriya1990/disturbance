@@ -277,6 +277,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'shapefile_json',
             'add_info_applicant',
             'add_info_assessor',
+            'layer_data',
             # 'apiary_temporary_use_set',
         )
 

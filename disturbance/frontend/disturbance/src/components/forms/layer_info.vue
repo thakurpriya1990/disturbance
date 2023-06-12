@@ -38,8 +38,8 @@ export default {
         },
         layer_date:function () {
             let lay_date='';
-            if(this.layer_value && this.layer_value.hasOwnProperty('layer_updated')){
-                lay_date= this.layer_value.layer_updated;
+            if(this.layer_value && this.layer_value.hasOwnProperty('layer_modified_date')){
+                lay_date= this.layer_value.layer_modified_date;
             }
             return lay_date;
         },
