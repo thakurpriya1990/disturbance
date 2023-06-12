@@ -15,6 +15,9 @@
             <template v-if="help_text_assessor_url && assessorMode">
                 <HelpTextUrl :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
+            <template v-if="!assessorMode">
+                <Refresh :parent_name="name" :assessorMode="assessorMode" :layer_data="layer_val"  :proposal_id="proposal_id" />
+            </template>
 
 
             <template v-if="assessorMode">
@@ -26,7 +29,7 @@
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
             <template>
-                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode" />
             </template>
             <input :readonly="readonly" :type="type" class="form-control" :name="name" :value="value" :required="isRequired" />
         </div>
@@ -41,10 +44,11 @@ import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
 import LayerInfo from './layer_info.vue'
+import Refresh from './refresh.vue'
 export default {
     name:"text",
-    props:["type","name","id", "comment_value","value","isRequired","help_text","help_text_assessor","assessorMode","label","readonly","assessor_readonly", "help_text_url", "help_text_assessor_url", "comment_boxes", "layer_val",],
-    components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo,},
+    props:["type","name","id", "comment_value","value","isRequired","help_text","help_text_assessor","assessorMode","label","readonly","assessor_readonly", "help_text_url", "help_text_assessor_url", "comment_boxes", "layer_val","proposal_id"],
+    components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo, Refresh},
     data(){
         let vm = this;
         return {

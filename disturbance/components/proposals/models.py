@@ -472,7 +472,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     comment_data = JSONField(blank=True, null=True)
     add_info_applicant=JSONField(blank=True, null=True) #To store addition info provided by applicant for the question answered by GIS.
     add_info_assessor=JSONField(blank=True, null=True) #To store addition info provided by assessor for the question answered by GIS.
+    history_add_info_assessor=JSONField(blank=True, null=True) #To store history of addition info provided by assessor for the question answered by GIS.
     layer_data = JSONField(blank=True, null=True)
+    refresh_timestamp = JSONField(blank=True, null=True)
     schema = JSONField(blank=False, null=False)
     proposed_issuance_approval = JSONField(blank=True, null=True)
     #hard_copy = models.ForeignKey(Document, blank=True, null=True, related_name='hard_copy')
@@ -1506,6 +1508,36 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise ValidationError('Please upload a valid shapefile') 
         except:
             raise ValidationError('Please upload a valid shapefile')
+        
+    def prefill_proposal(self, request):
+        import geopandas as gpd 
+        try:
+            #TODO : validate shapefile and all the other related filese are present
+            if self.shapefile_json:
+                print('yes')
+                
+            else:
+                raise ValidationError('Please upload a valid shapefile') 
+        except:
+            raise ValidationError('Please upload a valid shapefile')
+
+    def get_history_add_info_assessor(self):
+        try:
+            history={}
+            if self.add_info_assessor:
+                for key in self.add_info_assessor:
+                    if self.history_add_info_assessor and key in self.history_add_info_assessor:
+                        new_value=''
+                        if type(self.add_info_assessor[key])==str:
+                            new_value=self.history_add_info_assessor[key]+'/r/n/n'+self.add_info_assessor[key]
+                        else:
+                            new_value=self.history_add_info_assessor[key]
+                        history[key]=new_value
+                    else:
+                        history[key]=self.add_info_assessor[key]
+            return history
+        except:
+            raise
         
 
 

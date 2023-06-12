@@ -185,7 +185,7 @@
             </template>
             <template v-else>
                 <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_external="true" />
-                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" :key="proposalComponentMapKey">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                 <div>
                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
@@ -262,6 +262,7 @@ export default {
             original_proposal: null,
             form: null,
             amendment_request: [],
+            proposalComponentMapKey: 0,
             //isDataSaved: false,
             proposal_readonly: true,
             hasAmendmentRequest: false,
@@ -1024,11 +1025,15 @@ export default {
             $('body').append(formElement);
             $(formElement).submit();
         },
+        incrementProposalComponentMapKey: function() {
+                this.proposalComponentMapKey++;
+            },
         refreshFromResponse:function(response){
             let vm = this;
+            console.log('inside refresh');
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
-            vm.$refs.mapSection.incrementComponentMapKey();
+            this.incrementProposalComponentMapKey();
             // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
             
         },
