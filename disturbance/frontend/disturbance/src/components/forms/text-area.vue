@@ -16,7 +16,7 @@
                 <HelpTextUrl :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
             <template v-if="!assessorMode">
-                <Refresh :parent_name="name" :assessorMode="assessorMode" :layer_data="layer_val" />
+                <Refresh :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" />
             </template>
 
             

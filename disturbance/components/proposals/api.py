@@ -1579,6 +1579,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
         )
@@ -1596,25 +1597,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @api_exception_handler
     def refresh(self, request, *args, **kwargs):
-        '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS for single MLQ question
-        For 'refresh' button on DAS form
-
-        To test (from DAS shell): 
-            requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
-        ''' 
+        
 
         mlq_label = request.data.get('label')
-        schema_name= request.data.get('parent_name')
+        schema_name= request.data.get('name')
         # proposal_id = request.data.get('proposal_id')
         # proposal = Proposal.objects.get(id=proposal_id)
         proposal = self.get_object()
 
         geojson=proposal.shapefile_json
-
+        #import ipdb; ipdb.set_trace()
         # serialize masterlist question
         masterlist_question_qs = SpatialQueryQuestion.objects.filter(question=mlq_label)
-        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        #serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_question_json = json.loads(rendered)
         masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -1627,24 +1623,40 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_question,
             geojson = geojson,
         )
 
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
         #import ipdb; ipdb.set_trace()
-        resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        meta = resp.cookies.get_dict()
-        csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-        sessionid = meta['sessionid'] if 'sessionid' in meta else None
-        cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-        headers={'X-CSRFToken' : csrftoken}
-
+        # resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        # meta = resp.cookies.get_dict()
+        # csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        # sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        # cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        # headers={'X-CSRFToken' : csrftoken}
+        answer_response={
+            'value': None,
+            'sqs_timestamp': None
+        }
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-        resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
-        print(resp)
-
-        return Response(resp)
+        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        if resp.status_code != 200:
+            logger.error(f'SpatialQuery API call error: {resp.content}')
+            return Response({'errors': resp.content}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        sqs_resp=(resp.json())
+        if sqs_resp and 'layer_data'in sqs_resp:
+            layer_data= sqs_resp['layer_data'][0]
+            if 'response' in layer_data:
+                answer_response['value']=layer_data['response']
+            if 'sqs_timestamp' in layer_data:
+                answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+        #refresh the add_info_assessor
+        # if 'add_info_assessor' in sqs_resp:
+        #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
+        #return Response(resp.json())
+        return Response(answer_response)
 
 
     @detail_route(methods=['POST',])
