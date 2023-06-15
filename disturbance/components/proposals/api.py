@@ -1581,6 +1581,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
             system=settings.SYSTEM_NAME_SHORT,
@@ -1601,25 +1602,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @api_exception_handler
     def refresh(self, request, *args, **kwargs):
-        '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS for single MLQ question
-        For 'refresh' button on DAS form
-
-        To test (from DAS shell): 
-            requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
-        ''' 
+        
 
         mlq_label = request.data.get('label')
-        schema_name= request.data.get('parent_name')
+        schema_name= request.data.get('name')
         # proposal_id = request.data.get('proposal_id')
         # proposal = Proposal.objects.get(id=proposal_id)
         proposal = self.get_object()
 
         geojson=proposal.shapefile_json
-
+        #import ipdb; ipdb.set_trace()
         # serialize masterlist question
         masterlist_question_qs = SpatialQueryQuestion.objects.filter(question=mlq_label)
-        serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        #serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_question_json = json.loads(rendered)
         masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -1631,24 +1627,45 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_question,
             geojson = geojson,
             system=settings.SYSTEM_NAME_SHORT,
         )
 
-
+        # send query to SQS - need to first retrieve csrf token and cookie from SQS 
         #import ipdb; ipdb.set_trace()
+        # resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        # meta = resp.cookies.get_dict()
+        # csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+        # sessionid = meta['sessionid'] if 'sessionid' in meta else None
+        # cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+        # headers={'X-CSRFToken' : csrftoken}
+        answer_response={
+            'value': None,
+            'sqs_timestamp': None
+        }
         url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        #print(resp)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
                 return Response(resp.json(), status=resp.status_code)
             except:
                 return Response({'errors': resp.content}, status=resp.status_code)
-
-        return Response(resp)
+              
+        sqs_resp=(resp.json())
+        if sqs_resp and 'layer_data'in sqs_resp:
+            layer_data= sqs_resp['layer_data'][0]
+            if 'response' in layer_data:
+                answer_response['value']=layer_data['response']
+            if 'sqs_timestamp' in layer_data:
+                answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+        #refresh the add_info_assessor
+        # if 'add_info_assessor' in sqs_resp:
+        #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
+        #return Response(resp.json())
+        return Response(answer_response)
 
     @detail_route(methods=['POST',])
     def get_revision(self, request, *args, **kwargs):
@@ -4526,7 +4543,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
 
-
         with transaction.atomic():
 
             #import ipdb; ipdb.set_trace()
@@ -4554,10 +4570,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
-#                if instance.group_id != request.data['group']['id']:
-#                    instance.group_id = request.data['group']['id']
-#                    instance.save()
-
             return Response(
                 {'spatialquery_id': instance.id},
                 status=status.HTTP_200_OK
@@ -4577,261 +4589,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.exception()
             raise serializers.ValidationError(str(e))
-
-
-#class ___SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
-#    """ For the 'New Question' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
-#    queryset = SpatialQueryQuestion.objects.all()
-#    serializer_class = SpatialQueryQuestionSerializer
-#
-#    def get_queryset(self):
-#        return self.queryset
-#
-##    def list(self, request, *args, **kwargs):
-##        """ http://localhost:8001/api/spatial_query.json - returns all in queryset"""
-##        queryset = self.get_queryset()
-##        serializer = self.get_serializer(queryset, many=True)
-##        return Response(serializer.data)
-#
-#
-#
-#
-##    @list_route(methods=['GET', ])
-##    def grouped_by_layer(self, request, *args, **kwargs):
-##        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
-##            http://localhost:8001/api/spatial_query/grouped_by_layer/?exclude_expired=true
-##  
-##            Group spatial query questions by layer_name
-##        """
-###        multi-select --> id=9
-###        select       --> id=7
-###        checkbox     --> id=45,46,47
-###        radiobutton  --> id=48,49,50, 51,52  ('5.0 What is ... First level radiobutton (Radiobutton Component)?')
-##        queryset = self.get_queryset()
-##        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
-##        #queryset = queryset.filter(id__in=[45,46,47])       # checkbox
-##        #queryset = queryset.filter(id__in=[43])             # select
-##        #queryset = queryset.filter(id__in=[44])             # multi-select
-##        queryset = queryset.filter(id__in=[53,54])           # text, text_area
-##        serializer = self.get_serializer(queryset, many=True)
-##
-##        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-##        sqq_json = json.loads(rendered)
-##
-##        #import ipdb; ipdb.set_trace()
-##        queryset = self.get_queryset()
-##<<<<<<< HEAD
-##        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
-##        #queryset = queryset.filter(id__in=[45,46,47,55])       # checkbox
-##        #queryset = queryset.filter(id__in=[43])             # select
-##        #queryset = queryset.filter(id__in=[44])             # multi-select
-##        queryset = queryset.filter(id__in=[53,54])           # text, text_area
-##        serializer = self.get_serializer(queryset, many=True)
-##
-##        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-##        sqq_json = json.loads(rendered)
-##=======
-##        if 'exclude_expired' in request.GET and request.GET.get('exclude_expired').lower()=='true':
-##            now = datetime.now(pytz.timezone(TIME_ZONE))
-##            queryset = queryset.exclude(expiry__lt=now)
-##
-##        grouped_layers = get_questions_grouped_by_layers(queryset) 
-##        
-##        return Response(grouped_layers)
-##
-##    @list_route(methods=['GET', ])
-##    def grouped_by_layer(self, request, *args, **kwargs):
-##        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
-##  
-##            Group spatial query questions by layer_name
-##        """
-##        queryset = self.get_queryset()
-##        serializer = self.get_serializer(queryset, many=True)
-##
-##        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-##        sqq_json = json.loads(rendered)
-##
-##        #import ipdb; ipdb.set_trace()
-##        layer_names = [i['layer_name'] for i in sqq_json]
-##        unique_layer_names = list(set(layer_names))
-##        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
-##        for layer_dict in unique_layer_list:
-##            for sqq_record in sqq_json:
-##                #print(j['layer_name'])
-##                if layer_dict['layer_name'] in sqq_record.values():
-##                    layer_dict['questions'].append(sqq_record)
-##
-##        #import ipdb; ipdb.set_trace()
-##        grouped_layers = dict(masterlist_questions=[unique_layer_list])
-##        return Response(grouped_layers)
-##>>>>>>> 5d5b622c31ea4a7befff3a183bff5e94111078c7
-#
-#
-##    @list_route(methods=['GET', ])
-##    def grouped_by_question(self, request, *args, **kwargs):
-##        """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
-##  
-##            Group spatial query questions by layer_name
-##        """
-##        queryset = self.get_queryset()
-##        import ipdb; ipdb.set_trace()
-##        serializer = self.get_serializer(queryset, many=True)
-##
-##        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-##        sqq_json = json.loads(rendered)
-##
-##        #import ipdb; ipdb.set_trace()
-##        questions = [i['question'] for i in sqq_json]
-##        unique_questions = list(set(questions))
-##        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
-##        for question_dict in question_group_list:
-##            for sqq_record in sqq_json:
-##                #print(j['layer_name'])
-##                if question_dict['question_group'] in sqq_record.values():
-##                    question_dict['questions'].append(sqq_record)
-##
-##        return Response(question_group_list)
-#
-#    @list_route(methods=['GET', ])
-#    def get_spatialquery_selects(self, request, *args, **kwargs):
-#        '''
-#        Get independant Select lists associated with SpatialQuery Questions.
-#        eg. http://localhost:8000/api/spatial_query/get_spatialquery_selects.json
-#        '''
-#        try:
-#
-#            excl_operator_choices = []
-#            excl_how_choices = []
-#            excl_widget_type_choices = []
-#            excl_value_type_choices = []
-#
-#            operators = [
-#                {
-#                    'value': a[0], 'label': a[1]
-#                } for a in SpatialQueryQuestion.OPERATOR_CHOICES
-#                if a[0] not in excl_operator_choices
-#            ]
-#
-#            how = [
-#                {
-#                    'value': a[0], 'label': a[1]
-#                } for a in SpatialQueryQuestion.HOW_CHOICES
-#                if a[0] not in excl_how_choices
-#            ]
-#
-#            widget_types = [
-#                {
-#                    'value': a[0], 'label': a[1]
-#                } for a in SpatialQueryQuestion.WIDGET_TYPE_CHOICES
-#                if a[0] not in excl_widget_type_choices
-#            ]
-#
-#            value_types = [
-#                {
-#                    'value': a[0], 'label': a[1]
-#                } for a in SpatialQueryQuestion.VALUE_TYPE_CHOICES
-#                if a[0] not in excl_value_type_choices
-#            ]
-#
-#
-#
-#            qs = MasterlistQuestion.objects.all()
-#            masterlist = SchemaMasterlistOptionSerializer(qs, many=True).data
-#
-#            return Response(
-#                {
-#                    'operators': operators,
-#                    'how': how,
-#                    'widget_types': widget_types,
-#                    'value_types': value_types,
-#                    'all_masterlist': masterlist,
-#                },
-#                status=status.HTTP_200_OK
-#            )
-#
-#        except serializers.ValidationError as ve:
-#            log = '{0} {1}'.format('get_spatialquery_selects()', ve)
-#            logger.exception(log)
-#            raise
-#
-#        except ValidationError as e:
-#            if hasattr(e, 'error_dict'):
-#                raise serializers.ValidationError(repr(e.error_dict))
-#            else:
-#                raise serializers.ValidationError(repr(e[0]))
-#
-#        except Exception as e:
-#            logger.exception()
-#            raise serializers.ValidationError(str(e))
-#
-#    @detail_route(methods=['DELETE', ])
-#    def delete_spatialquery(self, request, *args, **kwargs):
-#        '''
-#        Delete spatialquery record.
-#        '''
-#        try:
-#            instance = self.get_object()
-#
-#            with transaction.atomic():
-#
-#                instance.delete()
-#
-#            return Response(
-#                {'spatialquery_id': instance.id},
-#                status=status.HTTP_200_OK
-#            )
-#
-#        except serializers.ValidationError as ve:
-#            log = '{0} {1}'.format('save_spatialquery()', ve)
-#            logger.exception(log)
-#            raise
-#
-#        except ValidationError as e:
-#            if hasattr(e, 'error_dict'):
-#                raise serializers.ValidationError(repr(e.error_dict))
-#            else:
-#                raise serializers.ValidationError(repr(e[0]))
-#
-#        except Exception as e:
-#            logger.exception()
-#            raise serializers.ValidationError(str(e))
-#
-#    @detail_route(methods=['POST', ])
-#    def save_spatialquery(self, request, *args, **kwargs):
-#        '''
-#        Save spatialquery record.
-#        '''
-#        try:
-#            instance = self.get_object()
-#
-#            with transaction.atomic():
-#
-#                serializer = SpatialQueryQuestionSerializer(
-#                    instance, data=request.data
-#                )
-#                #import ipdb; ipdb.set_trace()
-#                serializer.is_valid(raise_exception=True)
-#                serializer.save()
-#
-#            return Response(
-#                {'spatialquery_id': instance.id},
-#                status=status.HTTP_200_OK
-#            )
-#
-#        except serializers.ValidationError as ve:
-#            log = '{0} {1}'.format('save_spatialquery()', ve)
-#            logger.exception(log)
-#            raise
-#
-#        except ValidationError as e:
-#            if hasattr(e, 'error_dict'):
-#                raise serializers.ValidationError(repr(e.error_dict))
-#            else:
-#                raise serializers.ValidationError(repr(e[0]))
-#
-#        except Exception as e:
-#            logger.exception()
-#            raise serializers.ValidationError(str(e))
 
 
 class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):

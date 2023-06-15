@@ -40,6 +40,7 @@ module.exports = {
         var comment_boxes=[];
         var addInfoApplicant= this.status_data.addInfoApplicant
         var addInfoAssessor= this.status_data.addInfoAssessor
+        var refreshTimeStamp= this.status_data.refreshTimeStamp
         if (assessorStatus != null){
             assessorMode = assessorStatus['assessor_mode'];
             assessorCanAssess = assessorStatus['has_assessor_mode'];
@@ -59,6 +60,7 @@ module.exports = {
 
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
         var layer_val = (layerData) ? layerData.find(at => at.name == c.name) : null;
+        var refresh_timestamp = (refreshTimeStamp) ? (refreshTimeStamp[c.name]) ? refreshTimeStamp[c.name] : null : null;
         //console.log(layerData);
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
         var add_info_applicant_val = (addInfoApplicant) ? (addInfoApplicant[c.name]) ? addInfoApplicant[c.name] : null : null;
@@ -125,7 +127,7 @@ module.exports = {
             case 'text':
         		readonly = (c.readonly) ? (c.readonly): (readonly);
                 _elements.push(
-                    <TextField type="text" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val} proposal_id={proposalId}/>
+                    <TextField type="text" name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} help_text_assessor={help_text_assessor} assessorMode={assessorMode} readonly={readonly} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val} refresh_time_value={refresh_timestamp} proposal_id={proposalId}/>
                 )
                 break;
             case 'text_info':
@@ -175,7 +177,7 @@ module.exports = {
                 break;
             case 'text_area':
                 _elements.push(
-                    <TextArea readonly={readonly} name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val}/>
+                    <TextArea readonly={readonly} name={c.name} value={val} id={id} comment_value={comment_val} label={c.label} help_text={help_text} assessorMode={assessorMode} assessor_readonly={assessor_visibility} isRequired={c.isRequired} help_text_url={help_text_url} help_text_assessor_url={help_text_assessor_url} comment_boxes={JSON.stringify(comment_boxes)} layer_val={layer_val} refresh_time_value={refresh_timestamp}/>
                 )
                 break;
             case 'label':
@@ -416,7 +418,7 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
+    store_status_data(readonly,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,refreshTimeStamp,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
         this.status_data = {
             'readonly': readonly,
             'assessorData': assessorData,
@@ -424,6 +426,7 @@ module.exports = {
             'commentData': commentData,
             'addInfoApplicant': addInfoApplicant,
             'addInfoAssessor': addInfoAssessor,
+            'refreshTimeStamp': refreshTimeStamp,
             'assessorInfo': assessorEmail,
             'assessorStatus': assessorMode,
             'can_user_edit': can_user_edit,

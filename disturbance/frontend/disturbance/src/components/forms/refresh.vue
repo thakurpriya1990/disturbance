@@ -19,7 +19,7 @@ import {
 from '@/utils/hooks'
 export default {
     name:"Refresh",
-    props:["parent_name","assessorMode","layer_data", "proposal_id"],
+    props:["parent_name","parent_label", "assessorMode","layer_data", "proposal_id", "refresh_time_value"],
 
 components: {  },
 data: function() {
@@ -27,7 +27,7 @@ data: function() {
     showingHelpText: false,
     pBody: 'pBody',
     refresh_timestamp_name : this.parent_name+'-refresh-timestamp',
-    refresh_time_value:'',
+    //refresh_time_value:'',
     }
   },
 
@@ -40,11 +40,14 @@ data: function() {
             mlq_data.label=vm.parent_label;
             mlq_data.name=vm.parent_name;
             let url = '/refresh'
+            console.log('mlq_data', mlq_data)
             await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,this.proposal_id + url),JSON.stringify(mlq_data),{
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;
                 console.log(response);
+                ele.value=response.body.value;
+                vm.refresh_time_value= response.body.sqs_timestamp
                 
             },(error)=>{
                 swal(
@@ -55,9 +58,9 @@ data: function() {
                 )
             });
             //add api call here to get the refresh value and refresh time stamp
-            ele.value='456';
-            var sqs_timestamp="2023-05-24 11:52:37";
-            vm.refresh_time_value= sqs_timestamp;
+            // ele.value='456';
+            // var sqs_timestamp="2023-05-24 11:52:37";
+            // vm.refresh_time_value= sqs_timestamp;
         },
    }
 }

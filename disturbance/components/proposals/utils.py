@@ -87,7 +87,7 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
     if assessor_data:
         return [data],special_fields_list,assessor_data_list,comment_data_list
 
-    return [data],special_fields_list, add_info_applicant_list
+    return [data],special_fields_list, add_info_applicant_list, refresh_timestamp_list
 
 
 def _extend_item_name(name, suffix, repetition):
@@ -993,7 +993,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
-            extracted_fields,special_fields, add_info_applicant = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
+            extracted_fields,special_fields, add_info_applicant, refresh_timestamp = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             instance.data = extracted_fields
 
             form_data=json.loads(request.POST['schema'])
@@ -1019,6 +1019,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
                 'data': extracted_fields,
                 'add_info_applicant': add_info_applicant,
+                'refresh_timestamp': refresh_timestamp,
                 'processing_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.processing_status,
                 'customer_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.customer_status,
                 # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
