@@ -1573,7 +1573,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         data = dict(
             proposal=dict(
-                system=settings.SYSTEM_NAME_SHORT,
                 id=proposal.id,
                 schema=proposal.schema,
                 data=proposal.data,
@@ -1617,7 +1616,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         data = dict(
             proposal=dict(
-                system=settings.SYSTEM_NAME_SHORT,
                 id=proposal.id,
                 schema=proposal.schema,
                 data=proposal.data,
