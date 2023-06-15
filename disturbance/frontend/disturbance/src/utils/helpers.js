@@ -38,6 +38,10 @@ module.exports = {
                 text = resp.body;
             }
 
+	    if ('errors' in text) {
+                text = text.errors
+	    }
+
             if (typeof text == 'object'){
                 if (text.hasOwnProperty('non_field_errors')) {
                     error_str = text.non_field_errors[0].replace(/[\[\]"]/g, '');
@@ -62,7 +66,7 @@ module.exports = {
                 error_str = JSON.stringify(resp).substring(0, 400);
             }
 	}
-        return error_str;
+        return (typeof text == 'object') ? JSON.stringify(error_str) : error_str
     },
 
   goBack: function ( vm ) {
