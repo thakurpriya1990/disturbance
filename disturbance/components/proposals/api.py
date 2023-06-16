@@ -1584,7 +1584,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
-            system=settings.SYSTEM_NAME_SHORT,
         )
 
         #import ipdb; ipdb.set_trace()
@@ -1630,7 +1629,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_question,
             geojson = geojson,
-            system=settings.SYSTEM_NAME_SHORT,
         )
 
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
@@ -2278,7 +2276,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     geojson=proposal.shapefile_json
 
                     masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-                    serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -2294,7 +2292,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     data = dict(
                         proposal=dict(
-                            system=settings.SYSTEM_NAME_SHORT,
                             id=proposal.id,
                             schema=proposal.schema,
                             data=proposal.data,
@@ -2302,19 +2299,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         ),
                         masterlist_questions = question_group_list,
                         geojson = geojson,
+                        system=settings.SYSTEM_NAME_SHORT,
                     )
 
                     # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-                    resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-                    meta = resp.cookies.get_dict()
-                    csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-                    sessionid = meta['sessionid'] if 'sessionid' in meta else None
-                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-                    headers={'X-CSRFToken' : csrftoken}
+                    # resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    # meta = resp.cookies.get_dict()
+                    # csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+                    # sessionid = meta['sessionid'] if 'sessionid' in meta else None
+                    # cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+                    # headers={'X-CSRFToken' : csrftoken}
 
                     url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
                     #import ipdb; ipdb.set_trace()
-                    resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+                    resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    if resp.status_code != 200:
+                        logger.error(f'SpatialQuery API call error: {resp.content}')
+                        #import ipdb; ipdb.set_trace()
+                        try:
+                            return Response(resp.json(), status=resp.status_code)
+                        except:
+                            return Response({'errors': resp.content}, status=resp.status_code)
+                    resp=resp.json()
                     if resp and resp['data']:
                         instance.data=resp['data']
                     if resp and resp['layer_data']:
