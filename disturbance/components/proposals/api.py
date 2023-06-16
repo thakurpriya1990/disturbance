@@ -2657,7 +2657,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         apiary_site_on_proposal.delete()
 
         return Response({'removed': 'success'})
-
+ 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):
