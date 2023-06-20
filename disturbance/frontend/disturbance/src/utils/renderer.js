@@ -198,7 +198,7 @@ module.exports = {
                             <HelpText help_text={help_text_assessor} assessorMode={assessorMode} isForAssessor={true}/>
                             <HelpTextUrl help_text_url={help_text_url}/>
                             <HelpTextUrl help_text_url={help_text_assessor_url} assessorMode={assessorMode} isForAssessor={true}/>
-                            <RefreshRadio parent_name={c.name} assessorMode={assessorMode} layer_data={layer_val} />
+                            <RefreshRadio parent_name={c.name} parent_label={c.label} assessorMode={assessorMode} layer_data={layer_val} refresh_time_value={refresh_timestamp} proposal_id={proposalId}/>
                             <CommentRadioCheckBox assessor_readonly={assessor_visibility} name={c.name} comment_value={comment_val} assessorMode={assessorMode} label={c.label} comment_boxes={JSON.stringify(comment_boxes)}/>
                             <LayerInfo layer_value={layer_val} assessorMode={assessorMode}/>
                             {c.options.map(op =>{
