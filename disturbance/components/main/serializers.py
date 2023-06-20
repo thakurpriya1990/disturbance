@@ -169,3 +169,20 @@ class DASMapLayerSerializer(serializers.ModelSerializer):
 
     def get_layer_name(self, obj):
         return obj.layer_name.strip().split(':')[1]
+
+
+class DASMapLayerSqsSerializer(DASMapLayerSerializer):
+    layer_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = DASMapLayer
+        fields = (
+            'id',
+            'layer_name',
+            'layer_url',
+        )
+
+    def get_layer_name(self, obj):
+        return obj.layer_name.strip()
+
+

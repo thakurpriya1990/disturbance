@@ -22,13 +22,12 @@ def basic_exception_handler(func):
             return func(*args, **kwargs)
 
         except serializers.ValidationError:
-            print(traceback.print_exc())
             raise
         except ValidationError as e:
             from disturbance.components.main.utils import handle_validation_error
             handle_validation_error(e)
         except Exception as e:
-            print(traceback.print_exc())
+            logger.error(traceback.print_exc())
             raise serializers.ValidationError(str(e))
     return wrapper
 
@@ -59,7 +58,7 @@ def api_exception_handler(func):
         try:
             return func(*args, **kwargs)
 
-        except ObjectDoesNotExist as e:
+        except (KeyError, ObjectDoesNotExist) as e:
             raise serializers.ValidationError(str(e))
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -73,7 +72,7 @@ def api_exception_handler(func):
                 else:
                     raise
         except Exception as e:
-            print(traceback.print_exc())
+            logger.error(traceback.print_exc())
             raise serializers.ValidationError(str(e))
     return wrapper
 
@@ -84,8 +83,9 @@ def traceback_exception_handler(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            traceback.print_exc()
+            logger.error(traceback.print_exc())
     return wrapper
+
 
 def timeit(method):
     def timed(*args, **kw):
