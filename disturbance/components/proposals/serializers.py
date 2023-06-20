@@ -277,6 +277,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'shapefile_json',
             'add_info_applicant',
             'add_info_assessor',
+            'refresh_timestamp',
             'layer_data',
             # 'apiary_temporary_use_set',
         )
@@ -317,6 +318,7 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'comment_data',
                 'add_info_applicant',
                 'add_info_assessor',
+                'refresh_timestamp',
                 'schema',
                 'customer_status',
                 'processing_status',
@@ -441,6 +443,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'comment_data',
                 'add_info_applicant',
                 'add_info_assessor',
+                'refresh_timestamp',
                 'latest_referrals',
                 'allowed_assessors',
                 'proposed_issuance_approval',
