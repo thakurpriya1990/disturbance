@@ -5803,10 +5803,10 @@ class SpatialQueryQuestion(models.Model):
     question = models.TextField('Question (Masterlist Question)')
     answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
 
-    layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE, blank=True, null=True)
+    layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE) #, blank=True, null=True)
     group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)
-    layer_name = models.CharField(max_length=100)
-    layer_url = models.CharField(max_length=512, blank=True, null=True)
+    #layer_name = models.CharField(max_length=100)
+    #layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)
     visible_to_proponent = models.BooleanField(default=False)
     buffer = models.PositiveIntegerField(blank=True, null=True)
@@ -5846,6 +5846,10 @@ class SpatialQueryQuestion(models.Model):
         default_group = CddpQuestionGroup.objects.get(default=True)
 
         return default_group
+
+    @property
+    def layer_name(self):
+        return self.layer.layer_name
 
     @property
     def allowed_editors(self):

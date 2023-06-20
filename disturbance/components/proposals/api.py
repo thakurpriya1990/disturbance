@@ -18,6 +18,7 @@ from rest_framework import viewsets, serializers, status, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
+from rest_framework.reverse import reverse_lazy
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 from reversion.models import Version
@@ -59,7 +60,7 @@ from disturbance.components.main.utils import (
 
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
-from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings
+from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
@@ -144,6 +145,7 @@ from disturbance.components.proposals.serializers_apiary import (
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
+from disturbance.components.main.serializers import DASMapLayerSqsSerializer
 
 from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
@@ -159,6 +161,9 @@ from disturbance.components.main.process_document import (
 import logging
 logger = logging.getLogger(__name__)
 
+
+def get_sqs_url(url_name):
+    return f'{settings.SQS_APIURL}{url_name}' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/{url_name}'
 
 class GetProposalType(views.APIView):
     renderer_classes = [JSONRenderer, ]
@@ -1458,37 +1463,41 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
+    @api_exception_handler
     def sqs_data_test(self, request, *args, **kwargs):
         '''
         Initially developed to allow testing of SQS Server - providing and example API request from DAS
         ''' 
-        from rest_framework.reverse import reverse_lazy
-        from rest_framework.test import APIClient
-
         #import ipdb; ipdb.set_trace()
         proposal = self.get_object()
         geojson=proposal.shapefile_json
 
+        # this is a call toi retrieve response from the local API endpoint
         base_api_url = reverse_lazy('api-root', request=request)
         masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
 
         data = dict(
             proposal=dict(
-                system=settings.SYSTEM_NAME_SHORT,
                 id=proposal.id,
                 schema=proposal.schema,
                 data=proposal.data,
 
             ),
+            system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_questions_gbq,
             geojson = geojson,
         )
         return Response(data)
 
     @detail_route(methods=['POST',])
+    @api_exception_handler
     def sqs_data(self, request, *args, **kwargs):
         '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS
+        Creates data payload for SQS Server API Endpoint. Request to SQS sends:
+            1. proposal.schema, proposal.data, proposal.id
+            2. CDDP masterlist questions
+            3. User Polygon (Shapefile/GeoJSON)
+            4. System short code - 'DAS'
         ''' 
         lodgement_number = request.data.get('lodgement_number')
         proposal = Proposal.objects.get(lodgement_number=lodgement_number)
@@ -1517,13 +1526,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
-            system=settings.SYSTEM_NAME_SHORT,
         )
 
         #import ipdb; ipdb.set_trace()
-        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        #url = f'{settings.SQS_APIURL}das/spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/das/spatial_query/'
+        url = get_sqs_url('das/spatial_query/')
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
@@ -1539,13 +1549,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def sqs_data_single(self, request, *args, **kwargs):
         '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS for single MLQ question
-        For 'refresh' button on DAS form
+        Creates data payload for SQS Server API Endpoint - specifically for a single masterlist question or group of questions. Request to SQS sends:
+            1. proposal.schema, proposal.data, proposal.id
+            2. CDDP single masterlist question (or group of masterlist questions, eg all questions for a given radio button/checkbox/select/multiselect)
+            3. User Polygon (Shapefile/GeoJSON)
+            4. System short code - 'DAS'
 
         To test (from DAS shell): 
             requests.get('http://localhost:8003/api/proposal/1528/sqs_data_single.json').json()
         ''' 
 
+        #import ipdb; ipdb.set_trace()
         group_mlqs = request.data.get('group_mlqs', True) # group questions for given widget (radionbutton, checkbox, select, multiselect)
         mlq_id = request.data.get('masterlist_question_id')
         lodgement_number = request.data.get('lodgement_number')
@@ -1584,11 +1598,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
-            system=settings.SYSTEM_NAME_SHORT,
         )
 
         #import ipdb; ipdb.set_trace()
-        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        #url = f'{settings.SQS_APIURL}das/spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/das/spatial_query/'
+        url = get_sqs_url('das/spatial_query/')
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
@@ -1630,7 +1644,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_question,
             geojson = geojson,
-            system=settings.SYSTEM_NAME_SHORT,
         )
 
         # send query to SQS - need to first retrieve csrf token and cookie from SQS 
@@ -1645,7 +1658,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             'value': None,
             'sqs_timestamp': None
         }
-        url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        #url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+        url = get_sqs_url('das/spatial_query/')
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
@@ -2294,26 +2308,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     data = dict(
                         proposal=dict(
-                            system=settings.SYSTEM_NAME_SHORT,
                             id=proposal.id,
                             schema=proposal.schema,
                             data=proposal.data,
 
                         ),
+                        system=settings.SYSTEM_NAME_SHORT,
                         masterlist_questions = question_group_list,
                         geojson = geojson,
                     )
 
-                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-                    resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-                    meta = resp.cookies.get_dict()
-                    csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-                    sessionid = meta['sessionid'] if 'sessionid' in meta else None
-                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-                    headers={'X-CSRFToken' : csrftoken}
+#                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
+#                    url = get_sqs_url('das/spatial_query/')
+#                    resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#                    meta = resp.cookies.get_dict()
+#                    csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
+#                    sessionid = meta['sessionid'] if 'sessionid' in meta else None
+#                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
+#                    headers={'X-CSRFToken' : csrftoken}
 
-                    url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
                     #import ipdb; ipdb.set_trace()
+                    #url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
+                    url = get_sqs_url('das/spatial_query/')
                     resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
                     if resp and resp['data']:
                         instance.data=resp['data']
@@ -4347,7 +4363,8 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         serializer = DTSpatialQueryQuestionSerializer(
             result_page, context={'request': request}, many=True
         )
-        response = self.paginator.get_paginated_response(serializer.data)
+        data = serializer.data
+        response = self.paginator.get_paginated_response(data)
 
         return response
 
@@ -4433,23 +4450,26 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
         return Response(question_group_list)
 
-#    @list_route(methods=['GET', ])
-#    @api_exception_handler
-#    def single_question(self, request, *args, **kwargs):
-#        """ http://localhost:8001/api/spatial_query/single_question.json 
-#        """
-#        #import ipdb; ipdb.set_trace()
-#        mlq_id = request.data.get('masterlist_question_id')
-#        mlq_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
-#        serializer = self.get_serializer(mlq_qs, many=True)
-#        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-#        question_json = json.loads(rendered)
-#
-#        # will contain just a single question
-#        question_group_list = [{'question_group': question_json[0]['question'], 'questions': question_json}]
-#
-#        return Response(question_group_list)
+    @list_route(methods=['GET', ])
+    @api_exception_handler
+    def get_sqs_layers(self, request, *args, **kwargs):
+        '''
+        Get current available layers on SQS Server.
+        To test (from DAS shell): 
+            requests.get('http://localhost:8002/api/v1/layers.json')
+        ''' 
+        #import ipdb; ipdb.set_trace()
+        #url = f'{settings.SQS_APIURL}layers/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/'
+        url = get_sqs_url('layers/')
+        resp = requests.get(url=url, verify=False)
+        if resp.status_code != 200:
+            logger.error(f'SpatialQuery API call error: {resp.content}')
+            try:
+                return Response(resp.json(), status=resp.status_code)
+            except:
+                return Response({'errors': resp.content}, status=resp.status_code)
 
+        return Response(resp.json())
 
     @list_route(methods=['GET', ])
     def get_spatialquery_selects(self, request, *args, **kwargs):
@@ -4483,12 +4503,31 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             qs_cddp = CddpQuestionGroup.objects.all()
             cddp_groups = CddpQuestionGroupSerializer(qs_cddp, context={'request': request}, many=True).data
 
+            qs_das_map_layers = DASMapLayer.objects.all()
+            das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, many=True).data
+
+            # this is a call toi retrieve response from the local API endpoint
+            base_api_url = reverse_lazy('api-root', request=request)
+            available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
+
+            for idx, das_layer in enumerate(das_map_layers):
+                #print(idx, das_layer['layer_name'])
+                #is_available_in_sqs = any(das_layer['layer_name'] in sqs_layer['name'] for sqs_layer in available_sqs_layers)
+                available_in_sqs = [sqs_layer for sqs_layer in available_sqs_layers if sqs_layer['name'] == das_layer['layer_name']]
+                if (len(available_in_sqs) > 0):
+                   das_map_layers[idx]['available_in_sqs'] = True
+                   das_map_layers[idx]['active_in_sqs'] = available_in_sqs[0]['active']
+                else:
+                   das_map_layers[idx]['available_in_sqs'] = False
+                   das_map_layers[idx]['active_in_sqs'] = False
+
             return Response(
                 {
                     'operators': operators,
                     'how': how,
                     'all_masterlist': masterlist,
                     'cddp_groups': cddp_groups,
+                    'das_map_layers': das_map_layers,
                 },
                 status=status.HTTP_200_OK
             )
@@ -4505,8 +4544,54 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(repr(e[0]))
 
         except Exception as e:
-            logger.exception()
+            logger.error(str(e))
             raise serializers.ValidationError(str(e))
+
+    @list_route(methods=['GET',])
+    @api_exception_handler
+    def check_sqs_layer(self, request, *args, **kwargs):
+        '''
+        Checke if layer exists on SQS Server
+        To test (from DAS shell): 
+            requests.post('http://localhost:8002/api/v1/layers/check_sqs_layer/?layer_name=cddp:dpaw_regions')
+        ''' 
+        #import ipdb; ipdb.set_trace()
+        layer_name = request.GET.get('layer_name')
+        #url = f'{settings.SQS_APIURL}layers/check_sqs_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/check_sqs_layer/'
+        url = get_sqs_url(f'layers/check_sqs_layer?layer_name={layer_name}')
+        resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        if resp.status_code != 200:
+            logger.error(f'SpatialQuery API call error: {resp.content}')
+            try:
+                return Response(resp.json(), status=resp.status_code)
+            except:
+                return Response({'errors': resp.content}, status=resp.status_code)
+
+        return Response(resp.json())
+
+    @detail_route(methods=['POST',])
+    @api_exception_handler
+    def create_or_update_sqs_layer(self, request, *args, **kwargs):
+        '''
+        Creates layer on SQS Server fom Geoserver, if layer does not already exist on SQS
+        To test (from DAS shell): 
+            requests.post('http://localhost:8002/api/v1/add_layer')
+        ''' 
+        #import ipdb; ipdb.set_trace()
+        #layer_name = kwargs.get('pk')
+        data = {'layer_details': json.dumps(request.data.get('layer'))}
+        #url = f'{settings.SQS_APIURL}add_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/add_layer/'
+        url = get_sqs_url(f'add_layer/')
+        resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        if resp.status_code != 200:
+            logger.error(f'SpatialQuery API call error: {resp.content}')
+            try:
+                return Response(resp.json(), status=resp.status_code)
+            except:
+                return Response({'errors': resp.content}, status=resp.status_code)
+
+        return Response(resp.json())
+
 
     @detail_route(methods=['DELETE', ])
     def delete_spatialquery(self, request, *args, **kwargs):

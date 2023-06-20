@@ -22,7 +22,7 @@ from disturbance.components.proposals.models import (
 from disturbance.components.organisations.models import (
                                 Organisation
                             )
-from disturbance.components.main.serializers import CommunicationLogEntrySerializer
+from disturbance.components.main.serializers import CommunicationLogEntrySerializer, DASMapLayerSqsSerializer
 from rest_framework import serializers
 
 from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, \
@@ -1271,6 +1271,9 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
     Serializer for Datatable SpatialQueryQuestion.
     '''
     group = CddpQuestionGroupSerializer()
+    layer = DASMapLayerSqsSerializer()
+    #layer_name = serializers.SerializerMethodField()
+    #layer_url = serializers.SerializerMethodField()
 
     class Meta:
         model = SpatialQueryQuestion
@@ -1279,8 +1282,8 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 	  'id',
 	  'question',
 	  'answer_mlq',
-	  'layer_name',
-	  'layer_url',
+	  #'layer_name',
+	  #'layer_url',
 	  'expiry',
 	  'visible_to_proponent',
 	  'buffer',
@@ -1299,6 +1302,12 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 	  'group',
         )
         datatables_always_serialize = fields
+
+    def get_layer_name(self, obj):
+        return obj.layer.layer_name
+
+    def get_layer_url(self, obj):
+        return obj.layer.layer_url
 
     def _get_allowed_editors(self, obj):
         return obj.email

@@ -72,7 +72,7 @@ module.exports = {
     //schema_proposal_type:"/api/schema_proposal_type/",
     schema_proposal_type:"/api/schema_proposal_type.json",
     schema_proposal_type_paginated:"/api/schema_proposal_type_paginated/",
-    spatial_query:"/api/spatial_query.json",
+    spatial_query:"/api/spatial_query",
     spatial_query_paginated:"/api/spatial_query_paginated/",
     schema_group:"/api/schema_group/",
     schema_group_paginated:"/api/schema_group_paginated/",
