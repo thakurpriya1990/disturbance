@@ -1670,11 +1670,33 @@ class ProposalViewSet(viewsets.ModelViewSet):
               
         sqs_resp=(resp.json())
         if sqs_resp and 'layer_data'in sqs_resp:
-            layer_data= sqs_resp['layer_data'][0]
-            if 'response' in layer_data:
-                answer_response['value']=layer_data['response']
-            if 'sqs_timestamp' in layer_data:
-                answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+            #Response for checkbox type questions returns multiple items in layer_data
+            if len(sqs_resp['layer_data']) > 1:
+                resp_val=[]
+                for layer in sqs_resp['layer_data']:
+                    if 'response' in layer:
+                        resp_val.append(layer['response'])
+                        #update the layer_data for each checkbox option
+                        layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer['name']), None)
+                        if layer_index:
+                            proposal.layer_data[layer_index]=layer
+                        else:
+                            proposal.layer_data.append(layer)                    
+                    answer_response['sqs_timestamp']=layer['sqs_timestamp']
+                answer_response['value']=resp_val
+            else:
+                layer_data= sqs_resp['layer_data'][0]
+                if 'response' in layer_data:
+                    answer_response['value']=layer_data['response']
+                    #update the layer data for the item
+                    layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer_data['name']), None)
+                    if layer_index:
+                        proposal.layer_data[layer_index]=layer_data
+                    else:
+                        proposal.layer_data.append(layer_data)
+                if 'sqs_timestamp' in layer_data:
+                    answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+            proposal.save()
         #refresh the add_info_assessor
         # if 'add_info_assessor' in sqs_resp:
         #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
@@ -2292,7 +2314,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     geojson=proposal.shapefile_json
 
                     masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-                    serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -2316,6 +2338,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         system=settings.SYSTEM_NAME_SHORT,
                         masterlist_questions = question_group_list,
                         geojson = geojson,
+                        system=settings.SYSTEM_NAME_SHORT,
                     )
 
 #                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
@@ -2327,10 +2350,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
 #                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
 #                    headers={'X-CSRFToken' : csrftoken}
 
-                    #import ipdb; ipdb.set_trace()
                     #url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
                     url = get_sqs_url('das/spatial_query/')
-                    resp = requests.post(url=url, json=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, headers=headers, cookies=cookies).json()
+                    resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    if resp.status_code != 200:
+                        logger.error(f'SpatialQuery API call error: {resp.content}')
+                        #import ipdb; ipdb.set_trace()
+                        try:
+                            return Response(resp.json(), status=resp.status_code)
+                        except:
+                            return Response({'errors': resp.content}, status=resp.status_code)
+                    resp=resp.json()
                     if resp and resp['data']:
                         instance.data=resp['data']
                     if resp and resp['layer_data']:
@@ -2667,7 +2697,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         apiary_site_on_proposal.delete()
 
         return Response({'removed': 'success'})
-
+ 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):

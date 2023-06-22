@@ -17,7 +17,7 @@
                 <HelpTextUrl  :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
             <template v-if="!assessorMode">
-                <RefreshSelect :parent_name="name" :assessorMode="assessorMode" :layer_data="layer_val" />
+                <RefreshSelect :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" :proposal_id="proposal_id" :refresh_time_value="refresh_time_value" />
             </template>
 
             <template v-if="assessorMode">
@@ -120,6 +120,8 @@ export default {
                 return false;
             }
         },
+        "refresh_time_value":"",
+        'proposal_id': Number,
         //"comment_boxes":[String, Array],
     },
     data:function () {
