@@ -215,11 +215,13 @@ module.exports = {
                 if(data !== null && data !== undefined) {
                   value = ( data[c.name] )? data[c.name][0] : null ;
                 }
+                var found=null;
+                found=c.children.find(child => child.type == 'checkbox' && ((layerData) ? layerData.find(at => at.name == child.name) : null))
                 _elements.push(
-                    <Group label={c.label} name={c.name} id={id} help_text={help_text} help_text_url={help_text_url} isRemovable={true} assessorMode={assessorMode} layer_data={layer_val} >
+                    <Group label={c.label} name={c.name} id={id} help_text={help_text} help_text_url={help_text_url} isRemovable={true} assessorMode={assessorMode} layer_val={found} refresh_time_value={refresh_timestamp} proposal_id={proposalId} >
                         {c.children.map(c=>{
                             return (
-                                <div>
+                                <div> 
                                     {this.renderChildren(h,c,value)}
                                 </div>
                             )

@@ -11,8 +11,8 @@
                 <template v-if="help_text_url">
                     <HelpTextUrl :help_text_url="help_text_url" /> 
                 </template>
-                <template v-if="!assessorMode">
-                    <RefreshCheckbox :parent_name="name" :assessorMode="assessorMode" :layer_data="layer_val" />
+                <template v-if="!assessorMode && layer_val">
+                    <RefreshCheckbox :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" :proposal_id="proposal_id" :refresh_time_value="refresh_time_value"/>
                 </template>
                 
                 <a class="collapse-link-top pull-right" @click.prevent="expand"><span class="glyphicon glyphicon-chevron-down"></span></a>
@@ -37,7 +37,7 @@ import HelpTextUrl from './help_text_url.vue'
 import RefreshCheckbox from './refresh_checkbox.vue'
 export default {
     name:"group",
-    props:["label", "name", "id", "help_text", "help_text_url", "isRemovable","isPreviewMode", "assessorMode", "layer_val"],
+    props:["label", "name", "id", "help_text", "help_text_url", "isRemovable","isPreviewMode", "assessorMode", "layer_val", "proposal_id", "refresh_time_value"],
     data:function () {
         return{
             isExpanded:true
