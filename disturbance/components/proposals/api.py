@@ -1654,19 +1654,33 @@ class ProposalViewSet(viewsets.ModelViewSet):
               
         sqs_resp=(resp.json())
         if sqs_resp and 'layer_data'in sqs_resp:
+            #Response for checkbox type questions returns multiple items in layer_data
             if len(sqs_resp['layer_data']) > 1:
                 resp_val=[]
                 for layer in sqs_resp['layer_data']:
                     if 'response' in layer:
                         resp_val.append(layer['response'])
+                        #update the layer_data for each checkbox option
+                        layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer['name']), None)
+                        if layer_index:
+                            proposal.layer_data[layer_index]=layer
+                        else:
+                            proposal.layer_data.append(layer)                    
                     answer_response['sqs_timestamp']=layer['sqs_timestamp']
                 answer_response['value']=resp_val
             else:
                 layer_data= sqs_resp['layer_data'][0]
                 if 'response' in layer_data:
                     answer_response['value']=layer_data['response']
+                    #update the layer data for the item
+                    layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer_data['name']), None)
+                    if layer_index:
+                        proposal.layer_data[layer_index]=layer_data
+                    else:
+                        proposal.layer_data.append(layer_data)
                 if 'sqs_timestamp' in layer_data:
                     answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+            proposal.save()
         #refresh the add_info_assessor
         # if 'add_info_assessor' in sqs_resp:
         #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']

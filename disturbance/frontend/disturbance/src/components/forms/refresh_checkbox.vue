@@ -53,14 +53,12 @@ data: function() {
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;
-                console.log(response);
                 var values=response.body.value;
                 if(values && typeof(values)=='object'){
                     for (const val of values){
                         for (const op of checkboxes){
                             console.log('options', op.name, 'value', val)
                             if(op.labels && op.labels[0] && op.labels[0].innerText== val){
-                                console.log('found op', op.name)
                                 op.checked=true;
                             }
                         }
