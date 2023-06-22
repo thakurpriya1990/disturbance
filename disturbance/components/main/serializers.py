@@ -139,9 +139,13 @@ class MapLayerSerializer(serializers.ModelSerializer):
         return obj.layer_name.strip()
 
     def get_layer_group_name(self, obj):
+        if ':' not in obj.layer_name:
+            return obj.layer_name.strip()
         return obj.layer_name.strip().split(':')[0]
 
     def get_layer_name(self, obj):
+        if ':' not in obj.layer_name:
+            return obj.layer_name.strip()
         return obj.layer_name.strip().split(':')[1]
     
 class DASMapLayerSerializer(serializers.ModelSerializer):
@@ -165,9 +169,13 @@ class DASMapLayerSerializer(serializers.ModelSerializer):
         return obj.layer_name.strip()
 
     def get_layer_group_name(self, obj):
+        if ':' not in obj.layer_name:
+            return None
         return obj.layer_name.strip().split(':')[0]
 
     def get_layer_name(self, obj):
+        if ':' not in obj.layer_name:
+            return obj.layer_name.strip()
         return obj.layer_name.strip().split(':')[1]
 
 

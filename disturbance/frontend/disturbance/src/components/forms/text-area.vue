@@ -16,7 +16,7 @@
                 <HelpTextUrl :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
             <template v-if="!assessorMode">
-                <Refresh :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" />
+                <Refresh :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" :proposal_id="proposal_id" :refresh_time_value="refresh_time_value"  />
             </template>
 
             
@@ -47,7 +47,7 @@ import LayerInfo from './layer_info.vue'
 import Refresh from './refresh.vue'
 export default {
     name:"text-area",
-    props:["name","value", "id", "isRequired", "help_text","help_text_assessor","assessorMode","label","readonly","comment_value","assessor_readonly", "help_text_url", "help_text_assessor_url","comment_boxes", "layer_val",],
+    props:["name","value", "id", "isRequired", "help_text","help_text_assessor","assessorMode","label","readonly","comment_value","assessor_readonly", "help_text_url", "help_text_assessor_url","comment_boxes", "layer_val", "refresh_time_value", "proposal_id"],
     components: {Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo, Refresh},
     data(){
         let vm = this;
