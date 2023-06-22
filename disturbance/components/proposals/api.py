@@ -2338,7 +2338,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         system=settings.SYSTEM_NAME_SHORT,
                         masterlist_questions = question_group_list,
                         geojson = geojson,
-                        system=settings.SYSTEM_NAME_SHORT,
                     )
 
 #                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
