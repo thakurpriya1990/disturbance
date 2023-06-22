@@ -4461,7 +4461,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         #url = f'{settings.SQS_APIURL}layers/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/'
         url = get_sqs_url('layers/')
-        resp = requests.get(url=url, verify=False)
+        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
