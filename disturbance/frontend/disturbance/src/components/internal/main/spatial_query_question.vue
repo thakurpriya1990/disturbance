@@ -21,7 +21,7 @@
 				{{ error.label }}
 		              </div>
                               <div>
-				<a @click="create_or_update_sqs_layer(error.layer)" v-bind:key="`qparent_${qpid}`"><button>Create/Update in SQS</button></a>
+				<a @click="create_or_update_sqs_layer(error.layer)" ><button>Create/Update in SQS</button></a>
 		              </div>
                               <br/>
 			    </li>
@@ -569,11 +569,13 @@ export default {
                             var column;
                             if (full.group.can_user_edit) {
                                 column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
-                                column += `<a class="check-row" data-rowid=\"__ROWID__\" title="Check if the Layer exists in SQS">Check</a><br/>`;
+                                column += `<a class="check-row" data-rowid=\"__ROWID__\" title="Check if the Question exists in Propasal Schema">Check_Question</a><br/>`;
+                                column += `<a class="update-row" data-rowid=\"__ROWID__\" title="Check/Create/Update Layer exists in SQS">Check_Layer</a><br/>`;
                                 column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
                             } else {
                                 column = `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Edit</a><br/>`;
-                                column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Check</a><br/>`;
+                                column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Check_Question</a><br/>`;
+                                column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Check_Layer</a><br/>`;
                                 column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of CDDP Group '${full.group.name}'">Delete</a><br/>`;
 			    }
                             column += `<a class="test-row" data-rowid=\"__ROWID__\">Test</a><br/>`;
@@ -784,9 +786,11 @@ export default {
 
             if (data.id === '') {
                 console.log(data);
+                console.log(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id));
+                console.log(api_endpoints.spatial_query);
+                console.log(api_endpoints.spatial_query + '.json');
 
-                //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
-                await self.$http.post(api_endpoints.spatial_query, JSON.stringify(data),{
+                await self.$http.post(api_endpoints.spatial_query + '.json',JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
                     self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
@@ -1060,6 +1064,44 @@ export default {
                 self.sqs_response = ''
             });
 
+//            self.$refs.spatial_query_question_table.vmDataTable.on('click','.update-row', function(e) {
+//                e.preventDefault();
+//                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+//                self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+//                self.spatialquery.layer = self.$refs.spatial_query_question_table.row_of_data.data().layer;
+//
+//                const data = {}
+//                data['csrfmiddlewaretoken'] = self.csrf_token;
+//                data['layer'] = self.spatialquery.layer;
+//
+//                swal({
+//                    title: "Create/Update Layer in sqs from geoserver",
+//                    text: "are you sure you want to Create/Update?",
+//                    type: "question",
+//                    showcancelbutton: true,
+//                    confirmbuttontext: 'accept'
+//
+//                }).then(async (result) => {
+//                    if (result) {
+//                        //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,'1/create_or_update_sqs_layer'), json.stringify(data), {
+//                        await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer['layer_name'] + '/create_or_update_sqs_layer'),json.stringify(data),{
+//                            emulateJSON:true,
+//                        }).then((response)=>{
+//                            self.$refs.spatial_query_question_table.vmdatatable.ajax.reload();
+//                        }, (error) => {
+//                            swal(
+//                                'Create/Update Error',
+//                                helpers.apiVueResourceError(error),
+//                                'error'
+//                            )
+//                        });
+//                    }
+//
+//                },(error) => {
+//                    //
+//                });                
+//            });
+
             self.$refs.spatial_query_question_table.vmDataTable.on('click','.update-row', function(e) {
                 e.preventDefault();
                 self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
@@ -1071,19 +1113,57 @@ export default {
                 data['layer'] = self.spatialquery.layer;
 
                 swal({
-                    title: "Create/Update Layer in sqs from geoserver",
-                    text: "are you sure you want to Create/Update?",
+                    title: "Check Spatialquery Layer",
+                    //text: "Input Proposal Lodgement Number",
                     type: "question",
-                    showcancelbutton: true,
-                    confirmbuttontext: 'accept'
-
+                    showCancelButton: true,
+                    confirmButtonText: 'Check',
+                    input: 'radio',
+                    inputOptions: {
+                      'check_layer': 'Check Layer Exists on SQS',
+                      'reload_layer': 'Create/Update CDDP Layer in SQS',
+                    }
                 }).then(async (result) => {
-                    if (result) {
-                        //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,'1/create_or_update_sqs_layer'), json.stringify(data), {
-                        await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer['layer_name'] + '/create_or_update_sqs_layer'),json.stringify(data),{
+  		    console.log("Result: " + result);
+ 		    if (!result) {
+                        swal(
+                            'Please select an option',
+                            null,
+                            'warning'
+                        )
+                        return;
+		    }
+
+                    if (result=='check_layer') {
+                        await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer'))
+                        .then((response) => {
+                            //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
+                            //console.log(JSON.stringify(response))
+                            swal(
+                                'Layer Exists in SQS!',
+                                response.body.message,
+                                'success'
+                            )
+                        }, (error) => {
+                            swal(
+                                'Layer Check Error',
+                                helpers.apiVueResourceError(error),
+                                'error'
+                            )
+                        });
+                    }
+                    else if (result=='reload_layer') {
+                        //console.log(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer'))
+                        await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer'),JSON.stringify(data),{
                             emulateJSON:true,
                         }).then((response)=>{
-                            self.$refs.spatial_query_question_table.vmdatatable.ajax.reload();
+                            //self.$refs.spatial_query_question_table.vmdatatable.ajax.reload();
+                            swal(
+                                'Create/Update SQS Layer!',
+                                response.body.message,
+                                'success'
+                            )
+
                         }, (error) => {
                             swal(
                                 'Create/Update Error',
@@ -1098,40 +1178,57 @@ export default {
                 });                
             });
 
+
             self.$refs.spatial_query_question_table.vmDataTable.on('click','.check-row', function(e) {
                 e.preventDefault();
                 self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
-                self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
-                self.spatialquery.layer = self.$refs.spatial_query_question_table.row_of_data.data().layer;
+                //self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+                //self.spatialquery.layer = self.$refs.spatial_query_question_table.row_of_data.data().layer;
 
-                let layer_name = self.spatialquery.layer.layer_name;
+                let spatialquery_id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+                let proposal_id = self.$refs.spatial_query_question_table.row_of_data.data().lodgement_number;
+                //let layer_name = self.spatialquery.layer.layer_name;
 
                 //console.log(api_endpoints.spatial_query + '/check_sqs_layer?layer_name=' + layer_name)
+
                 swal({
-                    title: "Delete Spatialquery",
-                    text: "Are you sure you want to delete?",
+                    title: "Check Spatialquery Question",
+                    text: "Input Proposal Lodgement Number",
                     type: "question",
                     showCancelButton: true,
-                    confirmButtonText: 'Accept'
-
+                    confirmButtonText: 'Check',
+                    input: 'text',
+                    //html: '<input type="text" placeholder="Enter Proposal Lodgement Number" style="width: 65%"></input>',
                 }).then(async (result) => {
-                    if (result) {
-                        await self.$http.get(api_endpoints.spatial_query + '/check_sqs_layer?layer_name=' + layer_name)
-                        .then((response) => {
-                            //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
-                            swal(
-                                'Check SQS!',
-                                response.body.message,
-                                'success'
-                            )
-                        }, (error) => {
-                            swal(
-                                'Delete Error',
-                                helpers.apiVueResourceError(error),
-                                'error'
-                            )
-                        });
-                    }
+  		    console.log("Result: " + result);
+ 		    if (!result) {
+                        swal(
+                            'Please input Proposal Lodgement Number',
+                            null,
+                            'warning'
+                        )
+                        return;
+		    }
+
+  		    proposal_id = result
+
+                    console.log(api_endpoints.spatial_query + spatialquery_id + '/check_sqs_layer?proposal_id='+proposal_id)
+                    //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, spatialquery_id+'/check_sqs_layer?proposal_id='+proposal_id))
+                    await self.$http.get(api_endpoints.spatial_query + '/' + spatialquery_id + '/check_cddp_question?proposal_id='+proposal_id)
+                    .then((response) => {
+                        //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
+                        swal(
+                            'Question Found in Proposal Schema!',
+                            response.body.message,
+                            'success'
+                        )
+                    }, (error) => {
+                        swal(
+                            'Delete Error',
+                            helpers.apiVueResourceError(error),
+                            'error'
+                        )
+                    });
 
                 },(error) => {
                     //
@@ -1249,5 +1346,17 @@ br {
   content: " ";
   display: block;
   margin: 5px;
+}
+
+.swal2-modal .swal2-textarea{
+  width: 80%;
+}
+
+.swal2-text{
+  width: 60%;
+}
+
+.swal2-modal .swal2-input, .swal2-modal .swal2-file, .swal2-modal .swal2-text {
+    width: 40%;
 }
 </style>

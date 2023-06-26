@@ -33,9 +33,6 @@ module.exports = {
               if (Array.isArray(resp.body)){
                   text = resp.body[0];
               }
-              else if (typeof resp.body == 'object'){
-                  text = resp.body;
-              }
               else{
                   text = resp.body;
               }
@@ -44,7 +41,7 @@ module.exports = {
                   if (text.hasOwnProperty('non_field_errors')) {
                       error_str = text.non_field_errors[0].replace(/[\[\]"]/g, '');
                   }
-   	          if (Array.isArray(text) && 'errors' in text) {
+		  else if (Array.isArray(text) && 'errors' in text) {
 	              error_str = text.errors
 	          }
     	          else if ('errors' in text) {

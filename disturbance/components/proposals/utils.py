@@ -9,7 +9,7 @@ from django.contrib.gis.geos import Point, GEOSGeometry
 from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
-from disturbance.components.main.decorators import timeit
+from disturbance.components.main.decorators import timeit, traceback_exception_handler
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal, Proposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
@@ -42,7 +42,7 @@ import json
 
 
 from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
-from disturbance.utils import convert_moment_str_to_python_datetime_obj
+from disturbance.utils import convert_moment_str_to_python_datetime_obj, search_keys
 
 import logging
 logger = logging.getLogger(__name__)
@@ -2130,3 +2130,31 @@ def save_prefill_data(proposal):
             return proposal
     except:
         raise
+
+
+@traceback_exception_handler
+def search_schema(proposal_id, question):
+    ''' Checks if Question exists in proposal.schema
+
+    Eg.
+        from disturbance.components.proposals.utils import search_schema
+        search_schema(proposal_id=1250, question='1.2 In which Local Government Authority (LGA) is this proposal located?')
+
+        Out[5]: 
+        {'label': '1.2 In which Local Government Authority (LGA) is this proposal located?',
+         'type': 'multi-select'}
+    '''
+    
+    p=Proposal.objects.get(id=proposal_id)
+    flattened_schema = search_keys(p.schema, search_list=['type', 'label'])
+    #label = 'Will any of the sites require track or slre clearing'
+
+
+    try:
+        res = next(item for item in flattened_schema if item["label"] == question)
+    except StopIteration as e:
+        return None
+
+    return res
+
+

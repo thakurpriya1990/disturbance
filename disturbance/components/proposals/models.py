@@ -5829,6 +5829,7 @@ class SpatialQueryQuestion(models.Model):
                                         
     class Meta:
         app_label = 'disturbance'
+        unique_together = ('question', 'answer_mlq',)
         ordering = ['-id']
 
     def __str__(self):
