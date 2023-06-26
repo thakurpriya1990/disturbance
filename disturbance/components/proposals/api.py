@@ -38,7 +38,9 @@ from disturbance.components.main.decorators import basic_exception_handler, time
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
-    save_apiary_assessor_data, update_proposal_apiary_temporary_use,
+    save_apiary_assessor_data, 
+    update_proposal_apiary_temporary_use,
+    search_schema
 )
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
@@ -4393,6 +4395,30 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
             result_page, context={'request': request}, many=True
         )
         data = serializer.data
+
+#        qs_das_map_layers = DASMapLayer.objects.all()
+#        das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, many=True).data
+#
+#        base_api_url = reverse_lazy('api-root', request=request)
+#        base_api_url = base_api_url.split('?format')[0]
+#        available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
+#
+#        for idx, das_layer in enumerate(das_map_layers):
+#            #print(idx, das_layer['layer_name'])
+#            #is_available_in_sqs = any(das_layer['layer_name'] in sqs_layer['name'] for sqs_layer in available_sqs_layers)
+#            #import ipdb; ipdb.set_trace()
+#            available_in_sqs = [sqs_layer for sqs_layer in available_sqs_layers if sqs_layer['name'] == das_layer['layer_name']]
+#            if (len(available_in_sqs) > 0):
+#               das_map_layers[idx]['available_in_sqs'] = True
+#               das_map_layers[idx]['active_in_sqs'] = available_in_sqs[0]['active']
+#            else:
+#               das_map_layers[idx]['available_in_sqs'] = False
+#               das_map_layers[idx]['active_in_sqs'] = False
+#
+#        import ipdb; ipdb.set_trace()
+#        #data['das_map_layers'] = das_map_layers
+#        data.append({'abc':das_map_layers})
+
         response = self.paginator.get_paginated_response(data)
 
         return response
@@ -4576,19 +4602,58 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             logger.error(str(e))
             raise serializers.ValidationError(str(e))
 
-    @list_route(methods=['GET',])
+    @detail_route(methods=['GET',])
     @api_exception_handler
-    def check_sqs_layer(self, request, *args, **kwargs):
+    def check_cddp_question(self, request, *args, **kwargs):
         '''
-        Checke if layer exists on SQS Server
+        Checks if CDDP Qution exists in proposal.schema
         To test (from DAS shell): 
             requests.post('http://localhost:8002/api/v1/layers/check_sqs_layer/?layer_name=cddp:dpaw_regions')
         ''' 
+
         #import ipdb; ipdb.set_trace()
-        layer_name = request.GET.get('layer_name')
+        p_lodgement_number = request.GET.get('proposal_id')
+        proposal = Proposal.objects.get(lodgement_number=p_lodgement_number)
+
+        instance = self.get_object()
+        data = self.get_serializer(instance).data
+        question = data['question']
+        answer = data['answer_mlq']
+
+        res = search_schema(proposal.id, question)
+        if res:
+            if 'text' not in res['type'] and not answer:
+                # the widget type is neither ['text', textbox], 
+                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
+                return JsonResponse(data={'errors': f'Masterlist Answer is required for widget type: {res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return JsonResponse(data={'errors': f'Masterlist Question not found in proposal schema {p_lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response(status=status.HTTP_200_OK)
+
+
+    @detail_route(methods=['GET',])
+    @api_exception_handler
+    def check_sqs_layer(self, request, *args, **kwargs):
+        '''
+        Checks if layer exists on SQS Server
+        To test (from DAS shell): 
+            requests.get('http://localhost:8003/api/spatial_query/59/check_sqs_layer.json')
+
+            This will direct query to SQS Server
+        ''' 
+
+        #import ipdb; ipdb.set_trace()
+        instance = self.get_object()
+        data = self.get_serializer(instance).data
+
+#        qs_das_map_layer = DASMapLayer.objects.filter(id=instance.layer_id)
+#        if not qs_das_map_layer.exists():
+#            return JsonResponse(data={'errors': f'Layer is not present in DASMapLayer model'}, status=status.HTTP_400_BAD_REQUEST)
+
         #url = f'{settings.SQS_APIURL}layers/check_sqs_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/check_sqs_layer/'
-        url = get_sqs_url(f'layers/check_sqs_layer?layer_name={layer_name}')
-        resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        url = get_sqs_url(f'layers/check_layer')
+        resp = requests.get(url=url, params={'layer_name':instance.layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
@@ -4607,7 +4672,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             requests.post('http://localhost:8002/api/v1/add_layer')
         ''' 
         #import ipdb; ipdb.set_trace()
-        #layer_name = kwargs.get('pk')
         data = {'layer_details': json.dumps(request.data.get('layer'))}
         #url = f'{settings.SQS_APIURL}add_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/add_layer/'
         url = get_sqs_url(f'add_layer/')
@@ -4666,7 +4730,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             return Response(serializer.data)
 
-    #def update(self, request, *args, **kwargs):
     @detail_route(methods=['POST', ])
     def save_spatialquery(self, request, *args, **kwargs):
         '''
@@ -4690,7 +4753,10 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             )
 
         except serializers.ValidationError as ve:
-            log = '{0} {1}'.format('save_spatialquery()', ve)
+            if 'non_field_errors' in ve.get_codes() and 'unique' in ve.get_codes()['non_field_errors']:
+                if any('question' in s for s in ve.detail['non_field_errors']):
+                    raise serializers.ValidationError('Masterlist Question and Answer already exist. Must be a unique set')
+            log = '{0} {1}'.format('save_spatialquery()')
             logger.exception(log)
             raise
 
