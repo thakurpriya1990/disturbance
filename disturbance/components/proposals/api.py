@@ -4395,6 +4395,30 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
             result_page, context={'request': request}, many=True
         )
         data = serializer.data
+
+#        qs_das_map_layers = DASMapLayer.objects.all()
+#        das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, many=True).data
+#
+#        base_api_url = reverse_lazy('api-root', request=request)
+#        base_api_url = base_api_url.split('?format')[0]
+#        available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
+#
+#        for idx, das_layer in enumerate(das_map_layers):
+#            #print(idx, das_layer['layer_name'])
+#            #is_available_in_sqs = any(das_layer['layer_name'] in sqs_layer['name'] for sqs_layer in available_sqs_layers)
+#            #import ipdb; ipdb.set_trace()
+#            available_in_sqs = [sqs_layer for sqs_layer in available_sqs_layers if sqs_layer['name'] == das_layer['layer_name']]
+#            if (len(available_in_sqs) > 0):
+#               das_map_layers[idx]['available_in_sqs'] = True
+#               das_map_layers[idx]['active_in_sqs'] = available_in_sqs[0]['active']
+#            else:
+#               das_map_layers[idx]['available_in_sqs'] = False
+#               das_map_layers[idx]['active_in_sqs'] = False
+#
+#        import ipdb; ipdb.set_trace()
+#        #data['das_map_layers'] = das_map_layers
+#        data.append({'abc':das_map_layers})
+
         response = self.paginator.get_paginated_response(data)
 
         return response

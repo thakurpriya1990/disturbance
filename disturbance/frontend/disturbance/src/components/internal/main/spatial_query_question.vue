@@ -13,16 +13,18 @@
                 </div>
                 <div class="panel-body collapse in" :id="pSpatialQueryQuestionBody">
 
-                    <div id="error" v-if="has_missing_layers" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
-                        <b>The following layer(s) are not available or inactive on SQS:</b>
+                    <div id="info" v-if="has_missing_layers" style="margin: 10px; padding: 5px; color: blue; border:1px solid blue;">
+                        <b>The following layer(s) are not available or are inactive on SQS:</b>
                         <ul>
                             <li v-for="error in missing_sqs_layers">
                               <div class="col-md-10">
                                 {{ error.label }}
                               </div>
+                              <!--
                               <div>
                                 <a @click="create_or_update_sqs_layer(error.layer)" ><button>Create/Update in SQS</button></a>
                               </div>
+                              -->
                               <br/>
                             </li>
                         </ul>
@@ -423,7 +425,7 @@ export default {
             num_layers_utilised: null,
             profile: {},
 
-            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Visible to proponent", "Buffer (m)", "Layer name", "Group", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
+            dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Layer name", "Visible to proponent", "Buffer (m)", "Group", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -455,10 +457,12 @@ export default {
                     { 
                         data: "id",
                         visible: false,
+                        //searchable: true,
                     },
                     { 
                         data: "question",
                         width: "80%",
+                        //searchable: true,
                         mRender:function (data,type,full) {
                             var ellipsis = '...',
                                 truncated = _.truncate(data, {
@@ -489,30 +493,27 @@ export default {
                             //$(td).css('background-color', color);
                             //$(td).css('color', color);
 
-//                            if (!this.layer_exists_in_sqs(rowData.layer.layer_name)) {
-//                                $(td).css('color', 'red');
-//                            } else {
-//                                $(td).css('color', 'green');
-//                            }
+                            //if (!vm.layer_exists_in_sqs(rowData.layer.layer_name)) {
+                            //if (vm.layer_missing(rowData.layer.layer_name)) {
+                            //    $(td).css('color', 'blue');
+                            //} 
+                            //else {
+                            //    $(td).css('color', 'green');
+                            //}
                             helpers.dtPopoverCellFn;
                         }
                     },
                     { 
                         data: "answer_mlq",
                     },
-                                        { 
+                    { 
+                        data: "layer.layer_name",
+                    },
+                    { 
                         data: "visible_to_proponent",
                     },
                     { 
                         data: "buffer",
-                    },
-
-                    //{ 
-                    //    data: "layer",
-                    //},
-                    { 
-                        data: "layer.layer_name",
-                        //data: "group.name",
                     },
                     { 
                         data: "group.name",
@@ -668,6 +669,9 @@ export default {
     methods: {
         layer_exists_in_sqs: function (layer_name) {
             return JSON.stringify(this.available_sqs_layers).indexOf('"name":"' + layer_name  + '"') > -1
+        },
+        layer_missing: function (layer_name) {
+            return JSON.stringify(this.missing_sqs_layers).indexOf('"name":"' + layer_name  + '"') > -1
         },
         has_missing_layers: function () {
             for (const layer of this.spatialquery_selects.das_map_layers) {
@@ -879,49 +883,6 @@ export default {
             this.isNewEntry = false;
         },
 
-//        create_or_update_sqs_layer: async function(layer) {
-//
-//            const self = this;
-//            const data = {}
-//            data['csrfmiddlewaretoken'] = self.csrf_token
-//            data['layer'] = layer;
-//             
-//            swal({
-//                title: "create/update layer in sqs from geoserver",
-//                text: "are you sure you want to create/update?",
-//                type: "question",
-//                showcancelbutton: true,
-//                confirmbuttontext: 'accept'
-//
-//            }).then(async (result) => {
-//                if (result) {
-//                    self.show_spinner = true;
-//                    await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, layer['layer_name'] + '/create_or_update_sqs_layer'),JSON.stringify(data),{
-//                        emulatejson:true,
-//                    }).then((response)=>{
-//                        console.log(response.body)
-//                        //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
-//                        swal(
-//                            'Created/Updated!',
-//                            response.body.message,
-//                            'success'
-//                        )
-//                        self.show_spinner = false;
-//                    }, (error) => {
-//                        swal(
-//                            'Create/Update Error',
-//                            helpers.apiVueResourceError(error),
-//                            'error'
-//                        )
-//                        self.show_spinner = false;
-//                    });
-//                }
-//
-//            },(error) => {
-//                //
-//            });                
-//        },
-
         check_sqs_layer: async function(url) {
             //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer'))
             const self = this;
@@ -984,7 +945,7 @@ export default {
                 self.show_spinner = false;
             }, (error) => {
                 swal(
-                    'Delete Error',
+                    'Check Question Error',
                     helpers.apiVueResourceError(error),
                     'error'
                 )
@@ -1176,71 +1137,28 @@ export default {
                         return;
                     }
 
-                    this.show_spinner = true;
                     if (result=='check_layer') {
                         let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer');
                         self.check_sqs_layer(url)
 
-//                        await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer'))
-//                        .then((response) => {
-//                            //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
-//                            //console.log(JSON.stringify(response))
-//                            swal(
-//                                'Layer Exists in SQS!',
-//                                response.body.message,
-//                                'success'
-//                            )
-//                        }, (error) => {
-//                            swal(
-//                                'Layer Check Error',
-//                                helpers.apiVueResourceError(error),
-//                                'error'
-//                            )
-//                        });
                     }
                     else if (result=='reload_layer') {
                         let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer');
                         self.create_or_update_sqs_layer(url, data)
 
-//                        //console.log(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer'))
-//                        await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer'),JSON.stringify(data),{
-//                            emulateJSON:true,
-//                        }).then((response)=>{
-//                            //self.$refs.spatial_query_question_table.vmdatatable.ajax.reload();
-//                            swal(
-//                                'Create/Update SQS Layer!',
-//                                response.body.message,
-//                                'success'
-//                            )
-//
-//                        }, (error) => {
-//                            swal(
-//                                'Create/Update Error',
-//                                helpers.apiVueResourceError(error),
-//                                'error'
-//                            )
-//                        });
                     }
-
                 },(error) => {
                     //
                 });                
-                self.show_spinner = false;
             });
-
 
             self.$refs.spatial_query_question_table.vmDataTable.on('click','.check-row', function(e) {
                 e.preventDefault();
                 self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
-                //self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
-                //self.spatialquery.layer = self.$refs.spatial_query_question_table.row_of_data.data().layer;
 
                 let spatialquery_id = self.$refs.spatial_query_question_table.row_of_data.data().id;
-                //let proposal_id = self.$refs.spatial_query_question_table.row_of_data.data().lodgement_number;
-                //let layer_name = self.spatialquery.layer.layer_name;
 
                 //console.log(api_endpoints.spatial_query + '/check_sqs_layer?layer_name=' + layer_name)
-
                 swal({
                     title: "Check Spatialquery Question",
                     text: "Input Proposal Lodgement Number",
@@ -1263,24 +1181,6 @@ export default {
                     let proposal_id = result
                     let url = api_endpoints.spatial_query + '/' + spatialquery_id + '/check_cddp_question?proposal_id=' + proposal_id;
                     self.check_cddp_question(url);
-
-//                    console.log(api_endpoints.spatial_query + spatialquery_id + '/check_sqs_layer?proposal_id='+proposal_id)
-//                    //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, spatialquery_id+'/check_sqs_layer?proposal_id='+proposal_id))
-//                    await self.$http.get(api_endpoints.spatial_query + '/' + spatialquery_id + '/check_cddp_question?proposal_id='+proposal_id)
-//                    .then((response) => {
-//                        //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
-//                        swal(
-//                            'Question Found in Proposal Schema!',
-//                            response.body.message,
-//                            'success'
-//                        )
-//                    }, (error) => {
-//                        swal(
-//                            'Delete Error',
-//                            helpers.apiVueResourceError(error),
-//                            'error'
-//                        )
-//                    });
 
                 },(error) => {
                     //
@@ -1342,10 +1242,9 @@ export default {
                     'error'
                 )
             });
-            this.has_missing_layers();
+            //this.has_missing_layers();
 
             await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_sqs_layers')).then(res=>{
-
                     this.available_sqs_layers = res.body
             },err=>{
                 swal(
@@ -1354,6 +1253,7 @@ export default {
                     'error'
                 )
             });
+            this.has_missing_layers();
 
             this.initAnswerTypeSelector();
         },        
