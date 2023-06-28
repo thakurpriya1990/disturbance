@@ -13,22 +13,22 @@
                 </div>
                 <div class="panel-body collapse in" :id="pSpatialQueryQuestionBody">
 
-                    <div id="info" v-if="has_missing_layers" style="margin: 10px; padding: 5px; color: blue; border:1px solid blue;">
+                    <!--
+                    <div id="info" v-if="missing_sqs_layers.length > 0" style="margin: 10px; padding: 5px; color: blue; border:1px solid blue;">
                         <b>The following layer(s) are not available or are inactive on SQS:</b>
                         <ul>
                             <li v-for="error in missing_sqs_layers">
                               <div class="col-md-10">
                                 {{ error.label }}
                               </div>
-                              <!--
                               <div>
                                 <a @click="create_or_update_sqs_layer(error.layer)" ><button>Create/Update in SQS</button></a>
                               </div>
-                              -->
                               <br/>
                             </li>
                         </ul>
                     </div>
+                    -->
 
                     <div class="row">
                         <div class="col-md-12">
@@ -133,7 +133,7 @@
                             <label class="control-label pull-left" >Layer name</label>
                         </div>
                         <div class="col-md-3">
-                           <!--{{spatialquery.group}}-->
+                           {{spatialquery.layer.layer_name}}
                             <select class="form-control" ref="select_layer" name="select-layer" v-model="spatialquery.layer">
                                 <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer" >{{layer.layer_name}}</option>
                             </select>     
@@ -374,6 +374,7 @@ import datatable from '@/utils/vue/datatable.vue'
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import SchemaOption from './schema_add_option.vue'
+import moment from 'moment'
 import {
   api_endpoints,
   helpers
@@ -414,6 +415,8 @@ export default {
             available_sqs_layers: [],
             missing_sqs_layers: [],
             missing_fields: [],
+            expired_questions: [],
+            current_layers: [],
             question_id: Number,
             showQuestionModal: false,
             showTestModal: false,
@@ -485,21 +488,19 @@ export default {
                                 });
                             }
 
+
                             return result
                         },
                         //'createdCell': helpers.dtPopoverCellFn,
                         createdCell: function(td, cellData, rowData, row, col){
-                            //var color = (cellData === 'm') ? 'blue' : 'red';
-                            //$(td).css('background-color', color);
-                            //$(td).css('color', color);
-
-                            //if (!vm.layer_exists_in_sqs(rowData.layer.layer_name)) {
-                            //if (vm.layer_missing(rowData.layer.layer_name)) {
-                            //    $(td).css('color', 'blue');
-                            //} 
-                            //else {
-                            //    $(td).css('color', 'green');
-                            //}
+                            if (vm.is_question_expired(rowData.expiry)) {
+                                vm.expired_questions.push(rowData.id) 
+                                $(td).css('color', 'blue');
+                                $(td).attr('title', 'This question has expired: ' + rowData.expiry);
+                            } else {
+                                // keep list for all non-expired questions, all layer names on the dashboard
+                                vm.current_layers.push(rowData.id) 
+                            }
                             helpers.dtPopoverCellFn;
                         }
                     },
@@ -508,6 +509,17 @@ export default {
                     },
                     { 
                         data: "layer.layer_name",
+                        createdCell: function(td, cellData, rowData, row, col){
+                            if (!rowData.layer.available_on_sqs) {
+                                $(td).css('color', 'blue');
+                                $(td).attr('title', 'This layer is not present on SQS. First load from Geoserver');
+                            } else if (rowData.layer.available_on_sqs && !rowData.layer.active_on_sqs) {
+                                $(td).css('color', 'blue');
+                                $(td).attr('title', 'This layer is set as inactive on SQS. First set active on SQS');
+                            }
+                            helpers.dtPopoverCellFn;
+                        }
+
                     },
                     { 
                         data: "visible_to_proponent",
@@ -619,6 +631,10 @@ export default {
                     id: '',
                     name: ''
                 },
+                layer: {
+                    id: '',
+                    layer_name: ''
+                },
             },
             proposal: {
                 lodgement_number: '',
@@ -667,31 +683,44 @@ export default {
         },
     },
     methods: {
+        exists_in: function (_dict, value) {
+            return _dict.map(a=>a.layer_name).includes(value)
+        },
+        is_question_expired: function (expiry) {
+            let now = moment()
+            let expiry_date = moment(expiry, 'YYYY-MM-DD')
+            return expiry_date < now;
+        },
         layer_exists_in_sqs: function (layer_name) {
             return JSON.stringify(this.available_sqs_layers).indexOf('"name":"' + layer_name  + '"') > -1
         },
         layer_missing: function (layer_name) {
             return JSON.stringify(this.missing_sqs_layers).indexOf('"name":"' + layer_name  + '"') > -1
         },
-        has_missing_layers: function () {
-            for (const layer of this.spatialquery_selects.das_map_layers) {
-                if (layer['available_in_sqs'] == false) {
-                    //msg = "Layer '" + sqs_layer.layer_name + "' does not exist in SQS. Please load layer in SQS"
-                    //console.log(msg);
-                    this.missing_sqs_layers.push({"label": "Layer '" + layer.layer_name + "' does not exist in SQS. Please load layer in SQS", "layer": layer}); 
-                } 
-                else if (layer['active_in_sqs'] == false) {
-                    //msg = "Layer '" + sqs_layer.layer_name + "' is set to 'inactive' in SQS. Please set layer to 'active' in SQS"
-                    //console.log(msg);
-                    this.missing_sqs_layers.push({"label": "Layer '" + layer.layer_name + "' is set to 'inactive' in SQS. Please set layer to 'active' in SQS", "layer": layer}); 
-                }
-            }
-
-            if (this.missing_sqs_layers.length>0) {
-                return true;
-            } 
-            return false
-        },
+//        has_missing_layers: function () {
+//            this.missing_sqs_layers = [];
+//            for (const layer of this.spatialquery_selects.das_map_layers) {
+//                // exclude expired CDDP questions
+//                if (!this.exists_in(this.spatialquery_selects.expired_cddp_questions, layer['layer_name'])) { 
+//                    if (layer['available_in_sqs'] == false) {
+//                        //msg = "Layer '" + sqs_layer.layer_name + "' does not exist in SQS. Please load layer in SQS"
+//                        //console.log(msg);
+//                        this.missing_sqs_layers.push({"label": "Layer '" + layer.layer_name + "' does not exist in SQS. Please load layer in SQS", "layer": layer}); 
+//                    } 
+//                    else if (layer['active_in_sqs'] == false) {
+//                        //msg = "Layer '" + sqs_layer.layer_name + "' is set to 'inactive' in SQS. Please set layer to 'active' in SQS"
+//                        //console.log(msg);
+//                        this.missing_sqs_layers.push({"label": "Layer '" + layer.layer_name + "' is set to 'inactive' in SQS. Please set layer to 'active' in SQS", "layer": layer}); 
+//                    }
+//                }
+//            }
+//            //this.spatialquery_selects.expired_cddp_questions.find( t => t.layer_name === "cddp:dpaw_regions" ).expiry
+//
+//            if (this.missing_sqs_layers.length>0) {
+//                return true;
+//            } 
+//            return false
+//        },
 
         has_test_form_errors: function () {
             if (!this.proposal.lodgement_number) {
@@ -1242,7 +1271,6 @@ export default {
                     'error'
                 )
             });
-            //this.has_missing_layers();
 
             await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_sqs_layers')).then(res=>{
                     this.available_sqs_layers = res.body
@@ -1253,7 +1281,7 @@ export default {
                     'error'
                 )
             });
-            this.has_missing_layers();
+            //this.has_missing_layers();
 
             this.initAnswerTypeSelector();
         },        
@@ -1300,15 +1328,4 @@ br {
   margin: 5px;
 }
 
-.swal2-modal .swal2-textarea{
-  width: 80%;
-}
-
-.swal2-text{
-  width: 60%;
-}
-
-.swal2-modal .swal2-input, .swal2-modal .swal2-file, .swal2-modal .swal2-text {
-    width: 40%;
-}
 </style>

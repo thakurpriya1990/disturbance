@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
+from rest_framework.reverse import reverse_lazy
+import requests
 
 from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, \
     ActivityMatrix, WaCoast, MapLayer, MapColumn, DASMapLayer
@@ -178,9 +180,12 @@ class DASMapLayerSerializer(serializers.ModelSerializer):
             return obj.layer_name.strip()
         return obj.layer_name.strip().split(':')[1]
 
-
 class DASMapLayerSqsSerializer(DASMapLayerSerializer):
+    available_sqs_layers = None
+ 
     layer_name = serializers.SerializerMethodField()
+    available_on_sqs = serializers.SerializerMethodField('layer_available_on_sqs')
+    active_on_sqs = serializers.SerializerMethodField('layer_active_on_sqs')
 
     class Meta:
         model = DASMapLayer
@@ -188,9 +193,36 @@ class DASMapLayerSqsSerializer(DASMapLayerSerializer):
             'id',
             'layer_name',
             'layer_url',
+            'available_on_sqs',
+            'active_on_sqs',
         )
 
     def get_layer_name(self, obj):
         return obj.layer_name.strip()
 
+    def layer_available_on_sqs(self, obj):
+        # this is a call to retrieve response from the local API endpoint (which sends onward request to SQS API Endpoint)
+        #import ipdb; ipdb.set_trace()
+        if not self.available_sqs_layers:
+            # cache the api call, to prevented repeated calls
+            base_api_url = reverse_lazy('api-root', request=self.context['request'])
+            base_api_url = base_api_url.split('?')[0]
+            self.available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
+
+        if any(d['name'] == obj.layer_name.strip() for d in self.available_sqs_layers):
+            return True
+        return False
+
+    def layer_active_on_sqs(self, obj):
+        # this is a call to retrieve response from the local API endpoint (which sends onward request to SQS API Endpoint)
+        #import ipdb; ipdb.set_trace()
+        if not self.available_sqs_layers:
+            # cache the api call, to prevented repeated calls
+            base_api_url = reverse_lazy('api-root', request=self.context['request'])
+            base_api_url = base_api_url.split('?')[0]
+            self.available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
+
+        if any(d['name'] == obj.layer_name.strip() and d['active'] for d in self.available_sqs_layers):
+            return True
+        return False
 

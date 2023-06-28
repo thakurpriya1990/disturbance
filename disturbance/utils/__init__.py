@@ -494,7 +494,6 @@ def search_section(schema, section_label, question, data, answer):
         section_label=section_label.replace(" ","")
         question_label=question.question
         question_type=question.answer_type
-        #import ipdb; ipdb.set_trace()
 
         if item['type']=='section' and item['name']:
             item_name=item['name'].rstrip('0123456789')

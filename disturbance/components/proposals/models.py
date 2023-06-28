@@ -44,7 +44,7 @@ from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
-    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca, DASMapLayer
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification,
@@ -3265,7 +3265,6 @@ def search_sections(application_type_name, section_label,question_id,option_labe
     if is_internal:
         if(not application_type_name or not section_label or not question_id or not option_label):
             raise ValidationError('Some of the mandatory fields are missing')
-        #import ipdb; ipdb.set_trace()
         proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         question=MasterlistQuestion.objects.get(id=question_id)
         filter_conditions={}
@@ -4569,7 +4568,6 @@ class ApiarySite(models.Model):
         return '{}'.format(self.id,)
 
     def save(self, **kwargs):
-        #import ipdb; ipdb.set_trace()
         if not self.id:
             max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
             self.id = int(max) + 1 if max is not None else 1
@@ -5749,7 +5747,11 @@ class SectionQuestion(models.Model):
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
 
-from disturbance.components.main.models import DASMapLayer
+class CurrentSpatialQueryQuestionManager(models.Manager):
+    ''' Return queryset with non-expired SpatialQueryQuestions '''
+    def get_queryset(self):
+        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
+
 class SpatialQueryQuestion(models.Model):
     OVERLAPPING = 'Overlapping'
     OUTSIDE = 'Outside'
@@ -5826,7 +5828,10 @@ class SpatialQueryQuestion(models.Model):
     assessor_info = models.TextField(blank=True, null=True)
 
     regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
-                                        
+                                
+    objects = models.Manager()
+    current_questions = CurrentSpatialQueryQuestionManager()
+
     class Meta:
         app_label = 'disturbance'
         unique_together = ('question', 'answer_mlq',)
@@ -5837,7 +5842,6 @@ class SpatialQueryQuestion(models.Model):
         return '{} - {}'.format(self.question, self.layer_name)
 
     def __cddp_group(self):
-        #import ipdb; ipdb.set_trace()
         try:
             check_group = CddpQuestionGroup.objects.filter(id=self.group.id)
             if check_group:
