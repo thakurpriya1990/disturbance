@@ -11,7 +11,7 @@ from dateutil import parser
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db import transaction, connection
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
@@ -1395,6 +1395,10 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
 
 
 class ProposalViewSet(viewsets.ModelViewSet):
+    ALL = 'ALL'
+    PARTIAL = 'PARTIAL'
+    SINGLE = 'SINGLE'
+ 
     #queryset = Proposal.objects.all()
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
@@ -1485,6 +1489,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            request_type=self.ALL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_questions_gbq,
             geojson = geojson,
@@ -1506,8 +1511,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         geojson=proposal.shapefile_json
 
-        masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
+        masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+        if not masterlist_question_qs.exists():
+            return Response(
+                {'errors': 'There are no CDDP questions in Request. Check if CDDP questions exist and are not expired'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_questions = json.loads(rendered)
 
@@ -1517,7 +1529,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
         for question_dict in question_group_list:
             for sqq_record in masterlist_questions:
-                #print(j['layer_name'])
+                #logger.info(sqq_record['layer']['layer_name'])
                 if question_dict['question_group'] in sqq_record.values():
                     question_dict['questions'].append(sqq_record)
 
@@ -1528,6 +1540,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            request_type=self.ALL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
@@ -1551,6 +1564,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def sqs_data_single(self, request, *args, **kwargs):
         '''
+        Primarily used by 'Test' button for questions on CDDP Question Tab
+
         Creates data payload for SQS Server API Endpoint - specifically for a single masterlist question or group of questions. Request to SQS sends:
             1. proposal.schema, proposal.data, proposal.id
             2. CDDP single masterlist question (or group of masterlist questions, eg all questions for a given radio button/checkbox/select/multiselect)
@@ -1570,13 +1585,39 @@ class ProposalViewSet(viewsets.ModelViewSet):
         geojson=proposal.shapefile_json
 
         # get all masterlist questions
-        masterlist_question_qs_all = SpatialQueryQuestion.objects.filter()
-        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, many=True)
+        masterlist_question_qs_all = SpatialQueryQuestion.current_questions.all()
+        if not masterlist_question_qs_all.exists():
+            return JsonResponse(
+                data={'errors': 'There are no CDDP questions in Request. Check if questions exist and are not expired'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'request': request}, many=True)
         rendered_all = JSONRenderer().render(serializer_all.data).decode('utf-8')
         masterlist_questions_all = json.loads(rendered_all)
 
         # serialize specific masterlist question
         masterlist_question_qs = SpatialQueryQuestion.objects.filter(id=mlq_id)
+
+        ''' Start Checks '''
+        mlq = masterlist_question_qs[0]
+        schema_res = search_schema(proposal.id, question=mlq.question)
+        #import ipdb; ipdb.set_trace()
+        if schema_res:
+            if 'text' not in schema_res['type'] and not mlq.answer_mlq:
+                # the widget type is neither ['text', textbox], 
+                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
+                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type  <br/> {schema_res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if mlq.expiry < datetime.now().date():
+            return JsonResponse(
+                data = {'errors': f'CDDP question is expired <br/> {mlq.question} <br/> {mlq.expiry}.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        ''' End Checks '''
+
         if group_mlqs:
             question_group_list = [{'question_group': masterlist_question_qs[0].question, 'questions': []}]
             for question_dict in question_group_list:
@@ -1585,7 +1626,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     if question_dict['question_group'] in sqq_record.values():
                         question_dict['questions'].append(sqq_record)
         else:
-            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
             question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -1597,6 +1638,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            request_type=self.PARTIAL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
             geojson = geojson,
@@ -1619,7 +1661,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def refresh(self, request, *args, **kwargs):
         
-
         mlq_label = request.data.get('label')
         schema_name= request.data.get('name')
         # proposal_id = request.data.get('proposal_id')
@@ -1630,8 +1671,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #import ipdb; ipdb.set_trace()
         # serialize masterlist question
         masterlist_question_qs = SpatialQueryQuestion.objects.filter(question=mlq_label)
+        if not masterlist_question_qs.exists():
+            return JsonResponse(
+                data={'errors': 'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        elif masterlist_question_qs[0].expired < datetime.datetime.now().date():
+            mlq = masterlist_question_qs[0]
+            return Response(
+                date={'errors': 'CDDP question is expired {mlq.question}: {mlq.expired}.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         #serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_question_json = json.loads(rendered)
         masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -1643,6 +1696,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            request_type=self.PARTIAL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_question,
             geojson = geojson,
@@ -4429,8 +4483,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     queryset = SpatialQueryQuestion.objects.all()
     serializer_class = DTSpatialQueryQuestionSerializer
 
-    def get_queryset(self):
-        return self.queryset
+#    def get_queryset(self):
+#        return self.queryset
 
 #    def list(self, request, *args, **kwargs):
 #        """ http://localhost:8001/api/spatial_query.json - returns all in queryset"""
@@ -4559,9 +4613,9 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             cddp_groups = CddpQuestionGroupSerializer(qs_cddp, context={'request': request}, many=True).data
 
             qs_das_map_layers = DASMapLayer.objects.all()
-            das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, many=True).data
+            das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, context={'request': request}, many=True).data
 
-            # this is a call toi retrieve response from the local API endpoint
+            # this is a call to retrieve response from the local API endpoint (which sends onward request to SQS API Endpoint)
             base_api_url = reverse_lazy('api-root', request=request)
             available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
 
@@ -4569,12 +4623,17 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 #print(idx, das_layer['layer_name'])
                 #is_available_in_sqs = any(das_layer['layer_name'] in sqs_layer['name'] for sqs_layer in available_sqs_layers)
                 available_in_sqs = [sqs_layer for sqs_layer in available_sqs_layers if sqs_layer['name'] == das_layer['layer_name']]
+                #import ipdb; ipdb.set_trace()
                 if (len(available_in_sqs) > 0):
                    das_map_layers[idx]['available_in_sqs'] = True
                    das_map_layers[idx]['active_in_sqs'] = available_in_sqs[0]['active']
                 else:
                    das_map_layers[idx]['available_in_sqs'] = False
                    das_map_layers[idx]['active_in_sqs'] = False
+
+            expired_cddp_questions = SpatialQueryQuestion.objects.filter(
+                expiry__lt=datetime.now().date()
+                ).annotate(layer_name=F('layer__layer_name')).values('id', 'expiry', 'question', 'layer_name')
 
             return Response(
                 {
@@ -4583,6 +4642,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                     'all_masterlist': masterlist,
                     'cddp_groups': cddp_groups,
                     'das_map_layers': das_map_layers,
+                    'expired_cddp_questions': expired_cddp_questions,
                 },
                 status=status.HTTP_200_OK
             )
@@ -4608,7 +4668,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         '''
         Checks if CDDP Qution exists in proposal.schema
         To test (from DAS shell): 
-            requests.post('http://localhost:8002/api/v1/layers/check_sqs_layer/?layer_name=cddp:dpaw_regions')
+            requests.post('http://localhost:8003/api/spatial_query/59/check_cddp_question/?proposal_id=P001528')
         ''' 
 
         #import ipdb; ipdb.set_trace()
@@ -4625,9 +4685,9 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             if 'text' not in res['type'] and not answer:
                 # the widget type is neither ['text', textbox], 
                 # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
-                return JsonResponse(data={'errors': f'Masterlist Answer is required for widget type: {res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
+                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type: {res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            return JsonResponse(data={'errors': f'Masterlist Question not found in proposal schema {p_lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema {p_lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -4755,7 +4815,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         except serializers.ValidationError as ve:
             if 'non_field_errors' in ve.get_codes() and 'unique' in ve.get_codes()['non_field_errors']:
                 if any('question' in s for s in ve.detail['non_field_errors']):
-                    raise serializers.ValidationError('Masterlist Question and Answer already exist. Must be a unique set')
+                    raise serializers.ValidationError('CDDP Question and Answer already exist. Must be a unique set')
             log = '{0} {1}'.format('save_spatialquery()')
             logger.exception(log)
             raise
