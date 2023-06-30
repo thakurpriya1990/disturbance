@@ -23,6 +23,7 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_S
 import logging
 logger = logging.getLogger(__name__)
 
+
 #def retrieve_department_users():
 #    try:
 #        res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)

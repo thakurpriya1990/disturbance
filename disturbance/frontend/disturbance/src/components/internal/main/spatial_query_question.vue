@@ -741,9 +741,9 @@ export default {
             //return JSON.stringify(JSON.parse(value), null, 2);
             return JSON.stringify(JSON.parse(value), null, 2);
         },
-        selected_question: function(selected_id) {
-            return this.spatialquery_selects.all_masterlist.find( t => t.id === selected_id );
-        },
+//        selected_question: function(selected_id) {
+//            return this.spatialquery_selects.all_masterlist.find( t => t.id === selected_id );
+//        },
         has_options: function(selected_id) {
             return this.selected_question(selected_id).option.length > 0;
         },
