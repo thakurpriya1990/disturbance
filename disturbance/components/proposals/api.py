@@ -48,7 +48,7 @@ from disturbance.components.proposals.models import ProposalDocument, searchKeyW
     SupportingApplicationDocument, search_sections
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
-from disturbance.utils import search_tenure
+from disturbance.utils import search_tenure, search_label
 from disturbance.components.main.utils import (
     check_db_connection,
     get_template_group,
@@ -1468,33 +1468,33 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @detail_route(methods=['GET',])
-    @api_exception_handler
-    def sqs_data_test(self, request, *args, **kwargs):
-        '''
-        Initially developed to allow testing of SQS Server - providing and example API request from DAS
-        ''' 
-        #import ipdb; ipdb.set_trace()
-        proposal = self.get_object()
-        geojson=proposal.shapefile_json
-
-        # this is a call toi retrieve response from the local API endpoint
-        base_api_url = reverse_lazy('api-root', request=request)
-        masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
-
-        data = dict(
-            proposal=dict(
-                id=proposal.id,
-                schema=proposal.schema,
-                data=proposal.data,
-
-            ),
-            request_type=self.ALL,
-            system=settings.SYSTEM_NAME_SHORT,
-            masterlist_questions = masterlist_questions_gbq,
-            geojson = geojson,
-        )
-        return Response(data)
+#    @detail_route(methods=['GET',])
+#    @api_exception_handler
+#    def sqs_data_test(self, request, *args, **kwargs):
+#        '''
+#        Initially developed to allow testing of SQS Server - providing and example API request from DAS
+#        ''' 
+#        #import ipdb; ipdb.set_trace()
+#        proposal = self.get_object()
+#        geojson=proposal.shapefile_json
+#
+#        # this is a call toi retrieve response from the local API endpoint
+#        base_api_url = reverse_lazy('api-root', request=request)
+#        masterlist_questions_gbq = requests.get(base_api_url + 'spatial_query/grouped_by_question.json', headers={}).json()
+#
+#        data = dict(
+#            proposal=dict(
+#                id=proposal.id,
+#                schema=proposal.schema,
+#                data=proposal.data,
+#
+#            ),
+#            request_type=self.ALL,
+#            system=settings.SYSTEM_NAME_SHORT,
+#            masterlist_questions = masterlist_questions_gbq,
+#            geojson = geojson,
+#        )
+#        return Response(data)
 
     @detail_route(methods=['POST',])
     @api_exception_handler
@@ -1601,14 +1601,22 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         ''' Start Checks '''
         mlq = masterlist_question_qs[0]
-        schema_res = search_schema(proposal.id, question=mlq.question)
-        #import ipdb; ipdb.set_trace()
-        if schema_res:
-            if 'text' not in schema_res['type'] and not mlq.answer_mlq:
-                # the widget type is neither ['text', textbox], 
-                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
-                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type  <br/> {schema_res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        #schema_res = search_schema(proposal.id, question=mlq.question)
+
+#        import ipdb; ipdb.set_trace()
+#        if schema_res:
+#            if 'text' not in schema_res['type'] and not mlq.answer_mlq:
+#                # the widget type is neither ['text', textbox], 
+#                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
+#                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type  <br/> {schema_res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
+#        else:
+#            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # search_label searches the p.schema for a given question section and 
+        # returns the entire question section, including nested questions for that given question
+        schema, _bool = search_label(proposal.schema, mlq.question)
+        if all(not d for d in schema):
+            # schema is empty
             return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
         if mlq.expiry < datetime.now().date():
@@ -1634,7 +1642,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         data = dict(
             proposal=dict(
                 id=proposal.id,
-                schema=proposal.schema,
+                #schema=proposal.schema,
+                schema=schema,
                 data=proposal.data,
 
             ),
@@ -4483,28 +4492,16 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     queryset = SpatialQueryQuestion.objects.all()
     serializer_class = DTSpatialQueryQuestionSerializer
 
-#    def get_queryset(self):
-#        return self.queryset
-
-#    def list(self, request, *args, **kwargs):
-#        """ http://localhost:8001/api/spatial_query.json - returns all in queryset"""
-#        queryset = self.get_queryset()
-#        serializer = self.get_serializer(queryset, many=True)
-#        return Response(serializer.data)
-
 #    @list_route(methods=['GET', ])
-#    def grouped_by_layer(self, request, *args, **kwargs):
-#        """ http://localhost:8001/api/spatial_query/grouped_by_layer.json 
+#    @api_exception_handler
+#    def grouped_by_question(self, request, *args, **kwargs):
+#        """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
 #  
 #            Group spatial query questions by layer_name
 #        """
-##        multi-select --> id=9
-##        select       --> id=7
-##        checkbox     --> id=45,46,47
-##        radiobutton  --> id=48,49,50, 51,52    ('5.0 What is ... First level radiobutton (Radiobutton Component)?')
 #        queryset = self.get_queryset()
 #        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
-#        #queryset = queryset.filter(id__in=[45,46,47])       # checkbox
+#        #queryset = queryset.filter(id__in=[45,46,47,55])       # checkbox
 #        #queryset = queryset.filter(id__in=[43])             # select
 #        #queryset = queryset.filter(id__in=[44])             # multi-select
 #        queryset = queryset.filter(id__in=[53,54])           # text, text_area
@@ -4513,76 +4510,54 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 #        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
 #        sqq_json = json.loads(rendered)
 #
-##        if 'exclude_expired' in request.GET and request.GET.get('exclude_expired').lower()=='true':
-##            now = datetime.now(pytz.timezone(TIME_ZONE))
-##            queryset = queryset.exclude(expiry__lt=now)
-##
 #        #import ipdb; ipdb.set_trace()
-#        layer_names = [i['layer_name'] for i in sqq_json]
-#        unique_layer_names = list(set(layer_names))
-#        unique_layer_list = [{'layer_name': i, 'questions': []} for i in unique_layer_names]
-#        for layer_dict in unique_layer_list:
+#        questions = [i['question'] for i in sqq_json]
+#        unique_questions = list(set(questions))
+#        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+#        for question_dict in question_group_list:
 #            for sqq_record in sqq_json:
 #                #print(j['layer_name'])
-#                if layer_dict['layer_name'] in sqq_record.values():
-#                    layer_dict['questions'].append(sqq_record)
+#                if question_dict['question_group'] in sqq_record.values():
+#                    question_dict['questions'].append(sqq_record)
 #
-#        return Response(unique_layer_list)
-
-    @list_route(methods=['GET', ])
-    @api_exception_handler
-    def grouped_by_question(self, request, *args, **kwargs):
-        """ http://localhost:8001/api/spatial_query/grouped_by_question.json 
-  
-            Group spatial query questions by layer_name
-        """
-        queryset = self.get_queryset()
-        #queryset = queryset.filter(id__in=[48,49,50,51,52]) # radiobutton
-        #queryset = queryset.filter(id__in=[45,46,47,55])       # checkbox
-        #queryset = queryset.filter(id__in=[43])             # select
-        #queryset = queryset.filter(id__in=[44])             # multi-select
-        queryset = queryset.filter(id__in=[53,54])           # text, text_area
-        serializer = self.get_serializer(queryset, many=True)
-
-        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-        sqq_json = json.loads(rendered)
-
-        #import ipdb; ipdb.set_trace()
-        questions = [i['question'] for i in sqq_json]
-        unique_questions = list(set(questions))
-        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
-        for question_dict in question_group_list:
-            for sqq_record in sqq_json:
-                #print(j['layer_name'])
-                if question_dict['question_group'] in sqq_record.values():
-                    question_dict['questions'].append(sqq_record)
-
-        return Response(question_group_list)
+#        return Response(question_group_list)
 
     @list_route(methods=['GET', ])
     @api_exception_handler
     def get_sqs_layers(self, request, *args, **kwargs):
         '''
+        EXTERNAL SQS API CALL
+
         Get current available layers on SQS Server.
         To test (from DAS shell): 
             requests.get('http://localhost:8002/api/v1/layers.json')
         ''' 
         #import ipdb; ipdb.set_trace()
         #url = f'{settings.SQS_APIURL}layers/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/'
-        url = get_sqs_url('layers/')
-        resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        if resp.status_code != 200:
-            logger.error(f'SpatialQuery API call error: {resp.content}')
-            try:
-                return Response(resp.json(), status=resp.status_code)
-            except:
-                return Response({'errors': resp.content}, status=resp.status_code)
+        data = cache.get('sqs_layers')
+        if not data:
+            url = get_sqs_url('layers/')
+            resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            #resp = retrieve_sqs_layers(url)
+            if resp.status_code != 200:
+                logger.error(f'SpatialQuery API call error: {resp.content}')
+                try:
+                    return Response(resp.json(), status=resp.status_code)
+                except:
+                    return Response({'errors': resp.content}, status=resp.status_code)
 
-        return Response(resp.json())
+            data = resp.json()
+            cache.set('sqs_layers', json.dumps(data), settings.SQS_LAYERS_CACHE_TIMEOUT)
+        else:
+            data = json.loads(data)
+
+        return Response(data)
 
     @list_route(methods=['GET', ])
     def get_spatialquery_selects(self, request, *args, **kwargs):
         '''
+        INTERNAL DAS API CALLS
+
         Get independant Select lists associated with SpatialQuery Questions.
         eg. http://localhost:8000/api/spatial_query/get_spatialquery_selects.json
         '''
@@ -4605,8 +4580,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 if a[0] not in excl_how_choices
             ]
 
-            qs_mlq = MasterlistQuestion.objects.all()
-            masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
+#            qs_mlq = MasterlistQuestion.objects.all()
+#            masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
 
             #import ipdb; ipdb.set_trace()
             qs_cddp = CddpQuestionGroup.objects.all()
@@ -4615,34 +4590,34 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             qs_das_map_layers = DASMapLayer.objects.all()
             das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, context={'request': request}, many=True).data
 
-            # this is a call to retrieve response from the local API endpoint (which sends onward request to SQS API Endpoint)
-            base_api_url = reverse_lazy('api-root', request=request)
-            available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
-
-            for idx, das_layer in enumerate(das_map_layers):
-                #print(idx, das_layer['layer_name'])
-                #is_available_in_sqs = any(das_layer['layer_name'] in sqs_layer['name'] for sqs_layer in available_sqs_layers)
-                available_in_sqs = [sqs_layer for sqs_layer in available_sqs_layers if sqs_layer['name'] == das_layer['layer_name']]
-                #import ipdb; ipdb.set_trace()
-                if (len(available_in_sqs) > 0):
-                   das_map_layers[idx]['available_in_sqs'] = True
-                   das_map_layers[idx]['active_in_sqs'] = available_in_sqs[0]['active']
-                else:
-                   das_map_layers[idx]['available_in_sqs'] = False
-                   das_map_layers[idx]['active_in_sqs'] = False
-
-            expired_cddp_questions = SpatialQueryQuestion.objects.filter(
-                expiry__lt=datetime.now().date()
-                ).annotate(layer_name=F('layer__layer_name')).values('id', 'expiry', 'question', 'layer_name')
+#            # this is a call to retrieve response from the local API endpoint (which sends onward request to SQS API Endpoint)
+#            base_api_url = reverse_lazy('api-root', request=request)
+#            available_sqs_layers = requests.get(base_api_url + 'spatial_query/get_sqs_layers.json', headers={}).json()
+#
+#            for idx, das_layer in enumerate(das_map_layers):
+#                #print(idx, das_layer['layer_name'])
+#                #is_available_in_sqs = any(das_layer['layer_name'] in sqs_layer['name'] for sqs_layer in available_sqs_layers)
+#                available_in_sqs = [sqs_layer for sqs_layer in available_sqs_layers if sqs_layer['name'] == das_layer['layer_name']]
+#                #import ipdb; ipdb.set_trace()
+#                if (len(available_in_sqs) > 0):
+#                   das_map_layers[idx]['available_in_sqs'] = True
+#                   das_map_layers[idx]['active_in_sqs'] = available_in_sqs[0]['active']
+#                else:
+#                   das_map_layers[idx]['available_in_sqs'] = False
+#                   das_map_layers[idx]['active_in_sqs'] = False
+#
+#            expired_cddp_questions = SpatialQueryQuestion.objects.filter(
+#                expiry__lt=datetime.now().date()
+#                ).annotate(layer_name=F('layer__layer_name')).values('id', 'expiry', 'question', 'layer_name')
 
             return Response(
                 {
                     'operators': operators,
                     'how': how,
-                    'all_masterlist': masterlist,
+#                    'all_masterlist': masterlist,
                     'cddp_groups': cddp_groups,
                     'das_map_layers': das_map_layers,
-                    'expired_cddp_questions': expired_cddp_questions,
+#                    'expired_cddp_questions': expired_cddp_questions,
                 },
                 status=status.HTTP_200_OK
             )
@@ -4666,6 +4641,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def check_cddp_question(self, request, *args, **kwargs):
         '''
+        INTERNAL DAS API CALLS
+
         Checks if CDDP Qution exists in proposal.schema
         To test (from DAS shell): 
             requests.post('http://localhost:8003/api/spatial_query/59/check_cddp_question/?proposal_id=P001528')
@@ -4681,13 +4658,16 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         answer = data['answer_mlq']
 
         res = search_schema(proposal.id, question)
-        if res:
-            if 'text' not in res['type'] and not answer:
-                # the widget type is neither ['text', textbox], 
-                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
-                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type: {res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
-        else:
+        if not res:
             return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema {p_lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+
+#        if res:
+#            if 'text' not in res['type'] and not answer:
+#                # the widget type is neither ['text', textbox], 
+#                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
+#                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type: {res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
+#        else:
+#            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema {p_lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(status=status.HTTP_200_OK)
 
@@ -4696,6 +4676,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def check_sqs_layer(self, request, *args, **kwargs):
         '''
+        EXTERNAL SQS API CALL
+
         Checks if layer exists on SQS Server
         To test (from DAS shell): 
             requests.get('http://localhost:8003/api/spatial_query/59/check_sqs_layer.json')
@@ -4712,16 +4694,23 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 #            return JsonResponse(data={'errors': f'Layer is not present in DASMapLayer model'}, status=status.HTTP_400_BAD_REQUEST)
 
         #url = f'{settings.SQS_APIURL}layers/check_sqs_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/check_sqs_layer/'
-        url = get_sqs_url(f'layers/check_layer')
-        resp = requests.get(url=url, params={'layer_name':instance.layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        if resp.status_code != 200:
-            logger.error(f'SpatialQuery API call error: {resp.content}')
-            try:
-                return Response(resp.json(), status=resp.status_code)
-            except:
-                return Response({'errors': resp.content}, status=resp.status_code)
+        data = cache.get('sqs_layers')
+        if not data:
+            url = get_sqs_url(f'layers/check_layer')
+            resp = requests.get(url=url, params={'layer_name':instance.layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            if resp.status_code != 200:
+                logger.error(f'SpatialQuery API call error: {resp.content}')
+                try:
+                    return Response(resp.json(), status=resp.status_code)
+                except:
+                    return Response({'errors': resp.content}, status=resp.status_code)
 
-        return Response(resp.json())
+            data = resp.json()
+            cache.set('sqs_layers', json.dumps(data), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
+        else:
+            data = json.loads(data)
+
+        return Response(data)
 
     @detail_route(methods=['POST',])
     @api_exception_handler
@@ -4742,6 +4731,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 return Response(resp.json(), status=resp.status_code)
             except:
                 return Response({'errors': resp.content}, status=resp.status_code)
+
+        cache.delete('sqs_layers')
 
         return Response(resp.json())
 

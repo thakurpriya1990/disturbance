@@ -273,8 +273,8 @@ def create_richtext_help(help_list=None, help_text='help_text'):
 
     # for testing
     #if not help_list:
-    #	pt = ProposalType.objects.all()[4]
-    #	help_list = search_keys(pt.schema, search_list=['help_text','label'])[:3]
+    #   pt = ProposalType.objects.all()[4]
+    #   help_list = search_keys(pt.schema, search_list=['help_text','label'])[:3]
 
     richtext = u''
     for i in help_list:
@@ -459,6 +459,66 @@ def flatten(old_data, new_data=None, parent_key='', sep='.', width=4):
             raise AttributeError("key {} is already used".format(parent_key))
 
     return new_data
+
+def search_label(schema, label, new_data=None, parent_key='', sep='.', width=4):
+    '''
+    Return the entire section for a given schema question (label), including any nested questions within that question
+
+    Eg.
+        from disturbance.utils import search_section,search_keys, flatten, search_label
+        p=Proposal.objects.get(id=1533)
+        j, _bool=search_label(p.schema, '4.0.1.1 Specify')
+
+        In [5]: j
+        Out[5]: 
+        {'name': 'Section3-0-Yes1-15-On-1',
+         'type': 'text_area',
+         'label': '4.0.1.1 Specify',
+         'isRequired': 'true'}
+ 
+    Json-style nested dictionary / list flattener (this is the p.schema)
+    :schema: the original data
+    :new_data: the result dictionary
+    :parent_key: all keys will have this prefix
+    :sep: the separator between the keys
+    :width: width of the field when converting list indexes
+
+    '''
+    if new_data is None:
+        new_data = OrderedDict()
+
+    if isinstance(schema, dict):
+        for k, v in schema.items():
+            if isinstance(schema, dict) and 'label' in schema and schema['label'] == label:
+                return [schema], True
+
+            new_key = parent_key + sep + k if parent_key else k
+            d, _bool = search_label(v, label, new_data, new_key, sep, width)
+            if _bool:
+                # recursively return from all re-entrant function calls
+                return d, True
+
+    elif isinstance(schema, list):
+        if len(schema) == 1:
+            d, _bool = search_label(schema[0], label, new_data, parent_key, sep, width)
+            if _bool:
+                # recursively return from all re-entrant function calls
+                return d, True
+
+        else:
+            for i, elem in enumerate(schema):
+                new_key = "{}{}{:0>{width}}".format(parent_key, sep if parent_key else '', i, width=width)
+                d, _bool = search_label(elem, label, new_data, new_key, sep, width)
+                if _bool:
+                    # recursively return from all re-entrant function calls
+                    return d, True
+    else:
+        if parent_key not in new_data:
+            new_data[parent_key] = schema, False
+        else:
+            raise AttributeError("key {} is already used".format(parent_key))
+
+    return new_data, False
 
 
 def create_dummy_history(proposal_id):
