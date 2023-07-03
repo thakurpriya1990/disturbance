@@ -1677,6 +1677,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # proposal = Proposal.objects.get(id=proposal_id)
         proposal = self.get_object()
 
+        schema, _bool = search_label(proposal.schema, mlq_label)
+        if all(not d for d in schema):
+            # schema is empty
+            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {proposal.lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+
         geojson=proposal.shapefile_json
         #import ipdb; ipdb.set_trace()
         # serialize masterlist question
@@ -1702,7 +1707,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         data = dict(
             proposal=dict(
                 id=proposal.id,
-                schema=proposal.schema,
+                #schema=proposal.schema,
+                schema=schema,
                 data=proposal.data,
 
             ),
