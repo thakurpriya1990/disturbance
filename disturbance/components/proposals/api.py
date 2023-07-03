@@ -2367,6 +2367,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     if resp and resp['layer_data']:
                         instance.layer_data=resp['layer_data']
                     if resp and resp['add_info_assessor']:
+                        instance.history_add_info_assessor=instance.get_history_add_info_assessor()
                         instance.add_info_assessor= resp['add_info_assessor']
                     instance.save()
                 else:
