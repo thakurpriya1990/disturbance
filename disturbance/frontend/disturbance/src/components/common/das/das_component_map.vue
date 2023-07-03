@@ -167,7 +167,7 @@
             vm.set_mode('layer')
             vm.addOptionalLayers()
             //vm.map.addLayer(vm.apiarySitesQueryLayer);
-            vm.displayAllFeatures()
+            //vm.displayAllFeatures()
         },
         components: {
 
