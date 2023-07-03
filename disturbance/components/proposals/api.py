@@ -4460,7 +4460,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         data = serializer.data
 
 #        qs_das_map_layers = DASMapLayer.objects.all()
-#        das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, many=True).data
+#        das_map_layers = DASMapLayerSqsSerializer(qs_das_map_layers, context={'request': request}, many=True).data
 #
 #        base_api_url = reverse_lazy('api-root', request=request)
 #        base_api_url = base_api_url.split('?format')[0]
@@ -4774,8 +4774,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
         with transaction.atomic():
 
-            #import ipdb; ipdb.set_trace()
-            serializer = DTSpatialQueryQuestionSerializer(data=request.data)
+            serializer = DTSpatialQueryQuestionSerializer(data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
@@ -4794,7 +4793,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 serializer = DTSpatialQueryQuestionSerializer(
                     instance, data=request.data
                 )
-                #import ipdb; ipdb.set_trace()
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
