@@ -40,6 +40,7 @@ module.exports = {
         var comment_boxes=[];
         var addInfoApplicant= this.status_data.addInfoApplicant
         var addInfoAssessor= this.status_data.addInfoAssessor
+        var historyAddInfoAssessor= this.status_data.historyAddInfoAssessor
         var refreshTimeStamp= this.status_data.refreshTimeStamp
         if (assessorStatus != null){
             assessorMode = assessorStatus['assessor_mode'];
@@ -65,6 +66,7 @@ module.exports = {
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
         var add_info_applicant_val = (addInfoApplicant) ? (addInfoApplicant[c.name]) ? addInfoApplicant[c.name] : null : null;
         var add_info_assessor_val = (addInfoAssessor) ? (addInfoAssessor[c.name]) ? addInfoAssessor[c.name] : null : null;
+        var history_info_assessor_val = (historyAddInfoAssessor) ? (historyAddInfoAssessor[c.name]) ? historyAddInfoAssessor[c.name] : null : null;
         var comment_val= null;
         if(commentData){
             if(commentData.constructor != Object){
@@ -297,6 +299,11 @@ module.exports = {
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,assessor_boxes);
         }
+        if (assessorMode && $.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
+            var history_assessor_boxes = this.generateHistoryAddInfoAssessorTextBoxes(h,c,val,assessorLevel, history_info_assessor_val);
+            // Merge assessor boxes to _elements array
+            Array.prototype.push.apply(_elements,history_assessor_boxes);
+        }
         
         return _elements;
     },
@@ -420,7 +427,7 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,refreshTimeStamp,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
+    store_status_data(readonly,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,historyAddInfoAssessor, refreshTimeStamp,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
         this.status_data = {
             'readonly': readonly,
             'assessorData': assessorData,
@@ -428,6 +435,7 @@ module.exports = {
             'commentData': commentData,
             'addInfoApplicant': addInfoApplicant,
             'addInfoAssessor': addInfoAssessor,
+            'historyAddInfoAssessor': historyAddInfoAssessor,
             'refreshTimeStamp': refreshTimeStamp,
             'assessorInfo': assessorEmail,
             'assessorStatus': assessorMode,
@@ -737,6 +745,60 @@ module.exports = {
             //         )
             //     }
             // }
+        }
+        if (boxes.length > 0){
+            boxes = [<div class="row"> {boxes} </div>]
+        }
+        return boxes;
+    },
+    generateHistoryAddInfoAssessorTextBoxes(h,c,val,assessor_mode,add_info_assessor,){
+        var box_visibility = this.status_data.assessorStatus.assessor_box_view
+        var boxes = [];
+        if (!this.status_data.can_user_edit){
+            if (add_info_assessor){
+                // var _dt = undefined;
+                // if(add_info_assessor.constructor != Object){
+                //     _dt = add_info_assessor.find(at => at.name == c.name)
+                // }
+                //var _dt = add_info_assessor.find(at => at.name == c.name)
+                // Assessor Data
+                var assessor_name = `${c.name}-history-add-info-Assessor`;
+                //var assessor_val = _dt == undefined || _dt.assessor == '' ? '' : _dt.assessor;
+                var assessor_val=add_info_assessor;
+                //console.log(_dt)
+                // if(_dt==undefined)
+                // {
+                //     //if add_info_assessor is dictionary instead of array (eg. comment data for old Proposal without referral comment functionality)
+                //     if(add_info_assessor.constructor == Object){
+                //         //console.log('here', comment_val)
+                //         assessor_val= comment_val
+                //     }
+                // }
+                // else{
+                //     assessor_val = _dt.assessor == '' ? '' : _dt.assessor;
+                // }
+                var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
+                assessor_visibility = !assessor_visibility;
+                var assessor_visibility_always=true;
+                boxes.push(
+                    // {
+                    //     "box_view": box_visibility,
+                    //     "name": assessor_name,
+                    //     "value": assessor_val,
+                    //     "label": "Additional Info (assessor)",
+                    //     "readonly": assessor_visibility,
+                    //     "question": c.label,
+                    //     "referral_box": false,
+                    //     "box_class": "form-control deficiency"
+                    // }
+
+                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'History Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility_always}/>
+                )
+                // Referral Data
+                var current_referral_present = false;
+                
+                
+            }
         }
         if (boxes.length > 0){
             boxes = [<div class="row"> {boxes} </div>]

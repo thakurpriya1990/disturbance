@@ -2515,6 +2515,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         self.log_user_action(ProposalUserAction.ACTION_VIEW_PROPOSAL.format(self.lodgement_number), request)
         return self
 
+
     def apiary_requirements(self, approval=None):
         if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
             #return self.requirements.filter(apiary_approval=approval)
@@ -2841,6 +2842,8 @@ class ProposalUserAction(UserAction):
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
     ACTION_APPROVAL_LEVEL_COMMENT = "Save Approval level comment {}"
     ACTION_VIEW_PROPOSAL = "View Proposal {}"
+    ACTION_PREFILL_PROPOSAL = "Prefill Proposal {}"
+    ACTION_REFRESH_PROPOSAL = "Refresh data for Proposal {}"
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"

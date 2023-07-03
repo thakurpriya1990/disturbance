@@ -82,6 +82,7 @@ from disturbance.components.proposals.models import (
     MasterlistQuestion,
     CddpQuestionGroup,
     SpatialQueryQuestion,
+    ProposalUserAction,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -1762,6 +1763,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if 'sqs_timestamp' in layer_data:
                     answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
             proposal.save()
+            proposal.log_user_action(ProposalUserAction.ACTION_REFRESH_PROPOSAL.format(proposal.lodgement_number), request)
         #refresh the add_info_assessor
         # if 'add_info_assessor' in sqs_resp:
         #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
@@ -2430,11 +2432,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     if resp and resp['layer_data']:
                         instance.layer_data=resp['layer_data']
                     if resp and resp['add_info_assessor']:
+                        instance.history_add_info_assessor=instance.get_history_add_info_assessor()
                         instance.add_info_assessor= resp['add_info_assessor']
                     instance.save()
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
-            instance.save()
+            instance.save(version_comment='Prefill Proposal')
+            instance.log_user_action(ProposalUserAction.ACTION_PREFILL_PROPOSAL.format(instance.lodgement_number), request)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
             #return redirect(reverse('external'))
