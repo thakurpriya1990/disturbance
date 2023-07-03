@@ -1,5 +1,6 @@
 <template lang="html">
     <div>
+        <!-- <div>{{shapefile_json}}</div> -->
         <div class="map-wrapper row col-sm-12">
             <div :id="elem_id" class="map">
                 <div class="basemap-button">
@@ -659,12 +660,12 @@
                 this.apiarySitesQuerySource.removeFeature(feature)
             },
             zoomToApiarySiteById: function(apiary_site_id){
-                let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
-                let geometry = feature.getGeometry()
-                let coord = geometry.getCoordinates()
-                let view = this.map.getView()
-                this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
-                this.showPopup(feature)
+                // let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
+                // let geometry = feature.getGeometry()
+                // let coord = geometry.getCoordinates()
+                // let view = this.map.getView()
+                // this.map.getView().animate({zoom: 16, center: feature['values_']['geometry']['flatCoordinates']})
+                // this.showPopup(feature)
             },
             setApiarySiteSelectedStatus: function(apiary_site_id, selected) {
                 let feature = this.apiarySitesQuerySource.getFeatureById(apiary_site_id)
@@ -691,7 +692,7 @@
                 let vm = this
                 vm.shapeVectorSource=null;
                 vm.shapeVectorLayer=null;
-                if(vm.shapefile_json && Object.keys(vm.shapefile_json).lenght>0){
+                if(vm.shapefile_json && Object.keys(vm.shapefile_json).length>0){
                     console.log(vm.shapefile_json);
                     vm.shapeVectorSource = new VectorSource({
                         features: new GeoJSON().readFeatures(vm.shapefile_json),

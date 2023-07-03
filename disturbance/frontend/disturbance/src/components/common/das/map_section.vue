@@ -186,7 +186,7 @@
                     showCancelButton: true,
                     confirmButtonText: 'Prefill Proposal',
                     confirmButtonColor:'#d9534f'
-                }).then(() => {
+                }).then(async () => {
 
                     //vm.prefilling=true;
                     swal({
@@ -198,7 +198,7 @@
                                 swal.showLoading()
                             }
                     })
-                    vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
                     //vm.proposal = res.body;
                     //vm.refreshFromResponse(res);
                     swal.hideLoading();
@@ -212,7 +212,7 @@
                     vm.errorString=helpers.apiVueResourceError(err);
                     });
 
-                },(error) => {
+                    },(error) => {
                 });
                 
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
