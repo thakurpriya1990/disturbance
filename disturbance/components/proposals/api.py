@@ -1691,7 +1691,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data={'errors': 'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        elif masterlist_question_qs[0].expired < datetime.datetime.now().date():
+        elif masterlist_question_qs[0].expiry < datetime.now().date():
             mlq = masterlist_question_qs[0]
             return Response(
                 date={'errors': 'CDDP question is expired {mlq.question}: {mlq.expired}.'},
