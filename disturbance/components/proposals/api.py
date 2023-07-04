@@ -1508,6 +1508,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             4. System short code - 'DAS'
         ''' 
         lodgement_number = request.data.get('lodgement_number')
+        current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
         proposal = Proposal.objects.get(lodgement_number=lodgement_number)
 
         geojson=proposal.shapefile_json
@@ -1537,6 +1538,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         data = dict(
             proposal=dict(
                 id=proposal.id,
+                current_ts=current_ts,
                 schema=proposal.schema,
                 data=proposal.data,
 
@@ -2383,6 +2385,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             else:
                 if instance.shapefile_json:
                     proposal = instance
+                    current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
 
                     geojson=proposal.shapefile_json
 
@@ -2404,6 +2407,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     data = dict(
                         proposal=dict(
                             id=proposal.id,
+                            current_ts=current_ts,
                             schema=proposal.schema,
                             data=proposal.data,
 

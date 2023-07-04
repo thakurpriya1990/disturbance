@@ -5771,13 +5771,13 @@ class SpatialQueryQuestion(models.Model):
     EQUALS = 'Equals'
     GREATERTHAN = 'GreaterThan'
     LESSTHAN = 'LessThan'
-    ISNULL = 'IsNull'
+    #ISNULL = 'IsNull'
     ISNOTNULL = 'IsNotNull'
     OPERATOR_CHOICES=(
         (EQUALS, 'Equals'),
         (GREATERTHAN, 'Greather than'),
         (LESSTHAN, 'Less than'),
-        (ISNULL, 'Is null'),
+    #    (ISNULL, 'Is null'),
         (ISNOTNULL, 'Is not null'),
     )
 

@@ -239,6 +239,7 @@
                         </div>
                     </div>
 
+                    <hr /><label><i>Proponent Section</i></label>
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
@@ -252,7 +253,7 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" style="text-align: left;">Number of polygons to process (Proponent)</label>
+                            <label class="control-label pull-left" style="text-align: left;" title="-1 to process all polygons">Number of polygons to process (Proponent)</label>
                         </div>
                         <div class="col-md-3">
                             <input type="number" min="-1" class="form-control" name="no_polygons_proponent" v-model="spatialquery.no_polygons_proponent"></input>
@@ -262,13 +263,14 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Answer</label>
+                            <label class="control-label pull-left" title="::<layer_property_name> Eg. ::region">Answer</label>
                         </div>
                         <div class="col-md-9">
                             <input type="text" class="form-control" name="answer" v-model="spatialquery.answer"></input>
                         </div>
                     </div>
 
+                    <hr /><label><i>Assessor Section</i></label>
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
@@ -282,7 +284,7 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" style="text-align: left;">Number of polygons to process (Assessor)</label>
+                            <label class="control-label pull-left" style="text-align: left;" title="-1 to process all polygons">Number of polygons to process (Assessor)</label>
                         </div>
                         <div class="col-md-3">
                             <input type="number" min="-1" class="form-control" name="no_polygons_assessor" v-model="spatialquery.no_polygons_assessor"></input>
@@ -292,7 +294,7 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Info for assessor</label>
+                            <label class="control-label pull-left" title="::<layer_property_name> Eg. ::region">Info for assessor</label>
                         </div>
                         <div class="col-md-9">
                             <input type="text" class="form-control" name="assessor_info" v-model="spatialquery.assessor_info"></input>
@@ -869,6 +871,7 @@ export default {
             const self = this;
             const data = self.proposal;
             data['csrfmiddlewaretoken'] = self.csrf_token
+            data['current_ts'] = moment().format("YYYY-MM-DDTHH:mm:ss") //'2023-07-04T13:10:00'
             self.missing_fields = [];
              
             if (self.has_test_form_errors()) {
@@ -1328,4 +1331,12 @@ br {
   margin: 5px;
 }
 
+hr {
+  border: 0;
+  clear:both;
+  display:block;
+  width: 96%;               
+  background-color:black;
+  height: 1px;
+}
 </style>
