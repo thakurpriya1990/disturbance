@@ -1508,6 +1508,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             4. System short code - 'DAS'
         ''' 
         lodgement_number = request.data.get('lodgement_number')
+        current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
         proposal = Proposal.objects.get(lodgement_number=lodgement_number)
 
         geojson=proposal.shapefile_json
@@ -1537,6 +1538,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         data = dict(
             proposal=dict(
                 id=proposal.id,
+                current_ts=current_ts,
                 schema=proposal.schema,
                 data=proposal.data,
 
@@ -1691,7 +1693,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data={'errors': 'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        elif masterlist_question_qs[0].expired < datetime.datetime.now().date():
+        elif masterlist_question_qs[0].expiry < datetime.now().date():
             mlq = masterlist_question_qs[0]
             return Response(
                 date={'errors': 'CDDP question is expired {mlq.question}: {mlq.expired}.'},
@@ -2383,11 +2385,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
             else:
                 if instance.shapefile_json:
                     proposal = instance
+                    current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
 
                     geojson=proposal.shapefile_json
 
-                    masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
+                    masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -2404,10 +2408,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     data = dict(
                         proposal=dict(
                             id=proposal.id,
+                            current_ts=current_ts,
                             schema=proposal.schema,
                             data=proposal.data,
 
                         ),
+                        request_type=self.ALL,
                         system=settings.SYSTEM_NAME_SHORT,
                         masterlist_questions = question_group_list,
                         geojson = geojson,
@@ -2439,6 +2445,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         instance.layer_data=resp['layer_data']
                     if resp and resp['add_info_assessor']:
                         instance.history_add_info_assessor=instance.get_history_add_info_assessor()
+                        print(instance.history_add_info_assessor)
                         instance.add_info_assessor= resp['add_info_assessor']
                     instance.save()
                 else:

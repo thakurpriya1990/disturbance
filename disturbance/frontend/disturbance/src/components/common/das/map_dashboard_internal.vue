@@ -288,7 +288,6 @@
         },
         watch: {
              filterProposalRegion: function () {
-                console.log('filterProposalRegion', this.filterProposalRegion)
                 this.applyFiltersFrontEnd();
                 this.$emit('filter-appied');
             },
@@ -299,7 +298,6 @@
             },
             filterProposalStatus: function () {
                 this.applyFiltersFrontEnd();
-                console.log('filterProposalStatus', this.filterProposalStatus)
                 this.$emit('filter-appied');
             },
             filterProposalLodgedFrom: function () {
@@ -451,7 +449,6 @@
             addProposalsToMap: function(proposal_geojson){
                 let vm = this
                 let features = (new GeoJSON()).readFeatures(proposal_geojson);
-                console.log('feature', features);
                 this.proposalQuerySource.addFeatures(features);
             },
             loadFeatures: function (proposals) {
@@ -460,11 +457,17 @@
                 vm.proposalQuerySource.clear();
                 proposals.forEach(function (proposal) {
                     let feature = (new GeoJSON()).readFeatures(proposal.shapefile_json);
-                    console.log(feature)
-                    let f=feature[0]
-                    f.setProperties({
-                        proposal: proposal,
-                    })
+                     // let f=feature[0]
+                    // f.setProperties({
+                    //     proposal: proposal,
+                    // })
+                    if(feature.length>0){
+                        feature.forEach(function (f){
+                            f.setProperties({
+                            proposal: proposal,
+                            })
+                        });
+                    }
                     vm.proposalQuerySource.addFeatures(feature);
                 });
             },
@@ -790,7 +793,6 @@
                             if (resolution < 0.05 && resolution > 0.0001){
                                 let type = feature.getGeometry().getType();
                                 if (type === 'Polygon') {
-                                    console.log('hereP');
                                     return feature.getGeometry().getInteriorPoint();
 
                                 } else if (type === 'LineString') {
@@ -799,7 +801,6 @@
                                 } else if (type === 'Point') {
                                     return feature.getGeometry();
                                 } else if (type === 'MultiPolygon') {
-                                    console.log('here');
                                     return new Point(getCenter(feature.getGeometry().getExtent()), 'XY');
                                 }
                             }
@@ -926,7 +927,6 @@
                                     feature = vm.proposalQuerySource.getFeaturesAtCoordinate(coord)
                                 }
                                 let proposal = features[0].getProperties().proposal;
-                                console.log('selected proposal', proposal);
                                 vm.showPopup(feature[0])
                             } else {
                                 let geometry = feature.getGeometry();
@@ -1048,7 +1048,6 @@
                     let geometry = feature.getGeometry();
                     let coord = geometry.getCoordinates();
                     let proposal = feature.getProperties().proposal;
-                    console.log('selected proposal', proposal);
                     let type = feature.getGeometry().getType();
                     if (type === 'Polygon') {
                         coord= feature.getGeometry().getInteriorPoint();

@@ -289,7 +289,7 @@ module.exports = {
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,boxes);
         }
-        if ($.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
+        if (layer_val && $.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
             var applicant_boxes = this.generateAddInfoApplicantTextBoxes(h,c,val,assessorLevel,readonly, add_info_applicant_val);
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,applicant_boxes);
@@ -684,7 +684,7 @@ module.exports = {
                 // }
                 var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
-                var assessor_visibility_always=true;
+                var assessor_visibility_always=assessor_visibility;
                 boxes.push(
                     // {
                     //     "box_view": box_visibility,

@@ -5,8 +5,11 @@
                     <label  for="refresh_time_value" class="inline" >{{ refresh_time_val }}</label>
                     <input type="hidden" class="form-control" :name="refresh_timestamp_name" :value="refresh_time" />
                 </template>
-                <template>
+                <template v-if="!isRefreshing">
                     <a href="" @click.prevent="refresh">Refresh&nbsp;</i></a>
+                </template>
+                <template v-if="isRefreshing">
+                    <i class="fa fa-spin fa-spinner"></i>&nbsp;Refresh&nbsp;</i>
                 </template>
             </template>
         </span>     
@@ -28,6 +31,7 @@ data: function() {
     pBody: 'pBody',
     refresh_timestamp_name : this.parent_name+'-refresh-timestamp',
     refresh_time:this.refresh_time_value,
+    isRefreshing: false,
     }
   },
  computed:{
@@ -45,6 +49,7 @@ data: function() {
             mlq_data.label=vm.parent_label;
             mlq_data.name=vm.parent_name;
             let url = '/refresh'
+            vm.isRefreshing=true;
             await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,this.proposal_id + url),JSON.stringify(mlq_data),{
                     emulateJSON:true,
             }).then((response)=>{
@@ -52,6 +57,7 @@ data: function() {
                 console.log(response);
                 ele.value=response.body.value;
                 vm.refresh_time= response.body.sqs_timestamp
+                vm.isRefreshing=false;
                 
             },(error)=>{
                 swal(
@@ -60,7 +66,9 @@ data: function() {
                     //error.body,
                     'error'
                 )
+                vm.isRefreshing=false;
             });
+            vm.isRefreshing=false;
             //add api call here to get the refresh value and refresh time stamp
             // ele.value='456';
             // var sqs_timestamp="2023-05-24 11:52:37";
