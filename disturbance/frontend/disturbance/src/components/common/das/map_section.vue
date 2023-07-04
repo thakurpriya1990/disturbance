@@ -23,13 +23,18 @@
                 <div>
                     <div class="row">
                         <div class="col-sm-2">
-                            <input
-                                :disabled="valid_button_disabled"
-                                @click="validate_map_docs"
-                                type="button"
-                                value="Validate"
-                                class="btn btn-primary w-100"
-                            />
+                            <span v-if="isValidating">
+                                <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Validating</button>
+                            </span>
+                            <span v-else>
+                                <input
+                                    :disabled="valid_button_disabled"
+                                    @click="validate_map_docs"
+                                    type="button"
+                                    value="Validate"
+                                    class="btn btn-primary w-100"
+                                />
+                            </span>
                         </div>
                         <div class="col-sm-2">
                             <input
@@ -103,6 +108,7 @@
                 componentMapKey: 0,
                 showError:false,
                 errorString:'',
+                isValidating:false,
             }
         },
         components: {
@@ -162,16 +168,19 @@
                 let vm = this;
                 vm.showError=false;
                 vm.errorString='';
-                
+                vm.isValidating=true;
+                console.log('inside validate', vm.isValidating);
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/validate_map_files')).then(res=>{
                     //vm.proposal = res.body;
                     //vm.refreshFromResponse(res);
+                    vm.isValidating=false;
                     vm.$emit('refreshFromResponse',res);
                     },err=>{
                     console.log(err);
                     vm.showError=true;
                     vm.errorString=helpers.apiVueResourceError(err);
                     });
+                    vm.isValidating=false;
                 vm.$refs.component_map.updateShape();
             },
             prefill_proposal: function(){
