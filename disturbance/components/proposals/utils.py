@@ -59,7 +59,7 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
     special_fields_search = SpecialFieldsSearch(special_fields)
     add_info_applicant_search=AddInfoApplicantDataSearch()
     refresh_timestamp_search= RefreshTimestampSearch()
-    #add_info_assessor_search=AddInfoAssessorDataSearch()
+    add_info_assessor_search=AddInfoAssessorDataSearch()
     if assessor_data:
         assessor_fields_search = AssessorDataSearch()
         comment_fields_search = CommentDataSearch()
@@ -70,7 +70,7 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
             special_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
             add_info_applicant_search.extract_special_fields(item, post_data, file_data, 0, '')
             refresh_timestamp_search.extract_special_fields(item, post_data, file_data, 0, '')
-            #add_info_assessor_search.extract_special_fields(item, post_data, file_data, 0, '')
+            add_info_assessor_search.extract_special_fields(item, post_data, file_data, 0, '')
             if assessor_data:
                 assessor_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
                 comment_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
@@ -78,14 +78,14 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
         add_info_applicant_list = add_info_applicant_search.comment_data
         refresh_timestamp_list = refresh_timestamp_search.comment_data
         print('refresh', refresh_timestamp_list)
-        #add_info_assessor_list = add_info_assessor_search.comment_data
+        add_info_assessor_list = add_info_assessor_search.comment_data
         if assessor_data:
             assessor_data_list = assessor_fields_search.assessor_data
             comment_data_list = comment_fields_search.comment_data
     except:
         traceback.print_exc()
     if assessor_data:
-        return [data],special_fields_list,assessor_data_list,comment_data_list
+        return [data],special_fields_list,assessor_data_list,comment_data_list, add_info_assessor_list
 
     return [data],special_fields_list, add_info_applicant_list, refresh_timestamp_list
 
@@ -998,7 +998,6 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             form_data=json.loads(request.POST['schema'])
             sub_activity_level1=form_data.get('sub_activity_level1')
-            print(sub_activity_level1)
 
             logger.info("Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
 
@@ -1068,15 +1067,15 @@ def save_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
-            extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
+            extracted_fields,special_fields,assessor_data,comment_data, add_info_assessor = create_data_from_form(
                 instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
 
             logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
-
             data = {
                 'data': extracted_fields,
                 'assessor_data': assessor_data,
                 'comment_data': comment_data,
+                'add_info_assessor': add_info_assessor,
             }
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
