@@ -361,7 +361,8 @@
                         center: [115.95, -31.95],
                         zoom: 7,
                         projection: 'EPSG:4326'
-                    })
+                    }),
+                    pixelRatio: 1,
                 });
 
                 if(vm.shapefile_json && Object.keys(vm.shapefile_json).length>0){
