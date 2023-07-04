@@ -5,8 +5,11 @@
                     <label  for="refresh_time_value" class="inline" > {{ refresh_time_val }}</label>
                     <input type="hidden" class="form-control" :name="refresh_timestamp_name" :value="refresh_time" />
                 </template>
-                <template>
-                    <a href="" @click.prevent="refresh">Refresh&nbsp;</i></a>
+                <template v-if="!isRefreshing">
+                    <a href="" @click.prevent="refresh">Refresh&nbsp;</a>
+                </template>
+                <template v-if="isRefreshing">
+                    <i class="fa fa-spin fa-spinner"></i>&nbsp;Refresh&nbsp;</i>
                 </template>
             </template>
         </span>     
@@ -28,6 +31,7 @@ data: function() {
     pBody: 'pBody',
     refresh_timestamp_name : this.parent_name+'-refresh-timestamp',
     refresh_time:this.refresh_time_value,
+    isRefreshing: false,
     }
   },
  computed:{
@@ -49,6 +53,7 @@ data: function() {
             mlq_data.name=vm.parent_name;
             let url = '/refresh'
             var found=null;
+            vm.isRefreshing=true;
             await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,this.proposal_id + url),JSON.stringify(mlq_data),{
                     emulateJSON:true,
             }).then((response)=>{
@@ -65,6 +70,7 @@ data: function() {
                     }
                 }
                 vm.refresh_time= response.body.sqs_timestamp
+                vm.isRefreshing=false;
                 
             },(error)=>{
                 swal(
@@ -73,23 +79,10 @@ data: function() {
                     //error.body,
                     'error'
                 )
+                vm.isRefreshing=false;
             });
-            //add api call here to get the refresh value and refresh time stamp
-            //var values=['Section11-0-1', 'Section11-0-3']
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          
-            //console.log(found)
-            // if(values){
-            //     // if(found.length >1){
-            //     //     var e = document.createEvent('HTMLEvents');
-            //     //     e.initEvent('change', true, true);
-            //     //     for (const ele of found){
-            //     //         ele.dispatchEvent(e);
-            //     //     }
-                    
-            //     // }
-            //     var sqs_timestamp="2023-05-24 11:52:37";
-            //     vm.refresh_time_value= sqs_timestamp;
-            // }
+            vm.isRefreshing=false;
+            
         },
    }
 }
