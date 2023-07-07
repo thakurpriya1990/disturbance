@@ -279,6 +279,7 @@ class ProposalSerializer(BaseProposalSerializer):
             'add_info_assessor',
             'history_add_info_assessor',
             'refresh_timestamp',
+            'prefill_timestamp',
             'layer_data',
             # 'apiary_temporary_use_set',
         )
@@ -321,6 +322,7 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'add_info_assessor',
                 'history_add_info_assessor',
                 'refresh_timestamp',
+                'prefill_timestamp',
                 'schema',
                 'customer_status',
                 'processing_status',
@@ -448,6 +450,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'add_info_assessor',
                 'history_add_info_assessor',
                 'refresh_timestamp',
+                'prefill_timestamp',
                 'latest_referrals',
                 'allowed_assessors',
                 'proposed_issuance_approval',

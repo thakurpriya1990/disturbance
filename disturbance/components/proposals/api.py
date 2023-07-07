@@ -2377,8 +2377,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             else:
                 if instance.shapefile_json:
                     proposal = instance
-                    current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
-
+                    # current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
+                    if proposal.prefill_timestamp:
+                        current_ts= proposal.prefill_timestamp.strftime('%Y-%m-%dT%H:%M:%S')
+                    else:
+                        current_ts = proposal.prefill_timestamp
                     geojson=proposal.shapefile_json
 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
@@ -2438,6 +2441,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         instance.history_add_info_assessor=instance.get_history_add_info_assessor()
                         print(instance.history_add_info_assessor)
                         instance.add_info_assessor= resp['add_info_assessor']
+                    if resp and resp['when']:
+                        when=datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S')
+                        instance.prefill_timestamp=when
                     instance.save()
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   

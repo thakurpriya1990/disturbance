@@ -23,7 +23,7 @@
                 <div>
                     <div class="row">
                         <div class="col-sm-2">
-                            <span v-if="isValidating">
+                            <span v-if="validating">
                                 <button disabled class="btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Validating</button>
                             </span>
                             <span v-else>
@@ -43,6 +43,7 @@
                                 type="button"
                                 value="Prefill"
                                 class="btn btn-primary w-100"
+                                :title=prefill_timestamp
                             />
                         </div>
                     </div>
@@ -147,11 +148,17 @@
                 }
                 return true;
             },
+            validating: function(){
+                return this.isValidating;
+            },
             shapefile_json: function(){
                 return (this.proposal && this.proposal.shapefile_json) ? this.proposal.shapefile_json : {};
             },
             proposal_id: function(){
                 return (this.proposal && this.proposal.id) ? this.proposal.id : null;
+            },
+            prefill_timestamp: function(){
+                return (this.proposal && this.proposal.prefill_timestamp) ? 'This Proposal was last prefilled at ' + moment(this.proposal.prefill_timestamp).format('DD/MM/YYYY') + moment(this.proposal.prefill_timestamp).format(' h:mm:ss a') : '';
             },
             prefill_button_disabled: function(){
                 if(this.is_external && this.proposal && !this.proposal.readonly && this.proposal.shapefile_json){
@@ -164,31 +171,31 @@
              incrementComponentMapKey: function() {
                 this.componentMapKey++;
             },
-            validate_map_docs: function(){
+            validate_map_docs: async function(){
                 let vm = this;
                 vm.showError=false;
                 vm.errorString='';
                 vm.isValidating=true;
-                console.log('inside validate', vm.isValidating);
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/validate_map_files')).then(res=>{
+                await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/validate_map_files')).then(res=>{
                     //vm.proposal = res.body;
                     //vm.refreshFromResponse(res);
-                    vm.isValidating=false;
+                    //vm.isValidating=false;
                     vm.$emit('refreshFromResponse',res);
                     },err=>{
                     console.log(err);
                     vm.showError=true;
                     vm.errorString=helpers.apiVueResourceError(err);
                     });
-                    vm.isValidating=false;
+                    //vm.isValidating=false;
                 vm.$refs.component_map.updateShape();
+                vm.isValidating=false;
             },
-            prefill_proposal: function(){
+            prefill_proposal: async function(){
                 let vm = this;
                 vm.showError=false;
                 vm.errorString='';
                 
-                swal({
+                await swal({
                     title: "Prefill Proposal",
                     text: "Are you sure you want to prefill this Proposal? Prefilling the proposal will clear all the existing data.",
                     type: "warning",
@@ -210,8 +217,8 @@
                     await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
                     //vm.proposal = res.body;
                     //vm.refreshFromResponse(res);
-                    swal.hideLoading();
-                    swal.close();
+                    // swal.hideLoading();
+                    // swal.close();
                     vm.$emit('refreshFromResponse',res);
                     //vm.prefilling=false;
                     },err=>{
@@ -220,6 +227,8 @@
                     vm.showError=true;
                     vm.errorString=helpers.apiVueResourceError(err);
                     });
+                    swal.hideLoading();
+                    swal.close();
 
                     },(error) => {
                 });
