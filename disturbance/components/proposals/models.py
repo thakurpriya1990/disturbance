@@ -9,6 +9,7 @@ import datetime
 import pytz
 import requests
 import re
+import traceback
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
@@ -478,6 +479,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     prefill_timestamp = models.DateTimeField(blank=True, null=True)
     schema = JSONField(blank=False, null=False)
     proposed_issuance_approval = JSONField(blank=True, null=True)
+    gis_info = JSONField(blank=False, null=False)
     #hard_copy = models.ForeignKey(Document, blank=True, null=True, related_name='hard_copy')
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
@@ -1509,6 +1511,22 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 raise ValidationError('Please upload a valid shapefile') 
         except:
             raise ValidationError('Please upload a valid shapefile')
+
+    def get_lonlat(self):
+       ''' Get longitude and latitude from centroid of polygon
+           Returns Point(x,y)
+       ''' 
+       import geopandas as gpd 
+       try:
+           if self.shapefile_json is None:
+               logger.warn(f'No shapefile found. Upload shapefile to the Proposal first')
+               return
+           gdf = gpd.read_file(json.dumps(self.shapefile_json), driver='GeoJSON')
+           return gdf.centroid[0]
+       except Exception as e:
+           logger.error(f'Error getting lon/lat from shapefile {str(e)}\n' + str(traceback.print_exc()))
+
+       return None
         
     def prefill_proposal(self, request):
         import geopandas as gpd 
@@ -5871,8 +5889,8 @@ class SpatialQueryQuestion(models.Model):
 #        return "\n".join([q.label for q in self.question.option.all()])
 
 import reversion
-#reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
-reversion.register(Proposal, follow=['proposal_apiary'])
+reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
+#reversion.register(Proposal, follow=['proposal_apiary'])
 reversion.register(ProposalType)
 reversion.register(ProposalRequirement)            # related_name=requirements
 reversion.register(ProposalStandardRequirement)    # related_name=proposal_requirements
@@ -5919,6 +5937,9 @@ reversion.register(MasterlistQuestion)
 reversion.register(QuestionOption)
 reversion.register(ProposalTypeSection)
 reversion.register(SectionQuestion)
+
+#CDDP Spatial model
+reversion.register(SpatialQueryQuestion)
 
 
 

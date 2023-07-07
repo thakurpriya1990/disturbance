@@ -416,6 +416,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'approval_level_comment',
                 'region',
                 'district',
+                'gis_info',
                 'tenure',
                 'title',
                 'data',
@@ -474,7 +475,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'reversion_history',
                 'shapefile_json'
                 )
-        read_only_fields=('documents','requirements')
+        read_only_fields=('documents','requirements','gis_info',)
 
 
     def get_reversion_history(self, obj):
