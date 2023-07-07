@@ -1152,10 +1152,10 @@ export default {
                     //text: "Input Proposal Lodgement Number",
                     type: "question",
                     showCancelButton: true,
-                    confirmButtonText: 'Check',
+                    confirmButtonText: 'OK',
                     input: 'radio',
                     inputOptions: {
-                      'check_layer': 'Check Layer Exists on SQS',
+                      'check_layer':  'Check Layer Exists on SQS',
                       'reload_layer': 'Create/Update CDDP Layer in SQS',
                     }
                 }).then(async (result) => {

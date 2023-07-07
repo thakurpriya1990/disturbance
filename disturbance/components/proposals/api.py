@@ -1612,8 +1612,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         # search_label searches the p.schema for a given question section and 
         # returns the entire question section, including nested questions for that given question
-        schema, _bool = search_label(proposal.schema, mlq.question)
-        if all(not d for d in schema):
+        schema, _found = search_label(proposal.schema, mlq.question)
+        if _found is not True or all(not d for d in schema):
             # schema is empty
             return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -1673,8 +1673,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         # proposal = Proposal.objects.get(id=proposal_id)
         proposal = self.get_object()
 
-        schema, _bool = search_label(proposal.schema, mlq_label)
-        if all(not d for d in schema):
+        schema, _found = search_label(proposal.schema, mlq_label)
+        if _found is not True or all(not d for d in schema):
             # schema is empty
             return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {proposal.lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2448,20 +2448,20 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
 
-            # set Region and District
-            lon = instance.get_lonlat().x 
-            lat = instance.get_lonlat().y 
-            url = get_sqs_url('point_query/lonlat_attrs/')
-
-            payload = (('layer_name', 'cddp:dpaw_districts'), ('layer_attrs', 'district'), ('lon', lon), ('lat', lat))
-            r = requests.get(url=url, params=payload)
-            district_gis = r.json()['res']['district'] if r.status_code==status.HTTP_200_OK else logger.error('Error Getting district from SQS\n{r.content}')
-
-            payload = (('layer_name', 'cddp:dpaw_regions'), ('layer_attrs', 'region'), ('lon', lon), ('lat', lat))
-            r = requests.get(url=url, params=payload)
-            region_gis = r.json()['res']['region'] if r.status_code==status.HTTP_200_OK else logger.error('Error Getting region from SQS\n{r.content}')
-
-            instance.gis_info.update(dict(region_gis=region_gis, district_gis=district_gis))
+#            # set Region and District
+#            lon = instance.get_lonlat().x 
+#            lat = instance.get_lonlat().y 
+#            url = get_sqs_url('point_query/lonlat_attrs/')
+#
+#            payload = (('layer_name', 'cddp:dpaw_districts'), ('layer_attrs', 'district'), ('lon', lon), ('lat', lat))
+#            r = requests.get(url=url, params=payload)
+#            district_gis = r.json()['res']['district'] if r.status_code==status.HTTP_200_OK else logger.error('Error Getting district from SQS\n{r.content}')
+#
+#            payload = (('layer_name', 'cddp:dpaw_regions'), ('layer_attrs', 'region'), ('lon', lon), ('lat', lat))
+#            r = requests.get(url=url, params=payload)
+#            region_gis = r.json()['res']['region'] if r.status_code==status.HTTP_200_OK else logger.error('Error Getting region from SQS\n{r.content}')
+#
+#            instance.gis_info.update(dict(region_gis=region_gis, district_gis=district_gis))
 
             instance.save(version_comment='Prefill Proposal')
             instance.log_user_action(ProposalUserAction.ACTION_PREFILL_PROPOSAL.format(instance.lodgement_number), request)
@@ -4558,10 +4558,16 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         Get current available layers on SQS Server.
         To test (from DAS shell): 
             requests.get('http://localhost:8002/api/v1/layers.json')
+
+        To test via DAS redirect:
+            requests.get('http://localhost:8003/api/spatial_query/get_sqs_layers/')
         ''' 
         #url = f'{settings.SQS_APIURL}layers/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/'
 
         # check and get from cache to avoid rapid repeated API Calls to SQS
+        if 'clear_cache' in request.GET:
+            cache.delete('sqs_layers')
+
         data = cache.get('sqs_layers')
         if not data:
             url = get_sqs_url('layers/')
@@ -4713,14 +4719,12 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         data = self.get_serializer(instance).data
 
-#        qs_das_map_layer = DASMapLayer.objects.filter(id=instance.layer_id)
-#        if not qs_das_map_layer.exists():
-#            return JsonResponse(data={'errors': f'Layer is not present in DASMapLayer model'}, status=status.HTTP_400_BAD_REQUEST)
-
-        #url = f'{settings.SQS_APIURL}layers/check_sqs_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/layers/check_sqs_layer/'
-
         # check and get from cache to avoid rapid repeated API Calls to SQS
-        data = cache.get('sqs_layers')
+        cache_key = f'sqs_layer_{instance.layer_name}'
+        if 'clear_cache' in request.GET:
+            cache.delete(cache_key)
+
+        data = cache.get(cache_key)
         if not data:
             url = get_sqs_url(f'layers/check_layer')
             resp = requests.get(url=url, params={'layer_name':instance.layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
@@ -4732,7 +4736,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                     return Response({'errors': resp.content}, status=resp.status_code)
 
             data = resp.json()
-            cache.set('sqs_layers', json.dumps(data), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
+            cache.set(cache_key, json.dumps(data), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
         else:
             data = json.loads(data)
 
