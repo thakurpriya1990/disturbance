@@ -53,6 +53,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'region',
                 'district',
                 'tenure',
+                'gis_info',
                 #'assessor_data',
                 'data',
                 'schema',
@@ -87,7 +88,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'fee_invoice_references',
                 'fee_paid',
                 )
-        read_only_fields=('documents',)
+        read_only_fields=('documents', 'gis_info',)
 
     def get_documents_url(self,obj):
         return '/media/proposals/{}/documents/'.format(obj.id)
