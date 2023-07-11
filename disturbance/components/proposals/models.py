@@ -479,7 +479,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     prefill_timestamp = models.DateTimeField(blank=True, null=True)
     schema = JSONField(blank=False, null=False)
     proposed_issuance_approval = JSONField(blank=True, null=True)
-    gis_info = JSONField(blank=False, null=False)
+    gis_info = JSONField(blank=True, null=True)
     #hard_copy = models.ForeignKey(Document, blank=True, null=True, related_name='hard_copy')
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
