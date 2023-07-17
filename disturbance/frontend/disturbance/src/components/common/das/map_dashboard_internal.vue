@@ -64,13 +64,32 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
+                                    Get GeoJSON</button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
+                                        Download PNG</button>
+                                    <a id="image-download" download="map.png"></a>
+                                </div>
+                                
+                            </div>
                         </template>
                     </div>
                 </div>
-                <div class="d-flex justify-content-end align-items-center mb-2">
+                
+
+                <!-- <div class="d-flex justify-content-end align-items-center mb-2">
                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
                         Get GeoJSON</button>
                 </div>
+                <div class="d-flex justify-content-end align-items-center mb-2">
+                    <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
+                        Download PNG</button>
+                    <a id="image-download" download="map.png"></a>
+                </div> -->
                 <div :id="elem_id" class="map" style="position: relative;">
                     
                     <div v-show="fullscreen" id="filter_search_on_map">
@@ -401,6 +420,61 @@
                 let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
                 vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
             },
+            exportPNG: function () {
+                let vm = this;
+                vm.map.once('rendercomplete', function () {
+                    const mapCanvas = document.createElement('canvas');
+                    const size = vm.map.getSize();
+                    mapCanvas.width = size[0];
+                    mapCanvas.height = size[1];
+                    const mapContext = mapCanvas.getContext('2d');
+                    Array.prototype.forEach.call(
+                    vm.map.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer'),
+                    function (canvas) {
+                        if (canvas.width > 0) {
+                        const opacity =
+                            canvas.parentNode.style.opacity || canvas.style.opacity;
+                        mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+                        let matrix;
+                        const transform = canvas.style.transform;
+                        if (transform) {
+                            // Get the transform parameters from the style's transform matrix
+                            matrix = transform
+                            .match(/^matrix\(([^\(]*)\)$/)[1]
+                            .split(',')
+                            .map(Number);
+                        } else {
+                            matrix = [
+                            parseFloat(canvas.style.width) / canvas.width,
+                            0,
+                            0,
+                            parseFloat(canvas.style.height) / canvas.height,
+                            0,
+                            0,
+                            ];
+                        }
+                        // Apply the transform to the export map context
+                        CanvasRenderingContext2D.prototype.setTransform.apply(
+                            mapContext,
+                            matrix
+                        );
+                        const backgroundColor = canvas.parentNode.style.backgroundColor;
+                        if (backgroundColor) {
+                            mapContext.fillStyle = backgroundColor;
+                            mapContext.fillRect(0, 0, canvas.width, canvas.height);
+                        }
+                        mapContext.drawImage(canvas, 0, 0);
+                        }
+                    }
+                    );
+                    mapContext.globalAlpha = 1;
+                    mapContext.setTransform(1, 0, 0, 1, 0, 0);
+                    const link = document.getElementById('image-download');
+                    link.href = mapCanvas.toDataURL();
+                    link.click();
+                });
+            vm.map.renderSync();
+            },
             
             applySelect2: function(){
                 let vm = this
@@ -611,7 +685,8 @@
                                 tiled: true,
                                 STYLES: '',
                                 LAYERS: layers[i].layer_full_name
-                            }
+                            },
+                            crossOrigin: 'Anonymous',
                         });
 
                         let tileLayer= new TileLayer({
