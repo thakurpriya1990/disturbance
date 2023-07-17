@@ -700,6 +700,7 @@ class ProposedApprovalSerializer(serializers.Serializer):
     start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
     details = serializers.CharField()
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+    confirmation = serializers.BooleanField(required=False,default=False)
 
 #    batch_no = serializers.CharField(required=False,allow_null=True, allow_blank=True)
 #    cpc_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
