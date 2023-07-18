@@ -161,16 +161,18 @@
     import ContactLicenceHolderModal from "@/components/common/apiary/contact_licence_holder_modal.vue"
     import uuid from 'uuid'
     import Vue from 'vue'
-
+    import proj from 'ol/proj'
     import 'ol/ol.css';
     import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     import Map from 'ol/Map';
     import View from 'ol/View';
+    import Extent from 'ol/interaction/Extent';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    import WMTSTilegrid from 'ol/tilegrid/WMTS';
     import Collection from 'ol/Collection';
     import { Draw, Modify, Snap } from 'ol/interaction';
     import VectorLayer from 'ol/layer/Vector';
@@ -194,6 +196,8 @@
     import { api_endpoints } from '@/utils/hooks'
     import { fromLonLat } from 'ol/proj'
     import {getCenter} from 'ol/extent'
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent'
 
     export default {
         name: 'MapDashboard',
@@ -719,6 +723,24 @@
             
             initMap: function() {
                 let vm = this;
+                var ol = {'proj': proj, 'extent': Extent,}
+                var projection = getProjection("EPSG:3857");
+                var projectionExtent = projection.getExtent();
+                var s = getWidth(projectionExtent) / 256;
+                var matrixSet = "mercator";
+                var resolutions = new Array(21);
+                var matrixIds = new Array(21);
+                for (var c = 0; c < 21; ++c)
+                    resolutions[c] = s / Math.pow(2, c),
+                    matrixIds[c] = matrixSet + ":" + c;
+                
+                var m = new WMTSTilegrid({
+                    origin: getTopLeft(projectionExtent),
+                    resolutions: resolutions,
+                    matrixIds: matrixIds
+                });
+                console.log('above')
+                console.log(m)
 
                 let satelliteTileWms = new TileWMS({
                     url: env['kmi_server_url'] + '/geoserver/public/wms',
@@ -730,13 +752,32 @@
                         LAYERS: 'public:mapbox-satellite',
                     }
                 });
+                vm.tileLayerOsm= new TileLayer({
+                    name: "street",
+                    canDelete: "no",
+                    visible: !0,
+                    source: new WMTS({
+                        url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        format: "image/png",
+                        layer: "public:mapbox-streets",
+                        matrixSet: matrixSet,
+                        projection: 'EPSG:3857',
+                        tileGrid: m
+                    })
 
-                vm.tileLayerOsm = new TileLayer({
-                    title: 'OpenStreetMap',
-                    type: 'base',
-                    visible: true,
-                    source: new OSM(),
-                });
+                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        // format: "image/png",
+                        // layer: "public:mapbox-streets",
+                        // style: 'default',
+                        // projection: 'EPSG:3857',
+                    }),
+
+                // vm.tileLayerOsm = new TileLayer({
+                //     title: 'OpenStreetMap',
+                //     type: 'base',
+                //     visible: true,
+                //     source: new OSM(),
+                // });
 
                 vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
