@@ -813,6 +813,12 @@ export default {
                     blank_fields.push(' You must select at least one site to transfer')
                 }
              }
+             else{
+                if((!vm.proposal.region) || (!vm.proposal.district))
+                {
+                    blank_fields.push('Region or District cannot be blank')
+                }
+             }
 
             if(blank_fields.length==0){
                 return true;
