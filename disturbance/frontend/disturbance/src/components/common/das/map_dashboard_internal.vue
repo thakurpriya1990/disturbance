@@ -739,8 +739,6 @@
                     resolutions: resolutions,
                     matrixIds: matrixIds
                 });
-                console.log('above')
-                console.log(m)
 
                 let satelliteTileWms = new TileWMS({
                     url: env['kmi_server_url'] + '/geoserver/public/wms',
