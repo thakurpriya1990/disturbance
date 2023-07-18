@@ -73,6 +73,17 @@
                                     </div>
                                 </div>
                             </div>
+                            <div v-if="processing_status != 'With Approver'" class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <label>
+                                            <input  name="confirmation" type="checkbox" class="control-label pull-left"  v-model="approval.confirmation" /> &nbsp;
+                                            I confirm
+                                        </label>
+                                    </div>
+                                    
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -90,7 +101,7 @@
 
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else-if="approval && approval.confirmation" class="btn btn-default" @click="ok">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -176,7 +187,8 @@ export default {
             return vm.startDateError;
         },
         title: function(){
-            return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
+            //return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
+            return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Submit to Approver';
         },
         is_amendment: function(){
             return this.proposal_type == 'Amendment' ? true : false;
