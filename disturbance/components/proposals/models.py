@@ -1557,7 +1557,28 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return history
         except:
             raise
-        
+    
+    def get_layers_info():
+        import geopandas as gpd
+        import requests
+
+        qs=DASMapLayer.objects.filter(layer_url__isnull=False)
+        gdf = gpd.GeoDataFrame()
+        if qs:
+            for layer in qs:
+                if layer.layer_url:
+                    if 'public' not in layer.layer_url:
+                        response = requests.get('{}'.format(layer.layer_url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
+                    else:
+                        response=requests.get('{}'.format(layer.layer_url), verify=None)
+                    layer_gdf = gpd.GeoDataFrame.from_features(response.json()["features"])
+                    gdf = gdf.append(layer_gdf)
+
+        output_file='/data/data/projects/disturbance_das_gis/media/proposals/1734/documents/map_docs/output/layers.geojson'
+        gdf.to_file(output_file, driver="GeoJSON")
+
+        #res = requests.get('{}'.format(self.url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
+
 
 
     def submit(self,request,viewset):
@@ -2016,6 +2037,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
+                            'confirmation': details.get('confirmation'),
 
                             #'cpc_date' : cpc_date,
                             #'minister_date' : minister_date,
@@ -2197,6 +2219,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                     'details': details.get('details'),
                     'cc_email':details.get('cc_email'),
+                    'confirmation': details.get('confirmation')
 
 #                    'cpc_date' : details.get('cpc_date').strftime('%d/%m/%Y'),
 #                    'minister_date' : details.get('minister_date').strftime('%d/%m/%Y'),

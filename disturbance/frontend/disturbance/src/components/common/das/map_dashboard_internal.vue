@@ -64,13 +64,32 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
+                                    Get GeoJSON</button>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
+                                        Download PNG</button>
+                                    <a id="image-download" download="map.png"></a>
+                                </div>
+                                
+                            </div>
                         </template>
                     </div>
                 </div>
-                <div class="d-flex justify-content-end align-items-center mb-2">
+                
+
+                <!-- <div class="d-flex justify-content-end align-items-center mb-2">
                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
                         Get GeoJSON</button>
                 </div>
+                <div class="d-flex justify-content-end align-items-center mb-2">
+                    <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
+                        Download PNG</button>
+                    <a id="image-download" download="map.png"></a>
+                </div> -->
                 <div :id="elem_id" class="map" style="position: relative;">
                     
                     <div v-show="fullscreen" id="filter_search_on_map">
@@ -142,16 +161,18 @@
     import ContactLicenceHolderModal from "@/components/common/apiary/contact_licence_holder_modal.vue"
     import uuid from 'uuid'
     import Vue from 'vue'
-
+    import proj from 'ol/proj'
     import 'ol/ol.css';
     import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     import Map from 'ol/Map';
     import View from 'ol/View';
+    import Extent from 'ol/interaction/Extent';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
     import WMTS, {optionsFromCapabilities} from 'ol/source/WMTS';
+    import WMTSTilegrid from 'ol/tilegrid/WMTS';
     import Collection from 'ol/Collection';
     import { Draw, Modify, Snap } from 'ol/interaction';
     import VectorLayer from 'ol/layer/Vector';
@@ -175,6 +196,8 @@
     import { api_endpoints } from '@/utils/hooks'
     import { fromLonLat } from 'ol/proj'
     import {getCenter} from 'ol/extent'
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent'
 
     export default {
         name: 'MapDashboard',
@@ -401,6 +424,61 @@
                 let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
                 vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
             },
+            exportPNG: function () {
+                let vm = this;
+                vm.map.once('rendercomplete', function () {
+                    const mapCanvas = document.createElement('canvas');
+                    const size = vm.map.getSize();
+                    mapCanvas.width = size[0];
+                    mapCanvas.height = size[1];
+                    const mapContext = mapCanvas.getContext('2d');
+                    Array.prototype.forEach.call(
+                    vm.map.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer'),
+                    function (canvas) {
+                        if (canvas.width > 0) {
+                        const opacity =
+                            canvas.parentNode.style.opacity || canvas.style.opacity;
+                        mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
+                        let matrix;
+                        const transform = canvas.style.transform;
+                        if (transform) {
+                            // Get the transform parameters from the style's transform matrix
+                            matrix = transform
+                            .match(/^matrix\(([^\(]*)\)$/)[1]
+                            .split(',')
+                            .map(Number);
+                        } else {
+                            matrix = [
+                            parseFloat(canvas.style.width) / canvas.width,
+                            0,
+                            0,
+                            parseFloat(canvas.style.height) / canvas.height,
+                            0,
+                            0,
+                            ];
+                        }
+                        // Apply the transform to the export map context
+                        CanvasRenderingContext2D.prototype.setTransform.apply(
+                            mapContext,
+                            matrix
+                        );
+                        const backgroundColor = canvas.parentNode.style.backgroundColor;
+                        if (backgroundColor) {
+                            mapContext.fillStyle = backgroundColor;
+                            mapContext.fillRect(0, 0, canvas.width, canvas.height);
+                        }
+                        mapContext.drawImage(canvas, 0, 0);
+                        }
+                    }
+                    );
+                    mapContext.globalAlpha = 1;
+                    mapContext.setTransform(1, 0, 0, 1, 0, 0);
+                    const link = document.getElementById('image-download');
+                    link.href = mapCanvas.toDataURL();
+                    link.click();
+                });
+            vm.map.renderSync();
+            },
             
             applySelect2: function(){
                 let vm = this
@@ -611,7 +689,8 @@
                                 tiled: true,
                                 STYLES: '',
                                 LAYERS: layers[i].layer_full_name
-                            }
+                            },
+                            crossOrigin: 'Anonymous',
                         });
 
                         let tileLayer= new TileLayer({
@@ -644,6 +723,22 @@
             
             initMap: function() {
                 let vm = this;
+                var ol = {'proj': proj, 'extent': Extent,}
+                var projection = getProjection("EPSG:3857");
+                var projectionExtent = projection.getExtent();
+                var s = getWidth(projectionExtent) / 256;
+                var matrixSet = "mercator";
+                var resolutions = new Array(21);
+                var matrixIds = new Array(21);
+                for (var c = 0; c < 21; ++c)
+                    resolutions[c] = s / Math.pow(2, c),
+                    matrixIds[c] = matrixSet + ":" + c;
+                
+                var m = new WMTSTilegrid({
+                    origin: getTopLeft(projectionExtent),
+                    resolutions: resolutions,
+                    matrixIds: matrixIds
+                });
 
                 let satelliteTileWms = new TileWMS({
                     url: env['kmi_server_url'] + '/geoserver/public/wms',
@@ -655,13 +750,32 @@
                         LAYERS: 'public:mapbox-satellite',
                     }
                 });
+                vm.tileLayerOsm= new TileLayer({
+                    name: "street",
+                    canDelete: "no",
+                    visible: !0,
+                    source: new WMTS({
+                        url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        format: "image/png",
+                        layer: "public:mapbox-streets",
+                        matrixSet: matrixSet,
+                        projection: 'EPSG:3857',
+                        tileGrid: m
+                    })
 
-                vm.tileLayerOsm = new TileLayer({
-                    title: 'OpenStreetMap',
-                    type: 'base',
-                    visible: true,
-                    source: new OSM(),
-                });
+                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        // format: "image/png",
+                        // layer: "public:mapbox-streets",
+                        // style: 'default',
+                        // projection: 'EPSG:3857',
+                    }),
+
+                // vm.tileLayerOsm = new TileLayer({
+                //     title: 'OpenStreetMap',
+                //     type: 'base',
+                //     visible: true,
+                //     source: new OSM(),
+                // });
 
                 vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',

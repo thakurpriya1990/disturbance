@@ -69,7 +69,9 @@
     import 'ol/ol.css';
     import 'ol-layerswitcher/dist/ol-layerswitcher.css'
     //import 'index.css';  // copy-and-pasted the contents of this file at the <style> section below in this file
-
+    import proj from 'ol/proj'
+    import Extent from 'ol/interaction/Extent';
+    import WMTSTilegrid from 'ol/tilegrid/WMTS';
     import Map from 'ol/Map';
     import View from 'ol/View';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
@@ -93,6 +95,8 @@
     import { getDisplayNameFromStatus, getDisplayNameOfCategory, getStatusForColour, getApiaryFeatureStyle } from '@/components/common/apiary/site_colours.js'
     import { getArea, getLength } from 'ol/sphere'
     import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
+    import {get as getProjection} from 'ol/proj';
+    import {getTopLeft, getWidth} from 'ol/extent';
 
     export default {
         props:{
@@ -325,6 +329,23 @@
             initMap: function() {
                 let vm = this;
 
+                var ol = {'proj': proj, 'extent': Extent,}
+                var projection = getProjection("EPSG:3857");
+                var projectionExtent = projection.getExtent();
+                var s = getWidth(projectionExtent) / 256;
+                var matrixSet = "mercator";
+                var resolutions = new Array(21);
+                var matrixIds = new Array(21);
+                for (var c = 0; c < 21; ++c)
+                    resolutions[c] = s / Math.pow(2, c),
+                    matrixIds[c] = matrixSet + ":" + c;
+                
+                var m = new WMTSTilegrid({
+                    origin: getTopLeft(projectionExtent),
+                    resolutions: resolutions,
+                    matrixIds: matrixIds
+                });
+
                 let satelliteTileWms = new TileWMS({
                             url: env['kmi_server_url'] + '/geoserver/public/wms',
                             params: {
@@ -336,12 +357,32 @@
                             }
                         });
 
-                vm.tileLayerOsm = new TileLayer({
-                    title: 'OpenStreetMap',
-                    type: 'base',
-                    visible: true,
-                    source: new OSM(),
-                });
+                // vm.tileLayerOsm = new TileLayer({
+                //     title: 'OpenStreetMap',
+                //     type: 'base',
+                //     visible: true,
+                //     source: new OSM(),
+                // });
+
+                vm.tileLayerOsm= new TileLayer({
+                    name: "street",
+                    canDelete: "no",
+                    visible: !0,
+                    source: new WMTS({
+                        url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        format: "image/png",
+                        layer: "public:mapbox-streets",
+                        matrixSet: matrixSet,
+                        projection: 'EPSG:3857',
+                        tileGrid: m
+                    })
+
+                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        // format: "image/png",
+                        // layer: "public:mapbox-streets",
+                        // style: 'default',
+                        // projection: 'EPSG:3857',
+                    }),
 
                 vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
