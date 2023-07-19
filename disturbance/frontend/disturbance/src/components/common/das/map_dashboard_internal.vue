@@ -690,7 +690,7 @@
                                 STYLES: '',
                                 LAYERS: layers[i].layer_full_name
                             },
-                            crossOrigin: 'Anonymous',
+                            //crossOrigin: 'Anonymous',
                         });
 
                         let tileLayer= new TileLayer({
@@ -748,7 +748,7 @@
                         tiled: true,
                         STYLES: '',
                         LAYERS: 'public:mapbox-satellite',
-                    }
+                    },
                 });
                 vm.tileLayerOsm= new TileLayer({
                     name: "street",
@@ -760,7 +760,8 @@
                         layer: "public:mapbox-streets",
                         matrixSet: matrixSet,
                         projection: 'EPSG:3857',
-                        tileGrid: m
+                        tileGrid: m,
+                        //crossOrigin: 'Anonymous'
                     })
 
                         // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
