@@ -40,6 +40,15 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="">Applicant</label>
+                                        <select class="form-control" v-model="filterProposalApplicant">
+                                            <option value="All">All</option>
+                                            <option v-for="s in proposal_applicants" :value="s.id">{{s.search_term}}</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-3">
@@ -64,6 +73,7 @@
                                     </div>
                                 </div>
                             </div>
+                            
                             <div class="row">
                                 <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
@@ -222,6 +232,7 @@
                 filterProposalLodgedFrom: '',
                 filterProposalLodgedTo: '',
                 filterProposalSubmitter: 'All',
+                filterProposalApplicant: 'All',
                 proposalQuerySource: null,
                 proposalClusterLayer: null,
                 elem_id: uuid(),
@@ -263,6 +274,7 @@
                 application_types : [],
                 regions: [],
                 proposal_submitters: [],
+                proposal_applicants: [],
                 proposal_status: [],
                 external_status:[
                     {value: 'draft', name: 'Draft'},
@@ -335,6 +347,10 @@
                 this.applyFiltersFrontEnd();
                 this.$emit('filter-appied');
             },
+            filterProposalApplicant: function () {
+                this.applyFiltersFrontEnd();
+                this.$emit('filter-appied');
+            },
         },
         computed: {
             ruler_colour: function(){
@@ -375,6 +391,9 @@
                 }
                 if ('All' != this.filterProposalSubmitter) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.submitter == this.filterProposalSubmitter)]
+                }
+                if ('All' != this.filterProposalApplicant) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.applicant_id == this.filterProposalApplicant)]
                 }
                 this.loadFeatures(this.filteredProposals);
             },
@@ -1405,6 +1424,7 @@
                     vm.activity_titles = response.body.activities;
                     vm.application_types = response.body.application_types;
                     vm.proposal_submitters = response.body.submitters;
+                    vm.proposal_applicants = response.body.applicants;
                     //vm.proposal_status = response.body.processing_status_choices;
                     vm.proposal_status = vm.level == 'internal' ? vm.internal_status: vm.external_status;
                 },(error) => {

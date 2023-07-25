@@ -4962,14 +4962,18 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+            applicant_qs = qs.filter(applicant__isnull=False).distinct(
+                            'applicant_id').values_list('applicant_id','applicant__organisation__name',)
 
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
+        applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
         data = dict(
             regions=region_qs,
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
+            applicants=applicants,
             #application_types=application_type_qs,
             processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
             ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
