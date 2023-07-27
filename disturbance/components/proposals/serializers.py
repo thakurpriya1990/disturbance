@@ -1331,6 +1331,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     submitter_full_name = serializers.CharField(source='submitter.get_full_name')
     submitter = serializers.CharField(source='submitter.email')
     applicant_name= serializers.CharField(source='applicant.name')
+    application_type_name= serializers.CharField(source='application_type.name')
 
     class Meta:
         model = Proposal
@@ -1358,6 +1359,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'applicant_id',
                 'applicant_name',
                 'shapefile_json',
+                'application_type_name',
 
                 )
     

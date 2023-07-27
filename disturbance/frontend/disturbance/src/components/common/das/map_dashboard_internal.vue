@@ -72,6 +72,15 @@
                                         </select>
                                     </div>
                                 </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label for="">Application Type</label>
+                                        <select class="form-control" v-model="filterProposalApplicationType">
+                                            <option value="All">All</option>
+                                            <option v-for="a in application_types" :value="a">{{a}}</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
                             
                             <div class="row">
@@ -351,6 +360,10 @@
                 this.applyFiltersFrontEnd();
                 this.$emit('filter-appied');
             },
+            filterProposalApplicationType: function () {
+                this.applyFiltersFrontEnd();
+                this.$emit('filter-appied');
+            },
         },
         computed: {
             ruler_colour: function(){
@@ -394,6 +407,9 @@
                 }
                 if ('All' != this.filterProposalApplicant) {
                     this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.applicant_id == this.filterProposalApplicant)]
+                }
+                if ('All' != this.filterProposalApplicationType) {
+                    this.filteredProposals = [...this.filteredProposals.filter(proposal => proposal.application_type_name == this.filterProposalApplicationType)]
                 }
                 this.loadFeatures(this.filteredProposals);
             },
