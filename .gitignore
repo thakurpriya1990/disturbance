@@ -36,6 +36,7 @@ var/
 *.bak
 *.csv
 *.xls*
+*.tgz*
 !CDDP_Layers_v1.xlsx
 
 # PyInstaller
