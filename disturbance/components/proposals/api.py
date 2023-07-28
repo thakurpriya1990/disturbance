@@ -4614,8 +4614,8 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 if a[0] not in excl_how_choices
             ]
 
-#            qs_mlq = MasterlistQuestion.objects.all()
-#            masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
+            qs_mlq = MasterlistQuestion.objects.all()
+            masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
 
             qs_cddp = CddpQuestionGroup.objects.all()
             cddp_groups = CddpQuestionGroupSerializer(qs_cddp, context={'request': request}, many=True).data
@@ -4646,9 +4646,9 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 {
                     'operators': operators,
                     'how': how,
-#                    'all_masterlist': masterlist,
                     'cddp_groups': cddp_groups,
                     'das_map_layers': das_map_layers,
+                    'all_masterlist': masterlist,
 #                    'expired_cddp_questions': expired_cddp_questions,
                 },
                 status=status.HTTP_200_OK
