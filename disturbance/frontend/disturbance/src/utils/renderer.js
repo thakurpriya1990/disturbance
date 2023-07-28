@@ -57,10 +57,13 @@ module.exports = {
         assessor_visibility = !assessor_visibility;
 
         // Editablility
-        readonly = !visibility.editable;
+        // readonly = !visibility.editable;
+        var orig_readonly = !visibility.editable;
 
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
         var layer_val = (layerData) ? layerData.find(at => at.name == c.name) : null;
+        //Make components answered by SQS readonly
+        readonly = (layer_val) ? true : orig_readonly;
         var refresh_timestamp = (refreshTimeStamp) ? (refreshTimeStamp[c.name]) ? refreshTimeStamp[c.name] : null : null;
         //console.log(layerData);
         //var comment_val = (commentData) ? (commentData[c.name]) ? commentData[c.name] : null : null;
@@ -290,7 +293,7 @@ module.exports = {
             Array.prototype.push.apply(_elements,boxes);
         }
         if (layer_val && $.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
-            var applicant_boxes = this.generateAddInfoApplicantTextBoxes(h,c,val,assessorLevel,readonly, add_info_applicant_val);
+            var applicant_boxes = this.generateAddInfoApplicantTextBoxes(h,c,val,assessorLevel,orig_readonly, add_info_applicant_val);
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,applicant_boxes);
         }
@@ -639,7 +642,7 @@ module.exports = {
                 var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
                 applicant_visibility = !applicant_visibility;
                 boxes.push(
-                    <AssessorText box_view={box_visibility} type="text" name={applicant_name} value={applicant_val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
+                    <AssessorText box_view={box_visibility} type="text" name={applicant_name} value={applicant_val} label={'Additional Info (proponent)'} help_text={c.help_text} readonly={readonly}/>
                 )
             }
             else{
@@ -648,7 +651,7 @@ module.exports = {
                     var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
                     applicant_visibility = !applicant_visibility;
                     boxes.push(
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={blank_val} label={'Additional Info (applicant)'} help_text={c.help_text} readonly={readonly}/>
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={blank_val} label={'Additional Info (proponent)'} help_text={c.help_text} readonly={readonly}/>
                     )                
             }
         if (boxes.length > 0){

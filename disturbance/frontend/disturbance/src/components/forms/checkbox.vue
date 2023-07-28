@@ -42,19 +42,27 @@ export default {
   },
   mounted:function () {
       let vm = this;
+      var readonly= vm.readonly;
+      readonly= (vm.$parent && vm.$parent.layer_val) ? true : vm.readonly;
       if (vm.isChecked) {
           var input = this.$refs.Checkbox;
           var e = document.createEvent('HTMLEvents');
           e.initEvent('change', true, true);
 
           /* replacing input.disabled with onclick because disabled checkbox does NOT get posted with form on submit */
-          if(vm.readonly) {
+          // if(vm.readonly) {
+           if(readonly) {
               vm.isClickable = "return false;";
           } else {
               vm.isClickable = "return true;";
 		  }
           input.dispatchEvent(e);
       }
+      if(readonly) {
+              vm.isClickable = "return false;";
+          } else {
+              vm.isClickable = "return true;";
+		  }
   }
 }
 </script>
