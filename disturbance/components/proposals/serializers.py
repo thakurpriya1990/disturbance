@@ -1330,6 +1330,8 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     approval_status= serializers.SerializerMethodField()
     submitter_full_name = serializers.CharField(source='submitter.get_full_name')
     submitter = serializers.CharField(source='submitter.email')
+    applicant_name= serializers.CharField(source='applicant.name')
+    application_type_name= serializers.CharField(source='application_type.name')
 
     class Meta:
         model = Proposal
@@ -1347,13 +1349,17 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'submitter', 
                 'submitter_full_name',
                 'lodgement_number',
-                'shapefile_json',
+                #'shapefile_json',
                 'lodgement_date',
                 'proposal_type',
                 'approval_lodgement_number',
                 'approval_start_date',
                 'approval_expiry_date',
                 'approval_status',
+                'applicant_id',
+                'applicant_name',
+                'shapefile_json',
+                'application_type_name',
 
                 )
     
