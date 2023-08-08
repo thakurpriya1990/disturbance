@@ -181,6 +181,8 @@ urlpatterns = [
     url(r'^api/oracle_job$', main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),
         name='booking-settlements-report'),
+    url('kmi-proxy/(?P<path>.*)', views.kmiProxyView),
+    url('kb-proxy/(?P<path>.*)', views.kbProxyView),
 
                   # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
 ] + ledger_patterns + media_serv_patterns

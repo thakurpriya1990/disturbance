@@ -24,6 +24,9 @@ from django.core.management import call_command
 from rest_framework.response import Response
 from rest_framework import views
 
+from django.views.decorators.csrf import csrf_exempt
+from proxy.views import proxy_view
+
 
 logger = logging.getLogger(__name__)
 
@@ -239,3 +242,27 @@ def validate_invoice_details(request):
             "unpaid_invoice_exists": False,
             "alert_message": "There are no unpaid invoices that meet the criteria.",
         })
+
+
+
+@csrf_exempt
+def kbProxyView(request, path):
+    from requests.auth import HTTPBasicAuth
+    if request.user.is_authenticated():
+        user=settings.KB_USER
+        password=settings.KB_PASSWORD
+        remoteurl=settings.KB_SERVER_URL + path
+        return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
+    return
+
+@csrf_exempt
+def kmiProxyView(request, path):
+    extra_requests_args={}
+    # remoteurl = 'https://kmi.dbca.wa.gov.au/' + path
+    from requests.auth import HTTPBasicAuth
+    if request.user.is_authenticated():
+        user=settings.KMI_USER
+        password=settings.KMI_PASSWORD
+        remoteurl=settings.KMI_API_SERVER_URL + path
+        return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
+    return

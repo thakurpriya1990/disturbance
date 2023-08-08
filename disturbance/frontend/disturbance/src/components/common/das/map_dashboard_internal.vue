@@ -715,9 +715,11 @@
                 let vm = this
                 this.$http.get('/api/das_map_layers/').then(response => {
                     let layers = response.body
-                    for (var i = 0; i < layers.length; i++){
+                    for (var i = 0; i < layers.length; i++ ){
                         let l = new TileWMS({
-                            url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
+                            // url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
+                            //url:'/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url:'/kmi-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
@@ -790,7 +792,8 @@
                     canDelete: "no",
                     visible: !0,
                     source: new WMTS({
-                        url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        url: "/kmi-proxy/geoserver/gwc/service/wmts",
                         format: "image/png",
                         layer: "public:mapbox-streets",
                         matrixSet: matrixSet,
