@@ -4,6 +4,7 @@ from django.db import IntegrityError, transaction
 
 from disturbance.components.proposals.models import SpatialQueryQuestion, CddpQuestionGroup
 from disturbance.components.main.models import DASMapLayer
+from ledger.accounts.models import EmailUser
 import pandas as pd
 
 import logging
@@ -35,7 +36,9 @@ COLUMN_MAPPING = {
     'Info for Assessor[17]':            'assessor_info',
     'PrefixInfo[18]':                   'prefix_info',
     'NoPolygonsToProcessAssessor[19]':  'no_polygons_assessor',
-    'Regions[9]':                       'regions',
+    #'Regions[9]':                       'regions',
+    'CDDP_group':                       'cddp_group',
+    'Group_members':                    'group_members',
 }
 
 
@@ -50,7 +53,6 @@ class CDDPLayerReader():
     r.run_migration()
     '''
     def __init__(self, filename):
-        self.errors = []
         self.df = self.read_file(filename)
 
     def read_file(self, filename):
@@ -58,7 +60,7 @@ class CDDPLayerReader():
 
         # Rename the cols from Spreadsheet headers to Model fields names
         df = df.rename(columns=COLUMN_MAPPING)
-        df = df.drop(columns=['component_type'])
+        #df = df.drop(columns=['component_type'])
         df = df.drop(columns=['attribute_table'])
         df = df.drop(columns=['unnamed_10'])
 
@@ -72,52 +74,74 @@ class CDDPLayerReader():
         #df.drop('N/A', axis=1, inplace=True)  
         return df
 
-
-    def run_migration(self):
+    def add_users(self):
         # Iterate through the dataframe and insert into each row into model
+        user_errors = []
         for index, row in self.df.iterrows():
+            #import ipdb; ipdb.set_trace()
             try:
-                #m = SpatialQueryQuestion(**row.to_dict())
-                #m.save()
-                try:
-                    l = DASMapLayer.objects.get(layer_name=row.layer_name)
-                except ObjectDoesNotExist as oe:
-                    l = DASMapLayer.objects.create(display_name=row.layer_name, layer_name=row.layer_name, layer_url=row.layer_url)
+                group_name = row.cddp_group
+                users = row.group_members.split(',')
 
-                try:
-                    g = CddpQuestionGroup.objects.get(name='default')
-                except ObjectDoesNotExist as oe:
-                    g = CddpQuestionGroup.objects.create(name='default', default=True)
-
-                m = SpatialQueryQuestion(
-                    question=row.question,
-                    answer_mlq=row.answer_mlq,
-                    layer_id=l.id,
-                    group_id=g.id,
-                    #layer_name=
-                    #layer_url=
-                    expiry=row.expiry,
-                    visible_to_proponent=row.visible_to_proponent,
-                    buffer=row.buffer,
-                    how=row.how,
-                    column_name=row.column_name,
-                    operator=row.operator,
-                    value=row.value,
-                    answer=row.answer,
-                    prefix_answer=row.prefix_answer,
-                    no_polygons_proponent=row.no_polygons_proponent,
-                    assessor_info=row.assessor_info,
-                    prefix_info=row.prefix_info,
-                    no_polygons_assessor=row.no_polygons_assessor,
-                    regions=row.regions
-                )
-                m.save()
+                group, created = CddpQuestionGroup.objects.get_or_create(name=group_name)
+                for user in users:
+                    qs = EmailUser.objects.filter(email=user)
+                    if qs.exists():
+                        user = qs[0]
+                        group.members.add(user)
 
             except Exception as e:
                 import ipdb; ipdb.set_trace()
-                self.errors.append(f'{row.to_dict()} {NL} {e} {NL}{NL}')
+                user_errors.append(f'{row.to_dict()} {NL} {e} {NL}{NL}')
  
-        print(f'Errors: {self.errors}')
+        print(f'Errors: {user_errors}')
+
+
+
+    def run_migration(self):
+        # Iterate through the dataframe and insert into each row into model
+        errors = []
+        for index, row in self.df.iterrows():
+            try:
+                if row.component_type:
+                    #m = SpatialQueryQuestion(**row.to_dict())
+                    #m.save()
+                    try:
+                        l = DASMapLayer.objects.get(layer_name=row.layer_name)
+                    except ObjectDoesNotExist as oe:
+                        l = DASMapLayer.objects.create(display_name=row.layer_name, layer_name=row.layer_name, layer_url=row.layer_url)
+
+                    g = CddpQuestionGroup.objects.get(name=row.cddp_group)
+
+                    m = SpatialQueryQuestion(
+                        question=row.question,
+                        answer_mlq=row.answer_mlq,
+                        layer_id=l.id,
+                        group_id=g.id,
+                        #layer_name=
+                        #layer_url=
+                        expiry=row.expiry,
+                        visible_to_proponent=row.visible_to_proponent,
+                        buffer=row.buffer,
+                        how=row.how,
+                        column_name=row.column_name,
+                        operator=row.operator,
+                        value=row.value,
+                        answer=row.answer,
+                        prefix_answer=row.prefix_answer,
+                        no_polygons_proponent=row.no_polygons_proponent,
+                        assessor_info=row.assessor_info,
+                        prefix_info=row.prefix_info,
+                        no_polygons_assessor=row.no_polygons_assessor,
+                        regions='All', #row.regions
+                    )
+                    m.save()
+
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+                errors.append(f'{row.to_dict()} {NL} {e} {NL}{NL}')
+ 
+        print(f'Errors: {errors}')
 
 
 
