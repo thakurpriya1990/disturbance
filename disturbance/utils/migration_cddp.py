@@ -46,10 +46,12 @@ class CDDPLayerReader():
     '''
     from disturbance.utils.migration_cddp import CDDPLayerReader
     CDDPLayerReader('disturbance/utils/csv/CDDP_Layers_v1.xlsx')
+    r.add_users()
     r.run_migration()
 
     from disturbance.utils.migration_cddp import CDDPLayerReader
     r = CDDPLayerReader('/app/shared/CDDP_Layers_v1.xlsx')
+    r.add_users()
     r.run_migration()
     '''
     def __init__(self, filename):
