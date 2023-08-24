@@ -322,6 +322,19 @@ def search_keys(dictionary, search_list=['help_text', 'label']):
 
     return help_list
 
+def get_schema_questions(dictionary):
+    '''
+    from disturbance.utils import get_schema_questions
+    p=Proposal.objects.get(id=1541)
+    qlist = get_schema_questions(p.schema)
+
+    '8.10.4 Attach a Road Access Plan (CEM018)' in qlist
+    Out[52]: True
+
+    '''
+    _dict = search_keys(dictionary, search_list=['name', 'label'])
+    return [i['label'] for i in _dict if i['label']]
+
 def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
     """
     Return search_list pairs from
@@ -546,50 +559,50 @@ def are_migrations_running():
     # return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv)
     return sys.argv and ('migrate' in sys.argv or 'makemigrations' in sys.argv or 'showmigrations' in sys.argv or 'sqlmigrate' in sys.argv)
 
-def search_section(schema, section_label, question, data, answer):
-    for item in schema:
-        children=[]
-        question_names=[]
-        found_fields=[]
-        section_label=section_label.replace(" ","")
-        question_label=question.question
-        question_type=question.answer_type
-
-        if item['type']=='section' and item['name']:
-            item_name=item['name'].rstrip('0123456789')
-            if item_name==section_label:
-                children=item['children']
-                if children:
-                    #children_keys= search_keys_group(children, ['name', 'label', 'group'])
-                    children_keys= search_keys_group(item, ['name', 'label', 'group'])
-                    if children_keys:
-                        question_names=[]
-                        for key in children_keys:
-                            if 'label' in key and key['label']==question_label:
-                                if question_type=='checkbox':
-                                    for ch in children_keys:
-                                        if 'group' in ch and ch['group']==key['name'] and ch['label']==answer:
-                                            question_names.append({'name': ch['name'], 'label': ch['label']})
-                                else:
-                                    question_names.append({'name': key['name'], 'label': key['label']})
-
-
-        data = flatten(data[0])
-        for flat_key in data.items():
-            for item in question_names:
-                key_name=flat_key[0]
-                #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
-                if len(key_name[len(key_name.rstrip('0123456789')):])==4:
-                    key_name=key_name[:-5]
-
-                if key_name.endswith(item['name']):
-                    if flat_key[1].strip():
-                        if question_type=='checkbox':
-                            if 'on' in flat_key[1]:
-                                found_fields.append( dict(key=item['label'], value=flat_key[1]) ) 
-                        else: 
-                            if answer.replace(" ","").lower() in flat_key[1].lower():
-                                found_fields.append( dict(key=item['label'], value=flat_key[1]) )
-        return found_fields
+#def search_section(schema, section_label, question, data, answer):
+#    for item in schema:
+#        children=[]
+#        question_names=[]
+#        found_fields=[]
+#        section_label=section_label.replace(" ","")
+#        question_label=question.question
+#        question_type=question.answer_type
+#
+#        if item['type']=='section' and item['name']:
+#            item_name=item['name'].rstrip('0123456789')
+#            if item_name==section_label:
+#                children=item['children']
+#                if children:
+#                    #children_keys= search_keys_group(children, ['name', 'label', 'group'])
+#                    children_keys= search_keys_group(item, ['name', 'label', 'group'])
+#                    if children_keys:
+#                        question_names=[]
+#                        for key in children_keys:
+#                            if 'label' in key and key['label']==question_label:
+#                                if question_type=='checkbox':
+#                                    for ch in children_keys:
+#                                        if 'group' in ch and ch['group']==key['name'] and ch['label']==answer:
+#                                            question_names.append({'name': ch['name'], 'label': ch['label']})
+#                                else:
+#                                    question_names.append({'name': key['name'], 'label': key['label']})
+#
+#
+#        data = flatten(data[0])
+#        for flat_key in data.items():
+#            for item in question_names:
+#                key_name=flat_key[0]
+#                #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
+#                if len(key_name[len(key_name.rstrip('0123456789')):])==4:
+#                    key_name=key_name[:-5]
+#
+#                if key_name.endswith(item['name']):
+#                    if flat_key[1].strip():
+#                        if question_type=='checkbox':
+#                            if 'on' in flat_key[1]:
+#                                found_fields.append( dict(key=item['label'], value=flat_key[1]) ) 
+#                        else: 
+#                            if answer.replace(" ","").lower() in flat_key[1].lower():
+#                                found_fields.append( dict(key=item['label'], value=flat_key[1]) )
+#        return found_fields
 
 

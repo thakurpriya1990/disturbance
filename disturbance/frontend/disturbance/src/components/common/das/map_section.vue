@@ -233,15 +233,15 @@
                     },(error) => {
                 });
                 
-                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
-                    //vm.proposal = res.body;
-                    //vm.refreshFromResponse(res);
-                    vm.$emit('refreshFromResponse',res);
-                    },err=>{
-                    console.log(err);
-                    vm.showError=true;
-                    vm.errorString=helpers.apiVueResourceError(err);
-                    });
+//                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
+//                    //vm.proposal = res.body;
+//                    //vm.refreshFromResponse(res);
+//                    vm.$emit('refreshFromResponse',res);
+//                    },err=>{
+//                    console.log(err);
+//                    vm.showError=true;
+//                    vm.errorString=helpers.apiVueResourceError(err);
+//                    });
                 //vm.$refs.component_map.updateShape();
             },
             refreshFromResponse:function(response){

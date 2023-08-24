@@ -48,7 +48,7 @@ from disturbance.components.proposals.models import ProposalDocument, searchKeyW
     SupportingApplicationDocument, search_sections
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
-from disturbance.utils import search_tenure, search_label
+from disturbance.utils import search_tenure, search_label, get_schema_questions
 from disturbance.components.main.utils import (
     check_db_connection,
     get_template_group,
@@ -1524,9 +1524,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_questions = json.loads(rendered)
 
-        # group by question
-        questions = [i['question'] for i in masterlist_questions]
+        # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
+        schema_questions = get_schema_questions(proposal.schema) 
+        questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
         unique_questions = list(set(questions))
+
+        # group by question
         question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
         for question_dict in question_group_list:
             for sqq_record in masterlist_questions:
@@ -1534,6 +1537,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if question_dict['question_group'] in sqq_record.values():
                     question_dict['questions'].append(sqq_record)
 
+        #import ipdb; ipdb.set_trace()
         data = dict(
             proposal=dict(
                 id=proposal.id,
@@ -1600,15 +1604,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         ''' Start Checks '''
         mlq = masterlist_question_qs[0]
-        #schema_res = search_schema(proposal.id, question=mlq.question)
-
-#        if schema_res:
-#            if 'text' not in schema_res['type'] and not mlq.answer_mlq:
-#                # the widget type is neither ['text', textbox], 
-#                # therefore answer_mlq is required (for select, multi-select, checkbox, radiobutton)
-#                return JsonResponse(data={'errors': f'CDDP Question: An answer is required for widget type  <br/> {schema_res["type"]}.'}, status=status.HTTP_400_BAD_REQUEST)
-#        else:
-#            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
         # search_label searches the p.schema for a given question section and 
         # returns the entire question section, including nested questions for that given question
@@ -1616,6 +1611,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
         if _found is not True or all(not d for d in schema):
             # schema is empty
             return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+
+        #import ipdb; ipdb.set_trace()
+        # Check question exists in proposal.schema
+        #schema_questions = get_schema_questions(proposal.schema)
+        #if mlq.question not in schema_questions:
+        #    # schema is empty
+        #    return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
         if mlq.expiry < datetime.now().date():
             return JsonResponse(
@@ -2390,9 +2392,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
-                    # group by question
-                    questions = [i['question'] for i in masterlist_questions]
+                    # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
+                    schema_questions = get_schema_questions(proposal.schema) 
+                    questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
                     unique_questions = list(set(questions))
+
+                    # group by question
                     question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
                     for question_dict in question_group_list:
                         for sqq_record in masterlist_questions:
@@ -2441,9 +2446,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         instance.history_add_info_assessor=instance.get_history_add_info_assessor()
                         print(instance.history_add_info_assessor)
                         instance.add_info_assessor= resp['add_info_assessor']
-                    if resp and resp['when']:
-                        when=datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S')
+                    if resp and 'when' in resp and resp['when']:
+                        when=datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
                         instance.prefill_timestamp=when
+                    else:
+                        # set this to prevent SQS cache looping indefinitely
+                        instance.prefill_timestamp=datetime.now().replace(tzinfo=pytz.utc)
                     instance.save()
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
