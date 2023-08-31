@@ -34,6 +34,11 @@ ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
 ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 
+# Use Australian Mirrors
+RUN sed 's/archive.ubuntu.com/au.archive.ubuntu.com/g' /etc/apt/sources.list > /etc/apt/sourcesau.list
+RUN mv /etc/apt/sourcesau.list /etc/apt/sources.list
+# Use Australian Mirrors
+
 #ARG build_tag=None
 #ENV BUILD_TAG=$build_tag
 #RUN echo "*************************************************** Build TAG = $build_tag ***************************************************"
@@ -65,7 +70,8 @@ vim \
 #ssh \
 python3-gevent \
 software-properties-common \
-imagemagick
+imagemagick \
+npm
 
 RUN add-apt-repository ppa:deadsnakes/ppa && \
 apt-get update && \
@@ -100,7 +106,9 @@ echo $TZ > /etc/timezone && \
 touch /app/.env
 COPY .git ./.git
 COPY disturbance ./disturbance
-RUN  mkdir /app/disturbance/static/disturbance_vue/static
+RUN mkdir -p /app/disturbance/static/disturbance_vue/static
+RUN cd /app/disturbance/frontend/disturbance; npm install
+RUN cd /app/disturbance/frontend/disturbance; npm run build
 RUN python manage_ds.py collectstatic --noinput && \
 mkdir /app/tmp/ && \
 chmod 777 /app/tmp/
