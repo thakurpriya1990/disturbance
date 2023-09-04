@@ -249,12 +249,15 @@ def validate_invoice_details(request):
 
 
 @csrf_exempt
-def kbProxyView(request, path):
+def kbProxyViewOrig(request, path):
     from requests.auth import HTTPBasicAuth
     if request.user.is_authenticated():
-        user=settings.KB_USER
+        # user=settings.KB_USER
+        # password=settings.KB_PASSWORD
+        user=settings.KMI_USER
         password=settings.KB_PASSWORD
         remoteurl=settings.KB_SERVER_URL + path
+        #remoteurl=settings.KB_API_URL + path
         return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
     return
 
@@ -290,11 +293,48 @@ def kmiProxyView(request, path):
         proxy_response_content = None
         base64_json = {}
         if proxy_cache is None:
+            proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
+            proxy_response_content_encoded = base64.b64encode(proxy_response.content)
+            #import ipdb; ipdb.set_trace()
+            base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'][1], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
+            if proxy_response.status_code == 200: 
+                cache.set(query_string_remote_url, json.dumps(base64_json), CACHE_EXPIRY)
+            else:
+                cache.set(query_string_remote_url, json.dumps(base64_json), 15)
+        else:
+            #print (query_string_remote_url)
+            base64_json = json.loads(proxy_cache)
+        proxy_response_content = base64.b64decode(base64_json["content"].encode())
+        http_response =   HttpResponse(proxy_response_content, content_type=base64_json['content_type'], status=base64_json['status_code'])
+        
+        #import ipdb; ipdb.set_trace()        
+        http_response['Django-Cache-Expiry']= str(base64_json['cache_expiry']) + " seconds"
+        return http_response
+        #return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
+    return
+
+@csrf_exempt
+def kbProxyView(request, path):
+    extra_requests_args={}
+    from requests.auth import HTTPBasicAuth
+    if request.user.is_authenticated(): 
+        user=settings.KMI_USER
+        password=settings.KB_PASSWORD
+        CACHE_EXPIRY=300
+        remoteurl=settings.KB_SERVER_URL + path
+        query_string_remote_url=remoteurl+'?'+request.META['QUERY_STRING']
+        proxy_response = None
+        proxy_cache = cache.get(query_string_remote_url)
+        proxy_response_content = None
+        base64_json = {}
+        print('query string')
+        print(query_string_remote_url)
+        if proxy_cache is None:
             print ("NOT CACHED")
             proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
             proxy_response_content_encoded = base64.b64encode(proxy_response.content)
             #import ipdb; ipdb.set_trace()
-            base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
+            base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'][1], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
             if proxy_response.status_code == 200: 
                 cache.set(query_string_remote_url, json.dumps(base64_json), CACHE_EXPIRY)
             else:
@@ -304,11 +344,10 @@ def kmiProxyView(request, path):
             #print (query_string_remote_url)
             base64_json = json.loads(proxy_cache)
         proxy_response_content = base64.b64decode(base64_json["content"].encode())
-        print(proxy_response)
         http_response =   HttpResponse(proxy_response_content, content_type=base64_json['content_type'], status=base64_json['status_code'])
         
         #import ipdb; ipdb.set_trace()        
-        #http_response._headers['Django-Cache-Expiry']= str(base64_json['cache_expiry']) + " seconds"
+        http_response['Django-Cache-Expiry']= str(base64_json['cache_expiry']) + " seconds"
         return http_response
         #return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
     return

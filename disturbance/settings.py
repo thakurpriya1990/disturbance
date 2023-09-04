@@ -120,6 +120,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': os.path.join(BASE_DIR, 'disturbance', 'cache'),
+        "OPTIONS": {"MAX_ENTRIES": 10000},
     }
 }
 SQS_LAYERS_CACHE_TIMEOUT = env('SQS_LAYERS_CACHE_TIMEOUT', 60*5) # 5 mins
@@ -261,6 +262,7 @@ KMI_USER = env('KMI_USER', '')
 KMI_PASSWORD = env('KMI_PASSWORD', '')
 
 KB_SERVER_URL = env('KB_SERVER_URL', 'https://gis-kaartdijin-boodja-geoserver-api-dev.dbca.wa.gov.au/')
+KB_API_URL=env("KMI_URL", 'https://kaartdijin-boodja.dbca.wa.gov.au/')
 KB_USER = env('KB_USER', '')
 KB_PASSWORD = env('KB_PASSWORD', '')
 

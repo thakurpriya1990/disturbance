@@ -718,8 +718,8 @@
                     for (var i = 0; i < layers.length; i++ ){
                         let l = new TileWMS({
                             // url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
-                            //url:'/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
-                            url:'/kmi-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url:'/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
+                            //url:'/kmi-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
