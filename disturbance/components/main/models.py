@@ -53,6 +53,7 @@ class DASMapLayer(models.Model):
     display_name = models.CharField(max_length=100, blank=True, null=True)
     layer_name = models.CharField(max_length=200, blank=True, null=True)
     layer_url = models.CharField(max_length=256, blank=True, null=True)
+    cache_expiry = models.IntegerField(default=300)
     option_for_internal = models.BooleanField(default=True)
     option_for_external = models.BooleanField(default=True)
     display_all_columns = models.BooleanField(default=False)

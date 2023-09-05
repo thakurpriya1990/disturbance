@@ -359,8 +359,12 @@ def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
             if key and key.endswith(search_item1):
                 found_key={}
                 found_key.update({search_item1: i[key]})
-                corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + search_item2
-                corresponding_group_key = '.'.join(key.split('.')[:-1]) + '.' + search_item3
+                if '.' in key:
+                    corresponding_label_key = '.'.join(key.split('.')[:-1]) + '.' + search_item2
+                    corresponding_group_key = '.'.join(key.split('.')[:-1]) + '.' + search_item3
+                else:
+                    corresponding_label_key =  search_item2
+                    corresponding_group_key =  search_item3
                 for j in result:
                     key_label = list(j.keys())[0]
                     if key_label and key_label.endswith(search_item2) and key_label == corresponding_label_key: # and result.has_key(key):
@@ -370,7 +374,6 @@ def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
                 help_list.append(found_key)
         except Exception as e:
             print(e)
-
     return help_list
 
 def missing_required_fields(proposal):

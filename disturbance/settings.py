@@ -30,6 +30,8 @@ SQS_APIURL = SQS_BASEURL
 
 SQS_USER = env('SQS_USER', '')
 SQS_PASS = env('SQS_PASS', '')
+LEDGER_USER = env('LEDGER_USER', '')
+LEDGER_PASS = env('LEDGER_PASS', '')
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -118,6 +120,7 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': os.path.join(BASE_DIR, 'disturbance', 'cache'),
+        "OPTIONS": {"MAX_ENTRIES": 10000},
     }
 }
 SQS_LAYERS_CACHE_TIMEOUT = env('SQS_LAYERS_CACHE_TIMEOUT', 60*5) # 5 mins
@@ -254,6 +257,15 @@ LOGGING['loggers']['apiary'] = {
 #    }    
 
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
+KMI_API_SERVER_URL = env('KMI_API_SERVER_URL', 'https://kmi-api.dbca.wa.gov.au/')
+KMI_USER = env('KMI_USER', '')
+KMI_PASSWORD = env('KMI_PASSWORD', '')
+
+KB_SERVER_URL = env('KB_SERVER_URL', 'https://gis-kaartdijin-boodja-geoserver-api-dev.dbca.wa.gov.au/')
+KB_API_URL=env("KMI_URL", 'https://kaartdijin-boodja.dbca.wa.gov.au/')
+KB_USER = env('KB_USER', '')
+KB_PASSWORD = env('KB_PASSWORD', '')
+
 
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
