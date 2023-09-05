@@ -25,7 +25,8 @@ from rest_framework.response import Response
 from rest_framework import views
 
 from django.views.decorators.csrf import csrf_exempt
-from proxy.views import proxy_view
+#from proxy.views import proxy_view
+from wagov_utils.components.proxy.views import proxy_view
 from django.core.cache import cache
 from django.http import HttpResponse, JsonResponse
 import base64
