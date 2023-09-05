@@ -15,7 +15,7 @@ from rest_framework.renderers import JSONRenderer
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.serializers import WaCoastSerializer, WaCoastOptimisedSerializer
 from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
-from disturbance.helpers import is_internal, is_disturbance_admin, is_apiary_admin, is_das_apiary_admin
+from disturbance.helpers import is_internal, is_disturbance_admin, is_apiary_admin, is_das_apiary_admin, get_proxy_cache
 from disturbance.forms import *
 from disturbance.components.proposals.models import Referral, Proposal, HelpPage
 from disturbance.components.compliances.models import Compliance
@@ -273,25 +273,26 @@ def kmiProxyOrigView(request, path):
 
 @csrf_exempt
 def kmiProxyView(request, path):
-    extra_requests_args={}
-    # remoteurl = 'https://kmi.dbca.wa.gov.au/' + path
+    
     from requests.auth import HTTPBasicAuth
     if request.user.is_authenticated():
-        #Working code
-        # user=settings.KMI_USER
-        # password=settings.KMI_PASSWORD
-        # remoteurl=settings.KMI_API_SERVER_URL + path
-        # return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
-        #Working code end
         user=settings.KMI_USER
         password=settings.KMI_PASSWORD
-        CACHE_EXPIRY=300
+
+       
         remoteurl=settings.KMI_API_SERVER_URL + path
         query_string_remote_url=remoteurl+'?'+request.META['QUERY_STRING']
         proxy_response = None
         proxy_cache = cache.get(query_string_remote_url)
         proxy_response_content = None
         base64_json = {}
+        cache_times_strings = get_proxy_cache()
+        CACHE_EXPIRY=300
+
+        for cts in cache_times_strings:
+            if cts['layer_name'] in query_string_remote_url:
+                CACHE_EXPIRY = cts['cache_expiry']
+            print (cts['layer_name'])
         if proxy_cache is None:
             proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
             proxy_response_content_encoded = base64.b64encode(proxy_response.content)
@@ -351,3 +352,65 @@ def kbProxyView(request, path):
         return http_response
         #return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
     return
+
+
+@csrf_exempt
+def process_proxy(request, remoteurl, queryString, auth_user, auth_password):
+    
+    from requests.auth import HTTPBasicAuth
+    if request.user.is_authenticated():
+        proxy_cache= None
+        proxy_response = None
+        proxy_response_content = None
+        base64_json = {}
+        query_string_remote_url=remoteurl+'?'+queryString
+
+        cache_times_strings = get_proxy_cache()
+        CACHE_EXPIRY=300
+
+        proxy_cache = cache.get(query_string_remote_url)
+
+        for cts in cache_times_strings:
+            layer_name=cts['layer_name'].split(':')[-1]
+            if layer_name in query_string_remote_url:
+                CACHE_EXPIRY = cts['cache_expiry']
+        if proxy_cache is None:
+            auth_details = None
+            if auth_user is None and auth_password is None:
+                auth_details = None
+            else:
+                auth_details = {"user": auth_user, 'password' : auth_password}
+            proxy_response = proxy_view(request, remoteurl, basic_auth=auth_details)
+            proxy_response_content_encoded = base64.b64encode(proxy_response.content)
+            base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'][1], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
+            if proxy_response.status_code == 200: 
+                cache.set(query_string_remote_url, json.dumps(base64_json), CACHE_EXPIRY)
+            else:
+                cache.set(query_string_remote_url, json.dumps(base64_json), 15)
+        else:
+            base64_json = json.loads(proxy_cache)
+        proxy_response_content = base64.b64decode(base64_json["content"].encode())
+        http_response =   HttpResponse(proxy_response_content, content_type=base64_json['content_type'], status=base64_json['status_code'])        
+        http_response['Django-Cache-Expiry']= str(base64_json['cache_expiry']) + " seconds"
+        return http_response
+    return
+
+@csrf_exempt
+def mapProxyView(request, path):
+    if request.user.is_authenticated:
+        queryString = request.META['QUERY_STRING']      
+        remoteurl = None
+        auth_user = None
+        auth_password = None
+        if 'kmi-proxy' in request.path:
+            remoteurl = settings.KMI_API_SERVER_URL + path 
+            auth_user = settings.KMI_USER
+            auth_password = settings.KMI_PASSWORD
+        elif 'kb-proxy' in request.path:
+            remoteurl = settings.KB_SERVER_URL + path 
+            auth_user = settings.KB_USER
+            auth_password = settings.KB_PASSWORD
+        response = process_proxy(request, remoteurl, queryString, auth_user, auth_password)
+        return response
+    else:
+        raise ValidationError('User is not authenticated')
