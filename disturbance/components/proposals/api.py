@@ -4453,6 +4453,17 @@ class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
     def filter_queryset(self, request, queryset, view):
         # Get built-in DRF datatables queryset first to join with search text,
         # then apply additional filters.
+        search_text = request.GET.get('search[value]')
+        if queryset.model is SpatialQueryQuestion:
+            if search_text:
+                search_text = search_text.lower()
+                search_text_masterlist_ids = SpatialQueryQuestion.objects.values(
+                    'id'
+                ).filter(question__icontains=search_text)
+
+                queryset = queryset.filter(
+                    id__in=search_text_masterlist_ids
+                ).distinct()
 
         total_count = queryset.count()
 
