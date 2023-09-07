@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
 from datetime import date
+from django.core.cache import cache
 
 from disturbance.components.main.utils import overwrite_regions_polygons, overwrite_districts_polygons
 
@@ -65,7 +66,10 @@ class DASMapLayer(models.Model):
     def __str__(self):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
 
-    
+    def save(self, *args, **kwargs):
+        cache.delete('utils_cache.get_proxy_cache()')
+        self.full_clean()
+        super(DASMapLayer, self).save(*args, **kwargs)
 
 
 @python_2_unicode_compatible
