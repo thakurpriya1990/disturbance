@@ -261,7 +261,9 @@ KMI_API_SERVER_URL = env('KMI_API_SERVER_URL', 'https://kmi-api.dbca.wa.gov.au/'
 KMI_USER = env('KMI_USER', '')
 KMI_PASSWORD = env('KMI_PASSWORD', '')
 
-KB_SERVER_URL = env('KB_SERVER_URL', 'https://gis-kaartdijin-boodja-geoserver-api-dev.dbca.wa.gov.au/')
+# KB_SERVER_URL = env('KB_SERVER_URL', 'https://gis-kaartdijin-boodja-geoserver-api-dev.dbca.wa.gov.au/')
+
+KB_SERVER_URL = env('KB_SERVER_URL', 'https://kaartdijin-boodja-geoserver-api.dbca.wa.gov.au/')
 KB_API_URL=env("KMI_URL", 'https://kaartdijin-boodja.dbca.wa.gov.au/')
 KB_USER = env('KB_USER', '')
 KB_PASSWORD = env('KB_PASSWORD', '')
