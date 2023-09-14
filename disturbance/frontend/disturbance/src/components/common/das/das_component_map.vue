@@ -276,7 +276,8 @@
                     for (var i = 0; i < layers.length; i++){
                         let l = new TileWMS({
                             // url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
-                            url: '/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
+                            //url: '/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
+                            url: layers[i].layer_group_name ? '/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms' : '/kb-proxy/geoserver/wms',
                             params: {
                                 'FORMAT': 'image/png',
                                 'VERSION': '1.1.1',
