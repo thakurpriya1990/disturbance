@@ -442,6 +442,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'requirements_completed',
                 'reversion_history',
+                'reissued',
                 )
         read_only_fields=('documents','requirements')
 

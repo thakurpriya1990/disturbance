@@ -80,6 +80,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 # 'fee_invoice_reference',
                 'fee_invoice_references',
                 'fee_paid',
+                'reissued',
                 )
         read_only_fields=('documents',)
 
