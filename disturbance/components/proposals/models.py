@@ -5845,10 +5845,10 @@ class SpatialQueryQuestion(models.Model):
         (FLOAT, 'Float'),
     )
                          
-#    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
-#    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
-    question = models.TextField('Question (Masterlist Question)')
-    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
+    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
+#    question = models.TextField('Question (Masterlist Question)')
+#    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
 
     layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE) #, blank=True, null=True)
     group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)

@@ -1512,7 +1512,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         geojson=proposal.shapefile_json
 
-        #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
         masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
         if not masterlist_question_qs.exists():
             return Response(
@@ -1537,7 +1536,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 if question_dict['question_group'] in sqq_record.values():
                     question_dict['questions'].append(sqq_record)
 
-        #import ipdb; ipdb.set_trace()
         data = dict(
             proposal=dict(
                 id=proposal.id,
@@ -1607,19 +1605,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         # search_label searches the p.schema for a given question section and 
         # returns the entire question section, including nested questions for that given question
-        schema, _found = search_label(proposal.schema, mlq.question)
+        schema, _found = search_label(proposal.schema, mlq.question.question)
         if _found is not True or all(not d for d in schema):
             # schema is empty
             return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        #import ipdb; ipdb.set_trace()
         # Check question exists in proposal.schema
         #schema_questions = get_schema_questions(proposal.schema)
         #if mlq.question not in schema_questions:
         #    # schema is empty
         #    return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if mlq.expiry < datetime.now().date():
+        if mlq.expiry and mlq.expiry < datetime.now().date():
             return JsonResponse(
                 data = {'errors': f'CDDP question is expired <br/> {mlq.question} <br/> {mlq.expiry}.'},
                 status=status.HTTP_400_BAD_REQUEST
@@ -1627,7 +1624,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         ''' End Checks '''
 
         if group_mlqs:
-            question_group_list = [{'question_group': masterlist_question_qs[0].question, 'questions': []}]
+            question_group_list = [{'question_group': masterlist_question_qs[0].question.question, 'questions': []}]
             for question_dict in question_group_list:
                 for sqq_record in masterlist_questions_all:
                     #print(j['layer_name'])
@@ -1682,13 +1679,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         geojson=proposal.shapefile_json
         # serialize masterlist question
-        masterlist_question_qs = SpatialQueryQuestion.objects.filter(question=mlq_label)
+        masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question=mlq_label)
         if not masterlist_question_qs.exists():
             return JsonResponse(
                 data={'errors': 'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        elif masterlist_question_qs[0].expiry < datetime.now().date():
+        elif masterlist_question_qs[0].expiry and masterlist_question_qs[0].expiry < datetime.now().date():
             mlq = masterlist_question_qs[0]
             return Response(
                 date={'errors': 'CDDP question is expired {mlq.question}: {mlq.expired}.'},
@@ -2395,6 +2392,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
                     schema_questions = get_schema_questions(proposal.schema) 
                     questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
+                    #questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions and '1.2 In which' in i['question']]
                     unique_questions = list(set(questions))
 
                     # group by question
@@ -4459,7 +4457,7 @@ class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
                 search_text = search_text.lower()
                 search_text_masterlist_ids = SpatialQueryQuestion.objects.values(
                     'id'
-                ).filter(question__icontains=search_text)
+                ).filter(question__question__icontains=search_text)
 
                 queryset = queryset.filter(
                     id__in=search_text_masterlist_ids
@@ -4635,6 +4633,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             qs_mlq = MasterlistQuestion.objects.all()
             masterlist = SchemaMasterlistOptionSerializer(qs_mlq, many=True).data
+            #masterlist = SchemaMasterlistSerializer(qs, many=True).data
 
             qs_cddp = CddpQuestionGroup.objects.all()
             cddp_groups = CddpQuestionGroupSerializer(qs_cddp, context={'request': request}, many=True).data
@@ -4820,13 +4819,23 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
 
+        #import ipdb; ipdb.set_trace()
+        sqq = SpatialQueryQuestion.objects.filter(
+            question_id=request.data['question_id'], 
+            answer_mlq_id=request.data.get('answer_mlq_id')
+        )
+        if sqq.exists():
+            return JsonResponse(
+                data={'errors': 'This SpatialQuery Question/Answer already exists.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         with transaction.atomic():
-
             serializer = DTSpatialQueryQuestionSerializer(data=request.data, context={'request': request})
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-            return Response(serializer.data)
+        return Response(serializer.data)
 
     @detail_route(methods=['POST', ])
     def save_spatialquery(self, request, *args, **kwargs):
@@ -4838,8 +4847,9 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             with transaction.atomic():
 
+                #import ipdb; ipdb.set_trace()
                 serializer = DTSpatialQueryQuestionSerializer(
-                    instance, data=request.data
+                    instance, data=request.data, context={'request': request}
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
