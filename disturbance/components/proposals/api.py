@@ -4760,6 +4760,54 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
         return Response(data)
 
+    @detail_route(methods=['GET',])
+    @api_exception_handler
+    def get_sqs_attrs(self, request, *args, **kwargs):
+        '''
+        EXTERNAL SQS API CALL
+
+        Get Layer Attributes from SQS
+        To test (from DAS shell): 
+            http://localhost:8002/api/v1/layers/get_attributes/?layer_name=CPT_LOCAL_GOVT_AREAS&use_cache=False
+            requests.get('http://localhost:8003/api/spatial_query/CPT_LOCAL_GOVT_AREAS/get_sqs_attrs.json')
+
+            This will direct query to SQS Server
+        ''' 
+
+        layer_name = kwargs.get('pk')
+        attrs_only = request.GET.get('attrs_only')
+        attr_name = request.GET.get('attr_name')
+
+        params={'layer_name':layer_name}
+        if attrs_only:
+            params.update({'attrs_only': True})
+        if attr_name:
+            params.update({'attr_name': attr_name})
+
+        # check and get from cache to avoid rapid repeated API Calls to SQS
+        cache_key = f'sqs_layer_attr_{layer_name}'
+        if 'clear_cache' in request.GET:
+            cache.delete(cache_key)
+
+        data = cache.get(cache_key)
+        if not data:
+            url = get_sqs_url(f'layers/get_attributes')
+            resp = requests.get(url=url, params=params, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            if resp.status_code != 200:
+                logger.error(f'SpatialQuery API call error: {resp.content}')
+                try:
+                    return Response(resp.json(), status=resp.status_code)
+                except:
+                    return Response({'errors': resp.content}, status=resp.status_code)
+
+            data = resp.json()
+            #cache.set(cache_key, json.dumps(data), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
+        else:
+            data = json.loads(data)
+
+        return Response(data)
+
+
     @detail_route(methods=['POST',])
     @api_exception_handler
     def create_or_update_sqs_layer(self, request, *args, **kwargs):
@@ -4819,7 +4867,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
 
-        #import ipdb; ipdb.set_trace()
         sqq = SpatialQueryQuestion.objects.filter(
             question_id=request.data['question_id'], 
             answer_mlq_id=request.data.get('answer_mlq_id')
@@ -4845,9 +4892,37 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
+            # check attrs and values exist in layer
+            layer_name = request.data['layer']['layer_name']
+            url = get_sqs_url(f'layers/get_attributes')
+            resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            if resp.status_code != 200:
+                logger.error(f'SpatialQuery API call error (get_attributes): {resp.content}')
+                return Response({'errors': resp.content}, status=resp.status_code)
+
+            data = resp.json()
+            layer_attrs = [d['attribute'] for d in data]
+            #attr_values = [d['values'] for d in data if 'LGA_TYPE' in  d['attribute']]
+            #layer_attrs = []
+            #for d in data:
+            #    layer_attrs.append(d['attribute'])
+            #    if 'LGA_TYPE' in d['attribute']:
+            #        attr_values = d['values']
+
+            sqq_column_name = request.data['column_name']
+            #sqq_value = request.data['value']
+            #sqq_operator = request.data['operator']
+
+            # check column_name in layer_attrs
+            if sqq_column_name not in layer_attrs:
+                return JsonResponse(
+                    data={'errors': f'Column name {sqq_column_name} not available in Layer {layer_name}.<br><br>Column names available are<br>{layer_attrs}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            #if sqq_operator != 'IsNotNull':
+
             with transaction.atomic():
 
-                #import ipdb; ipdb.set_trace()
                 serializer = DTSpatialQueryQuestionSerializer(
                     instance, data=request.data, context={'request': request}
                 )

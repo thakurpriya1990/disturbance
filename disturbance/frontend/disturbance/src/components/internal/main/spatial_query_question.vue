@@ -60,8 +60,8 @@
         </div>
     </div>
 
-    <div v-if="showQuestionModal">
-    <modal transition="modal fade" @ok="ok()" title="Spatial Query Question" large>
+    <div v-show="showQuestionModal">
+    <modal id="showQuestionModal" transition="modal fade" @ok="ok()" title="Spatial Query Question" large>
         <div class="container-fluid">
 <!--
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -107,69 +107,13 @@
                     4. {{ filterMasterlistOption }}<br>
 -->
 
-<!--
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Question (OLD)</label>
-                        </div>
-                        <div class="col-md-9">
-                            <input class="form-control" name="layer_name" v-model="spatialquery.question"></input>
-                        </div>
-                    </div>
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Answer (OLD)</label>
-                        </div>
-                        <div class="col-md-9">
-                            <input class="form-control" name="layer_url" v-model="spatialquery.answer_mlq"></input>
-                        </div>
-                    </div>
--->
-
-<!--
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Layer name</label>
                         </div>
-                        <div class="col-md-9">
-                            <input class="form-control" name="layer_name" v-model="spatialquery.layer_name"></input>
-                        </div>
-                    </div>
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Layer url</label>
-                        </div>
-                        <div class="col-md-9">
-                            <input class="form-control" name="layer_url" v-model="spatialquery.layer_url"></input>
-                        </div>
-                    </div>
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Layer name</label>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.layer_id">
-                                <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer.id" >{{layer.layer_full_name}}</option>
-                            </select>     
-                        </div>
-                    </div>
--->
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Layer name</label>
-                        </div>
-                        <div class="col-md-3">
-                           {{spatialquery.layer.layer_name}}
+                        <div class="col-md-5">
+                            <!--{{spatialquery.layer.layer_name}}-->
                             <select class="form-control" ref="select_layer" name="select-layer" v-model="spatialquery.layer">
                                 <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer" >{{layer.layer_name}}</option>
                             </select>     
@@ -188,7 +132,7 @@
                                 <option v-if="group.can_user_edit" v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
                             </select>     
                         </div>
-                        <div v-if="has_no_editable_groups()" class="col-md-6">
+                        <div v-if="showQuestionModal && has_no_editable_groups()" class="col-md-6">
                             <p style="color:red;">You are currently not a member of any Spatial Question Group. To create a new Spatial Query Question, you must first be added to at least one Spatial Question Group.</p>
                         </div>
                     </div>
@@ -251,28 +195,45 @@
                             <div class="col-md-3"></div>
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Column name</label>
+                                <span v-if="spatialquery.layer">
+                                    <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
+                                </span>
+                                <span v-else>
+                                    <i class="fa fa-lg fa-question-circle" style="color: grey;" title="Must select Layer name">&nbsp;</i>
+                                </span>
                             </div>
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Operator</label>
                             </div>
-                            <div class="col-md-3" v-if="spatialquery.operator!='IsNotNull'">
+                            <div class="col-md-3" v-if="showValue()">
                                 <label class="control-label pull-left" >Value</label>
+                                <span v-if="spatialquery.column_name">
+                                    <a @click="show_layer_attr_values" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="View attribute values available">&nbsp;</i></a>
+                                </span>
+                                <span v-else>
+                                    <i class="fa fa-lg fa-question-circle" style="color: grey;" title="Must select Layer name and Column name">&nbsp;</i>
+                                </span>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-3"></div>
                             <div class="col-md-3">
-                                <input type="text" class="form-control" name="column_name" v-model="spatialquery.column_name" style="width:100%;"></input>
+                                <input type="text" class="form-control" name="column_name" v-model="column_name" style="width:100%;"></input>
                             </div>
                             <div class="col-md-3">
                                 <select class="form-control" ref="select_operator" name="select-operator" v-model="filterCddpOperator">
                                     <option v-for="operator in spatialquery_selects.operators" :value="operator.value" >{{operator.label}}</option>
                                 </select>     
                             </div>
-                            <div class="col-md-3" v-if="spatialquery.operator!='IsNotNull'">
+                            <div class="col-md-3" v-if="showValue()">
                                 <input type="text" class="form-control" name="value" v-model="spatialquery.value" style="width:100%;"></input>
                             </div>
                         </div>
+                        <!--
+                        Layer: {{spatialquery.layer}}<br>
+                        Column_Name: {{spatialquery.column_name}}
+                        Operator: {{spatialquery.operator}}
+                        -->
                     </div>
 
                     <hr /><label><i>Proponent Section</i></label>
@@ -286,6 +247,7 @@
                         </div>
                     </div>
 
+<!--
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
@@ -295,6 +257,7 @@
                             <input type="number" min="-1" class="form-control" name="no_polygons_proponent" v-model="spatialquery.no_polygons_proponent"></input>
                         </div>
                     </div>
+-->
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
@@ -317,6 +280,7 @@
                         </div>
                     </div>
 
+<!--
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
@@ -326,6 +290,7 @@
                             <input type="number" min="-1" class="form-control" name="no_polygons_assessor" v-model="spatialquery.no_polygons_assessor"></input>
                         </div>
                     </div>
+-->
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
@@ -355,7 +320,7 @@
     </modal>
     </div>
 
-    <div v-else-if="showTestModal">
+    <div v-show="showTestModal">
     <modal id="test-id"  @ok.prevent="ok()" title="Spatial Query Question - Test" large>
         <div class="container-fluid">
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -411,6 +376,32 @@
         </div>
     </modal>
     </div>
+
+    <div v-show="showLayerAttrsModal">
+      <modal id="layer-attr-id"  @ok.prevent="ok()" title="Layer Attributes" large>
+        <div class="container-fluid">
+          <textarea id="output" cols="100" rows="35" v-model="sqs_attrs_response"></textarea>
+        </div> 
+        <div slot="footer">
+            <button type="button" class="btn btn-primary" @click="showLayerAttrsModal=false">Close</button>
+        </div>
+
+      </modal>
+    </div>
+
+    <div v-show="showLayerAttrValuesModal">
+      <modal id="layer-attr-id"  @ok.prevent="ok()" title="Layer Attributes" large>
+        <div class="container-fluid">
+          <textarea id="output" cols="100" rows="35" v-model="sqs_attr_vals_response"></textarea>
+        </div> 
+        <div slot="footer">
+            <button type="button" class="btn btn-primary" @click="showLayerAttrValuesModal=false">Close</button>
+        </div>
+
+      </modal>
+    </div>
+
+
 
   </div>
 </template>
@@ -477,13 +468,18 @@ export default {
             question_id: Number,
             showQuestionModal: false,
             showTestModal: false,
+            showLayerAttrsModal: false,
+            showLayerAttrValuesModal: false,
             showTestJsonResponse: false,
             sqs_response: false,
+            sqs_attrs_response: false,
+            sqs_attr_vals_response: false,
             requesting: false,
             request_time: null,
             num_questions: null,
             num_layers_utilised: null,
             profile: {},
+            column_name: null,
 
             dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Layer name", "Visible to proponent", "Buffer (m)", "Group", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
@@ -523,32 +519,9 @@ export default {
                         data: "question",
                         width: "80%",
                         //searchable: true,
-                        mRender:function (data,type,full) {
-                            var ellipsis = '...',
-                                truncated = _.truncate(data, {
-                                    length: 100,
-                                    omission: ellipsis,
-                                    separator: ' '
-                                }),
-                                result = '<span>' + truncated + '</span>',
-                                popTemplate = _.template('<a href="#" ' +
-                                    'role="button" ' +
-                                    'data-toggle="popover" ' +
-                                    'data-trigger="click" ' +
-                                    'data-placement="top auto"' +
-                                    'data-html="true" ' +
-                                    'data-content="<%= text %>" ' +
-                                    '>more</a>');
-                            if (_.endsWith(truncated, ellipsis)) {
-                                result += popTemplate({
-                                    text: data
-                                });
-                            }
-
-
-                            return result
-                        },
-                        //'createdCell': helpers.dtPopoverCellFn,
+			'render': function (value) {
+	  		    return helpers.dtPopover(value, 50);
+			},
                         createdCell: function(td, cellData, rowData, row, col){
                             if (vm.is_question_expired(rowData.expiry)) {
                                 vm.expired_questions.push(rowData.id) 
@@ -566,16 +539,17 @@ export default {
                     },
                     { 
                         data: "layer.layer_name",
-                        createdCell: function(td, cellData, rowData, row, col){
-                            if (!rowData.layer.available_on_sqs) {
-                                $(td).css('color', 'blue');
-                                $(td).attr('title', 'This layer is not present on SQS. First load from Geoserver');
-                            } else if (rowData.layer.available_on_sqs && !rowData.layer.active_on_sqs) {
-                                $(td).css('color', 'blue');
-                                $(td).attr('title', 'This layer is set as inactive on SQS. First set active on SQS');
-                            }
-                            helpers.dtPopoverCellFn;
-                        }
+//            		  // Below Commented - caused poor performance of dashboard (disturbance/components/main/serializers.py DASMapLayerSqsSerializer)
+//                        createdCell: function(td, cellData, rowData, row, col){
+//                            if (!rowData.layer.available_on_sqs) {
+//                                $(td).css('color', 'blue');
+//                                $(td).attr('title', 'This layer is not present on SQS. First load from Geoserver');
+//                            } else if (rowData.layer.available_on_sqs && !rowData.layer.active_on_sqs) {
+//                                $(td).css('color', 'blue');
+//                                $(td).attr('title', 'This layer is set as inactive on SQS. First set active on SQS');
+//                            }
+//                            helpers.dtPopoverCellFn;
+//                        }
 
                     },
                     { 
@@ -676,6 +650,7 @@ export default {
                 id: '',
                 name: '',
                 question: '',
+                question_id: '',
                 options: null,
                 headers: null,
                 expanders: null,
@@ -752,7 +727,11 @@ export default {
         },
         filterCddpOperator: function(){
             this.spatialquery.operator = this.filterCddpOperator
+        },
+        column_name: function() {
+            this.spatialquery.column_name = this.column_name;
         }
+
     },
     computed: {
         isHelptextUrl: function () {
@@ -771,6 +750,12 @@ export default {
     methods: {
         exists_in: function (_dict, value) {
             return _dict.map(a=>a.layer_name).includes(value)
+        },
+        showValue: function () {
+            if (this.spatialquery.operator=='GreaterThan' || this.spatialquery.operator=='LessThan' || this.spatialquery.operator=='Equals') {
+                return true
+            }
+            return false
         },
         is_question_expired: function (expiry) {
             if (expiry) {
@@ -901,13 +886,34 @@ export default {
                 self.num_layers_utilised = null;
             }
         },
+
+        check_layer_attrs_exist: async function(e) {
+            const self = this;
+            let url = '/get_sqs_attrs'
+            url = helpers.add_endpoint_join(api_endpoints.spatial_query,'/'+self.spatialquery.layer.layer_name + url)
+
+            var sqs_check_layer_response = null;
+            console.log(url);
+            await self.$http.get(url)
+            .then((response) => {
+                console.log('Response: ' + JSON.stringify(response));
+                //sqs_check_layer_response = response.body;
+                return response.body;
+            },(error)=>{
+                console.log('Error: ' + JSON.stringify(error))
+                swal(
+                    'Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+
+        },
+
+
         saveSpatialquery: async function() {
             const self = this;
             const data = self.spatialquery;
-//            if (data.answer_mlq===null) {
-//		data.answer_mlq = -1
-//		data.answer_mlq_id = -1
-//	    } 
             self.missing_fields = [];
              
             if (self.has_form_errors()) {
@@ -1004,6 +1010,65 @@ export default {
             self.request_time = new Date() - start_time
             this.isNewEntry = false;
         },
+        show_layer_attrs: async function(e) {
+            const self = this;
+            let url = '/get_sqs_attrs'
+            url = helpers.add_endpoint_join(api_endpoints.spatial_query,'/'+self.spatialquery.layer.layer_name + url)
+            url += '?attrs_only=true'
+
+            console.log(url);
+            await self.$http.get(url)
+            .then((response) => {
+                console.log('Response: ' + JSON.stringify(response));
+                self.sqs_attrs_response = JSON.stringify(response.body, null, 4);
+                self.isModalOpen = true;
+                self.showLayerAttrsModal = true;
+                //self.showQuestionModal = true;
+                self.showTestModal = false;
+         
+                self.requesting = false;
+            },(error)=>{
+                console.log('Error: ' + JSON.stringify(error))
+                swal(
+                    'Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+
+            this.isNewEntry = false;
+        },
+
+        show_layer_attr_values: async function(e) {
+            const self = this;
+            let url = '/get_sqs_attrs'
+            url = helpers.add_endpoint_join(api_endpoints.spatial_query,'/'+self.spatialquery.layer.layer_name + url)
+            url += '?attr_name=' + self.spatialquery.column_name
+
+            console.log(url);
+            await self.$http.get(url)
+            .then((response) => {
+                console.log('Response: ' + JSON.stringify(response));
+                self.sqs_attrs_response = JSON.stringify(response.body, null, 4);
+                self.isModalOpen = true;
+                self.showLayerAttrsModal = true;
+                //self.showQuestionModal = true;
+                self.showTestModal = false;
+         
+                self.requesting = false;
+            },(error)=>{
+                console.log('Error: ' + JSON.stringify(error))
+                swal(
+                    'Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+            });
+
+            this.isNewEntry = false;
+        },
+
+
 
         check_sqs_layer: async function(url) {
             //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer'))
@@ -1103,7 +1168,7 @@ export default {
         addTableEntry: function() {
             this.isNewEntry = true;
             this.spatialquery.answer_type = '';
-            this.spatialquery.question = '';
+            //this.spatialquery.question = '';
             this.spatialquery.answer_mlq = null;
             //this.spatialquery.layer_name = null;
             //this.spatialquery.layer_url = null;
@@ -1135,12 +1200,15 @@ export default {
             this.spatialquery.help_text_url=false;
             this.spatialquery.help_text_assessor_url=false;
 
+ 
             this.showOptions = false;
             this.proposal.lodgement_number = '';
             this.proposal.group_mlqs = true;
             this.proposal.all_mlqs = false;
             this.showQuestionModal = true;
             this.isModalOpen = true;
+            this.masterlistQuestionOptions = null;
+            $(this.$refs.select_question).val(null).trigger('change');
         },
         initEventListeners: function(){
             const self = this;
@@ -1181,11 +1249,13 @@ export default {
                 self.addedHeaders = self.$refs.spatial_query_question_table.row_of_data.data().headers;       
                 self.addedExpanders = self.$refs.spatial_query_question_table.row_of_data.data().expanders;
 
-                //$(self.$refs.select_question).val(self.filterMasterlistQuestion).trigger('change');
                 self.isModalOpen = true;
                 self.showQuestionModal = true;
                 self.showTestModal = false;
+                self.showLayerAttrsModal = false;
                 self.showTestJsonResponse = false;
+                $(self.$refs.select_question).val(self.spatialquery.question).trigger('change');
+                $('#showQuestionModal .close').css('display', 'none');
             });
 
             self.$refs.spatial_query_question_table.vmDataTable.on('click','.delete-row', function(e) {
@@ -1231,6 +1301,7 @@ export default {
                 self.isModalOpen = true;
                 self.showTestModal = true;
                 self.showQuestionModal = false;
+                self.showLayerAttrsModal = false;
                 self.showTestJsonResponse = false;
                 self.sqs_response = ''
             });
@@ -1319,7 +1390,41 @@ export default {
 
             });
 
-
+//            self.$refs.show-layer-attrs.vmDataTable.on('click','.show-layer-attrs', function(e) {
+//                e.preventDefault();
+//                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+//
+//                let spatialquery_id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+//
+//                //console.log(api_endpoints.spatial_query + '/check_sqs_layer?layer_name=' + layer_name)
+//                swal({
+//                    title: "Check Spatialquery Question",
+//                    text: "Input Proposal Lodgement Number",
+//                    type: "question",
+//                    showCancelButton: true,
+//                    confirmButtonText: 'Check',
+//                    input: 'text',
+//                    //html: '<input type="text" placeholder="Enter Proposal Lodgement Number" style="width: 65%"></input>',
+//                }).then(async (result) => {
+//                    console.log("Result: " + result);
+//                    if (!result) {
+//                        swal(
+//                            'Please input Proposal Lodgement Number',
+//                            null,
+//                            'warning'
+//                        )
+//                        return;
+//                    }
+//
+//                    let proposal_id = result
+//                    let url = api_endpoints.spatial_query + '/' + spatialquery_id + '/check_cddp_question?proposal_id=' + proposal_id;
+//                    self.check_cddp_question(url);
+//
+//                },(error) => {
+//                    //
+//                });                
+//
+//            });
 
         },
         initQuestionSelector: function () {
@@ -1368,7 +1473,7 @@ export default {
             });
             //this.has_missing_layers();
 
-            //this.initQuestionSelector();
+           this.initQuestionSelector();
         },        
 
         fetchProfile: function(){
@@ -1395,6 +1500,10 @@ export default {
 </script>
 
 <style lang="css" scoped>
+
+#showQuestionModal .close {
+    display: none;
+}
 .control-label label > div {
     text-align: left;
 }
