@@ -5343,8 +5343,8 @@ class ApiaryReferral(RevisionedMixin):
 # --------------------------------------------------------------------------------------
 @python_2_unicode_compatible
 class QuestionOption(models.Model):
-    label = models.CharField(max_length=100, unique=True)
-    value = models.CharField(max_length=100)
+    label = models.CharField(max_length=255, unique=True)
+    value = models.CharField(max_length=255)
 
     class Meta:
         app_label = 'disturbance'
