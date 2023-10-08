@@ -4662,6 +4662,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
             return Response(
                 {
+                    'permissions': {'is_admin': request.user.is_superuser},
                     'operators': operators,
                     'how': how,
                     'cddp_groups': cddp_groups,
@@ -4793,6 +4794,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         if not data:
             url = get_sqs_url(f'layers/get_attributes')
             resp = requests.get(url=url, params=params, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            data = resp.json()
             if resp.status_code != 200:
                 logger.error(f'SpatialQuery API call error: {resp.content}')
                 try:
@@ -4805,8 +4807,51 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         else:
             data = json.loads(data)
 
+        if not request.GET:
+            # add additional info for debugging on frontend
+            layer_url = get_sqs_url(f'layers/{layer_name}/geojson')
+            data.update({'layer_url': layer_url}) if isinstance(data, dict) else data.append({'layer_url': layer_url})
+
         return Response(data)
 
+    @detail_route(methods=['GET',])
+    @api_exception_handler
+    def get_sqs_layer_geojson(self, request, *args, **kwargs):
+        '''
+        EXTERNAL SQS API CALL
+
+        Get Layer GeoJSON from SQS
+        To test (from DAS shell): 
+            http://localhost:8002/api/v1/layers/geojson
+            requests.get('http://localhost:8003/api/spatial_query/CPT_LOCAL_GOVT_AREAS/geojson.json')
+
+            This will direct query to SQS Server
+        ''' 
+
+        layer_name = kwargs.get('pk')
+
+        # check and get from cache to avoid rapid repeated API Calls to SQS
+        cache_key = f'sqs_layer_geojson_{layer_name}'
+        if 'clear_cache' in request.GET:
+            cache.delete(cache_key)
+
+        data = cache.get(cache_key)
+        if not data:
+            url = get_sqs_url(f'layers/{layer_name}/geojson')
+            resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            if resp.status_code != 200:
+                logger.error(f'SpatialQuery API call error: {resp.content}')
+                try:
+                    return Response(resp.json(), status=resp.status_code)
+                except:
+                    return Response({'errors': resp.content}, status=resp.status_code)
+
+            data = resp.json()
+            cache.set(cache_key, json.dumps(data), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
+        else:
+            data = json.loads(data)
+
+        return Response(data)
 
     @detail_route(methods=['POST',])
     @api_exception_handler

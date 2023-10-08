@@ -54,6 +54,8 @@ class DASMapLayerAdmin(admin.ModelAdmin):
         #'create_update_layer_in_sqs',
     ]
     list_filter = ['option_for_internal', 'option_for_external', ]
+    readonly_fields = ['layer_url',]
+    search_fields = ['layer_name',]
     form = DASMapLayerForm
 #    readonly_fields = ('create_update_layer_in_sqs',)
 

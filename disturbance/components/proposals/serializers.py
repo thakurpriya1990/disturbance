@@ -1396,7 +1396,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
         )
 
     def update(self, instance, validated_data):
-        #import ipdb; ipdb.set_trace()
         data = self.context['request'].data
 
         if data.get('answer_mlq'):
@@ -1414,7 +1413,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 
 
 #    def get_question(self, obj):
-#        #import ipdb; ipdb.set_trace()
 #        #return obj.question.question if obj.question else None
 #        return obj.question.question
 #
@@ -1429,7 +1427,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 
     def get_masterlist_question(self, obj):
         l = [] 
-        #import ipdb; ipdb.set_trace()
         qs = MasterlistQuestion.objects.filter(question=obj.question)
         question_id = qs[0].id if qs.exists() else None
         answer_type = qs[0].answer_type if qs.exists() else None

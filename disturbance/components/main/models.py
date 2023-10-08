@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 import os
 
+from django.conf import settings
 from django.contrib.gis.db.models import MultiPolygonField
 from django.db import models
 from django.dispatch import receiver
@@ -51,8 +52,8 @@ class MapColumn(models.Model):
         return '{0}, {1}'.format(self.map_layer, self.name)
 
 class DASMapLayer(models.Model):
-    display_name = models.CharField(max_length=100, blank=True, null=True)
-    layer_name = models.CharField(max_length=200, blank=True, null=True)
+    display_name = models.CharField(max_length=100)
+    layer_name = models.CharField(max_length=200)
     layer_url = models.CharField(max_length=256, blank=True, null=True)
     cache_expiry = models.IntegerField(default=300)
     option_for_internal = models.BooleanField(default=True)
@@ -67,6 +68,9 @@ class DASMapLayer(models.Model):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
 
     def save(self, *args, **kwargs):
+        if not self.layer_url:
+            self.layer_url = settings.KB_LAYER_URL.replace('{{layer_name}}', self.layer_name)
+
         cache.delete('utils_cache.get_proxy_cache()')
         self.full_clean()
         super(DASMapLayer, self).save(*args, **kwargs)
