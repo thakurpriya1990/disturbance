@@ -1,5 +1,8 @@
 from django.contrib import admin
 from django.forms import ModelForm
+from django.conf.urls import url
+from django.utils.html import format_html
+from django.core.urlresolvers import reverse
 
 from disturbance.components.main.models import MapLayer, MapColumn, RegionDbca, DistrictDbca, DASMapLayer
 from disturbance.settings import KMI_SERVER_URL
@@ -48,9 +51,86 @@ class DASMapLayerAdmin(admin.ModelAdmin):
         'layer_url',
         'option_for_internal',
         'option_for_external',
+        #'create_update_layer_in_sqs',
     ]
     list_filter = ['option_for_internal', 'option_for_external', ]
+    readonly_fields = ['layer_url',]
+    search_fields = ['layer_name',]
     form = DASMapLayerForm
+#    readonly_fields = ('create_update_layer_in_sqs',)
+
+#    def get_urls(self):
+#        urls = super().get_urls()
+#        custom_urls = [
+#            url(
+#                r'^(?P<proposal_type_id>.+)/process_create_update_layer/$',
+#                self.admin_site.admin_view(self.process_create_update_layer),
+#                name='create_update_layer_in_sqs',
+#            ),
+#        ]
+#        return custom_urls + urls
+#
+#    def create_update_layer_in_sqs(self, obj):
+#        # if obj.name=='Disturbance':
+#        return format_html(
+#            '<a class="button" href="{}">Create/Update SQS Layer</a>&nbsp;',
+#            reverse('admin:create_update_layer_in_sqs', args=[obj.pk]),
+#        )
+#        return ''
+#    create_update_layer_in_sqs.short_description = 'Layer Actions'
+#    create_update_layer_in_sqs.allow_tags = True
+#
+#    def process_create_update_layer(self, request, proposal_type_id, *args, **kwargs):
+#        return self.process_action(
+#            request=request,
+#            proposal_type_id=proposal_type_id,
+#            action_form=forms.GenerateSchemaForm,
+#            action_title='CreateUpdateLayerInSqs',
+#        )
+#
+#    def process_action(
+#        self,
+#        request,
+#        proposal_type_id,
+#        action_form,
+#        action_title
+#   ):
+#        proposal_type = self.get_object(request, proposal_type_id)
+#        new_schema=generate_schema(proposal_type, request)
+#        if request.method != 'POST':
+#            form = action_form()
+#        else:
+#            form = action_form(request.POST)            
+#            if form.is_valid():
+#                try:
+#                    #form.save(proposal_type)
+#                    proposal_type.schema=new_schema
+#                    proposal_type.save()
+#                except:
+#                    # If save() raised, the form will a have a non
+#                    # field error containing an informative message.
+#                    pass
+#                else:
+#                    self.message_user(request, 'Success')
+#                    url = reverse(
+#                        'admin:disturbance_proposaltype_change',
+#                       args=[proposal_type.pk],
+#                        current_app=self.admin_site.name,
+#                    )
+#                    return HttpResponseRedirect(url)
+#        
+#        context = self.admin_site.each_context(request)
+#        context['opts'] = self.model._meta
+#        context['form'] = form
+#        context['proposal_type'] = proposal_type
+#        context['title'] = action_title
+#        context['new_schema']=new_schema
+#        return TemplateResponse(
+#            request,
+#            'disturbance/admin/proposaltype_action.html',
+#            context,
+#        )
+    
 
 
 # @admin.register(RegionDbca)

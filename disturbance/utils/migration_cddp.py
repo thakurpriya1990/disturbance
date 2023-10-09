@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.exceptions import MultipleObjectsReturned, ObjectDoesNotExist
 from django.db import IntegrityError, transaction
 
-from disturbance.components.proposals.models import SpatialQueryQuestion, CddpQuestionGroup
+from disturbance.components.proposals.models import SpatialQueryQuestion, CddpQuestionGroup, MasterlistQuestion, QuestionOption
 from disturbance.components.main.models import DASMapLayer
 from ledger.accounts.models import EmailUser
 import pandas as pd
@@ -115,9 +115,14 @@ class CDDPLayerReader():
 
                     g = CddpQuestionGroup.objects.get(name=row.cddp_group)
 
+                    question = MasterlistQuestion.objects.get(question=row.question)
+                    answer_mlq = QuestionOption.objects.get(label=row.answer_mlq)
+
                     m = SpatialQueryQuestion(
-                        question=row.question,
-                        answer_mlq=row.answer_mlq,
+                        #question=row.question,
+                        #answer_mlq=row.answer_mlq,
+                        question=question,
+                        answer_mlq=answer_mlq,
                         layer_id=l.id,
                         group_id=g.id,
                         #layer_name=
@@ -140,7 +145,8 @@ class CDDPLayerReader():
                     m.save()
 
             except Exception as e:
-                import ipdb; ipdb.set_trace()
+                #import ipdb; ipdb.set_trace()
+                logger.error(e)
                 errors.append(f'{row.to_dict()} {NL} {e} {NL}{NL}')
  
         print(f'Errors: {errors}')

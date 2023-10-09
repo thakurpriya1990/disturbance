@@ -1,4 +1,6 @@
 import logging
+from django.http import JsonResponse
+from rest_framework import serializers, status
 
 from ledger.payments.models import Invoice
 import collections
@@ -16,6 +18,7 @@ from disturbance.components.proposals.models import (
                                     SectionQuestion,
                                     ProposalTypeSection,
                                     MasterlistQuestion,
+                                    QuestionOption,
                                     SpatialQueryQuestion,
                                     CddpQuestionGroup,
                                 )
@@ -23,7 +26,7 @@ from disturbance.components.organisations.models import (
                                 Organisation
                             )
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer, DASMapLayerSqsSerializer
-from rest_framework import serializers
+from disturbance.components.main.models import DASMapLayer
 
 from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, \
     ProposalApiaryTemporaryUseSerializer
@@ -975,14 +978,56 @@ class SchemaMasterlistOptionSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Masterlist questions.
     '''
-    option = serializers.SerializerMethodField()
+    options = serializers.SerializerMethodField()
+    #question_id = serializers.SerializerMethodField()
 
     class Meta:
         model = MasterlistQuestion
-        fields = ('id', 'question', 'answer_type', 'option')
+        fields = ('id', 'question', 'answer_type', 'options')
 
-    def get_option(self, obj):
-        return obj.option.values()
+#    def get_option(self, obj):
+#        return obj.option.values()
+
+    #def get_question_id(self, obj):
+
+
+    def get_options(self, obj):
+        if obj.answer_type not in ['radiobuttons', 'checkbox']:
+            # Only need options for rb and cb in SpatialQuery CDDP config'n
+            return None
+
+        option_labels = []
+        try:
+            options = self.initial_data.get('options', None)
+            for o in options:
+                #option_labels.append(o)
+                qo = QuestionOption.objects.filter(label=o['label'])
+                if qo.exists():
+                    o['value'] = qo[0].id
+                else:
+                    option_serializer = SchemaOptionSerializer(data=o)
+                    option_serializer.is_valid(raise_exception=True)
+                    option_serializer.save()
+                    opt_id = option_serializer.data['id']
+                    o['value'] = opt_id
+                option_labels.append(o)
+            obj.set_property_cache_options(option_labels)
+            
+        except Exception:
+            options = None
+            option_list = obj.get_options()
+            if option_list:
+                options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
 
 
 class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
@@ -1273,13 +1318,35 @@ class CddpQuestionGroupSerializer(serializers.ModelSerializer):
         can_user_edit = obj.name in CddpQuestionGroup.objects.filter(members__in=[user]).values_list('name', flat=True)
         return True if can_user_edit or (user and user.is_superuser) else False
 
+#class MLQuestionSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = MasterlistQuestion
+#        fields = ('id', 'question',)
+#
+#class MLQuestionOptionSerializer(serializers.ModelSerializer):
+#
+#    class Meta:
+#        model = QuestionOption
+#        fields = ('id', 'label', 'value')
+
 
 class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
     '''
     Serializer for Datatable SpatialQueryQuestion.
     '''
+    question = serializers.CharField(source='question.question')
+    answer_mlq = serializers.CharField(allow_null=True, source='answer_mlq.label')
+    #question = MLQuestionSerializer()
+    #answer_mlq = SchemaOptionSerializer()
+
+    #expiry = serializers.DateField(read_only=True)
+    #buffer = serializers.IntegerField(read_only=True)
+    expiry = serializers.DateField(allow_null=True, required=False)
+    buffer = serializers.IntegerField(allow_null=True, required=False)
     group = CddpQuestionGroupSerializer()
     layer = DASMapLayerSqsSerializer()
+    masterlist_question = serializers.SerializerMethodField(read_only=True)
     #layer_name = serializers.SerializerMethodField()
     #layer_url = serializers.SerializerMethodField()
 
@@ -1287,35 +1354,91 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
         model = SpatialQueryQuestion
         #fields = '__all__'
         fields = (
-	  'id',
-	  'question',
-	  'answer_mlq',
-	  #'layer_name',
-	  #'layer_url',
-	  'expiry',
-	  'visible_to_proponent',
-	  'buffer',
-	  'how',
-	  'column_name',
-	  'operator',
-	  'value',
-	  'prefix_answer',
-	  'no_polygons_proponent',
-	  'answer',
-	  'prefix_info',
-	  'no_polygons_assessor',
-	  'assessor_info',
-	  'regions',
-	  'layer',
-	  'group',
+          'id',
+          'masterlist_question',
+          'question',
+          'answer_mlq',
+          #'layer_name',
+          #'layer_url',
+          'expiry',
+          'visible_to_proponent',
+          'buffer',
+          'how',
+          'column_name',
+          'operator',
+          'value',
+          'prefix_answer',
+          'no_polygons_proponent',
+          'answer',
+          'prefix_info',
+          'no_polygons_assessor',
+          'assessor_info',
+          'regions',
+          'layer',
+          'group',
         )
         datatables_always_serialize = fields
+
+    def create(self, validated_data):
+        data = self.context['request'].data
+
+        if data.get('answer_mlq'):
+            validated_data.update(
+                dict(answer_mlq_id=data.get('answer_mlq_id'))
+            )
+
+        [validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        return SpatialQueryQuestion.objects.create(
+            **validated_data, 
+            question_id=data.get('question_id'),
+            group_id=data['group'].get('id'),
+            layer_id=data['layer'].get('id')
+        )
+
+    def update(self, instance, validated_data):
+        data = self.context['request'].data
+
+        if data.get('answer_mlq'):
+            validated_data.update(
+                dict(answer_mlq_id=data.get('answer_mlq_id'))
+            )
+
+        [validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        return SpatialQueryQuestion.objects.filter(id=instance.id).update(
+            **validated_data, 
+            question_id=data.get('question_id'),
+            group_id=data['group'].get('id'),
+            layer_id=data['layer'].get('id')
+        )
+
+
+#    def get_question(self, obj):
+#        #return obj.question.question if obj.question else None
+#        return obj.question.question
+#
+#    def get_answer_mlq(self, obj):
+#        return obj.answer_mlq.label if obj.answer_mlq else None
 
     def get_layer_name(self, obj):
         return obj.layer.layer_name
 
     def get_layer_url(self, obj):
         return obj.layer.layer_url
+
+    def get_masterlist_question(self, obj):
+        l = [] 
+        qs = MasterlistQuestion.objects.filter(question=obj.question)
+        question_id = qs[0].id if qs.exists() else None
+        answer_type = qs[0].answer_type if qs.exists() else None
+
+        l.append( 
+            dict(
+                question_id=question_id,
+                answer_type=answer_type
+            ) 
+        )
+
+        return l
 
     def _get_allowed_editors(self, obj):
         return obj.email
