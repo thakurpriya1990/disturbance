@@ -79,7 +79,7 @@
                     <div class="row">&nbsp;</div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Question</label>
+                            <label class="control-label pull-left" >Question</label><label class="superscript">*</label>
                         </div>
                         <div class="col-md-9">
                             <select class="form-control" ref="select_question" name="select-question" v-model="filterMasterlistQuestion" >
@@ -96,7 +96,7 @@
                     <div class="row" v-if="spatialquery.question && masterlistQuestionOptions">
                         <!-- Only show widget if there are options for the given masterlist question i.e. radiobuttons and checkboxes -->
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Answer</label>
+                            <label class="control-label pull-left" >Answer</label><label class="superscript">*</label>
                         </div>
                         <div class="col-md-9">
                             <select class="form-control" ref="select_answer" name="select-answer" v-model="filterMasterlistOption" >
@@ -114,7 +114,7 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Layer name</label>
+                            <label class="control-label pull-left" >Layer name</label><label class="superscript">*</label>
                         </div>
                         <div class="col-md-5">
                             <select class="form-control" ref="select_layer" name="select-layer" v-model="spatialquery.layer">
@@ -148,7 +148,7 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Question Group</label>
+                            <label class="control-label pull-left" >Question Group</label><label class="superscript">*</label>
                         </div>
                         <div class="col-md-3">
                            <!--{{spatialquery.group}}-->
@@ -178,7 +178,7 @@
                         <div class="row">
                             <div class="col-md-3"></div>
                             <div class="col-md-3">
-                                <label class="control-label pull-left" >Visible to proponent</label>
+                                <label class="control-label pull-left" >Visible to proponent</label><label class="superscript">*</label>
                             </div>
                             <div class="col-md-3">
                                 <label class="control-label pull-left" style="font-weight:normal !important;">Buffer (metres)</label>
@@ -204,7 +204,7 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Intersection operator</label>
+                            <label class="control-label pull-left" >Intersection operator</label><label class="superscript">*</label>
                         </div>
                         <div class="col-md-3">
                             <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
@@ -222,7 +222,7 @@
                         <div class="row">
                             <div class="col-md-3"></div>
                             <div class="col-md-3">
-                                <label class="control-label pull-left" >Column name</label>
+                                <label class="control-label pull-left" >Column name</label><label class="superscript">*</label>
                                 <span v-if="spatialquery.layer">
                                     <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
                                     <!--
@@ -231,14 +231,14 @@
                                     -->
                                 </span>
                                 <span v-else>
-                                    <i class="fa fa-lg fa-question-circle" style="color: grey;" title="Must select Layer name">&nbsp;</i>
+                                    <i class="fa fa-lg fa-info-circle" style="color: grey;" title="Must select Layer name">&nbsp;</i>
                                 </span>
                             </div>
                             <div class="col-md-3">
-                                <label class="control-label pull-left" >Operator</label>
+                                <label class="control-label pull-left" >Operator</label><label class="superscript">*</label>
                             </div>
                             <div class="col-md-3" v-if="showValue()">
-                                <label class="control-label pull-left" >Value</label>
+                                <label class="control-label pull-left" >Value</label><label class="superscript">*</label>
                                 <span v-if="spatialquery.column_name">
                                     <a @click="show_layer_attr_values" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attribute values available">&nbsp;</i></a>
                                     <!--
@@ -247,7 +247,7 @@
                                     -->
                                 </span>
                                 <span v-else>
-                                    <i class="fa fa-lg fa-question-circle" style="color: grey;" title="Must select Layer name and Column name">&nbsp;</i>
+                                    <i class="fa fa-lg fa-info-circle" style="color: grey;" title="Must select Layer name and Column name">&nbsp;</i>
                                 </span>
                             </div>
                         </div>
@@ -300,7 +300,7 @@
 			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
 			<div class="row">
 			    <div class="col-md-3">
-				<label class="control-label pull-left" title="::<layer_property_name> Eg. ::region">Answer</label>
+				<label class="control-label pull-left" title="::<layer_property_name> Eg. ::region">Answer</label><label class="superscript">*</label>
 			    </div>
 			    <div class="col-md-9">
 				<input type="text" class="form-control" name="answer" v-model="spatialquery.answer"></input>
@@ -767,15 +767,14 @@ export default {
         filterCddpOperator: function(){
             this.spatialquery.operator = this.filterCddpOperator
         },
-        column_name: function() {
-            this.spatialquery.column_name = this.column_name;
-        },
-        sq_questions: function() {
-            //this.sq_question = this.sq_questions;
-      	    $(this.$refs.select_question).val(null).trigger('change');
-  	    $(this.$refs.select_question_option).trigger('change');
-        }
-
+//        column_name: function() {
+//            this.spatialquery.column_name = this.column_name;
+//        },
+//        sq_questions: function() {
+//            //this.sq_question = this.sq_questions;
+//      	    $(this.$refs.select_question).val(null).trigger('change');
+//  	    $(this.$refs.select_question_option).trigger('change');
+//        },
     },
     computed: {
         csrf_token: function() {
@@ -786,35 +785,29 @@ export default {
         },
     },
     methods: {
-//        disabled_questions: function () {
-//            let sq_questions = this.masterlist_questions.map((item) => item.question)
-//            return sq_questions
-//        },
-
         is_text_widget: function (question) {
-	    return ['text', 'text_area'].includes(this.spatialquery.answer_type)
+	    return ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)
         },
-        //option_disabled: function (question) {
-        _option_disabled: function (mlq) {
-            let sq_questions_list = this.sq_questions.map((item) => item.question);
-            //return this.sq_questions.filter(x=> (!['radiobuttons', 'checkbox'].includes(x.masterlist_question.answer_type)) && x.question === question)
-	    //       && sq_questions_list.includes(question)
-            //let res = this.sq_questions.filter(x=> ['radiobuttons', 'checkbox'].includes(x.masterlist_question[0].answer_type) && x.question === question)
-            //let res = this.sq_questions.map(x=> ['radiobuttons', 'checkbox'].includes(x.masterlist_question.answer_type))
-            let res = this.sq_questions.filter(x=> (!['radiobuttons', 'checkbox'].includes(mlq.masterlist_question[0].answer_type)) && x.question == mlq.question)
-            //let res = this.sq_questions.filter(x=> x.question == mlq.question)
-            if (res.length > 0) {
-		console.log('sq_questions: ' + JSON.stringify(this.sq_questions))
-		console.log('question: ' + mlq.question)
-		console.log('res:  ' + JSON.stringify(res))
-		console.log('res2: ' + sq_questions_list.includes(mlq.question))
-		console.log('--------------------------------')
-            }
-            
-	    return sq_questions_list.includes(mlq.question) && res
-
-	    //return this.sq_questions.includes(question)
-        },
+//        option_disabled: function (mlq) {
+//            let sq_questions_list = this.sq_questions.map((item) => item.question);
+//            //return this.sq_questions.filter(x=> (!['radiobuttons', 'checkbox'].includes(x.masterlist_question.answer_type)) && x.question === question)
+//	    //       && sq_questions_list.includes(question)
+//            //let res = this.sq_questions.filter(x=> ['radiobuttons', 'checkbox'].includes(x.masterlist_question[0].answer_type) && x.question === question)
+//            //let res = this.sq_questions.map(x=> ['radiobuttons', 'checkbox'].includes(x.masterlist_question.answer_type))
+//            let res = this.sq_questions.filter(x=> (!['radiobuttons', 'checkbox'].includes(mlq.masterlist_question[0].answer_type)) && x.question == mlq.question)
+//            //let res = this.sq_questions.filter(x=> x.question == mlq.question)
+//            if (res.length > 0) {
+//		console.log('sq_questions: ' + JSON.stringify(this.sq_questions))
+//		console.log('question: ' + mlq.question)
+//		console.log('res:  ' + JSON.stringify(res))
+//		console.log('res2: ' + sq_questions_list.includes(mlq.question))
+//		console.log('--------------------------------')
+//            }
+//            
+//	    return sq_questions_list.includes(mlq.question) && res
+//
+//	    //return this.sq_questions.includes(question)
+//        },
         option_disabled: function (mlq) {
 	    return false;
         },
@@ -1057,9 +1050,19 @@ export default {
             await self.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,self.proposal.lodgement_number + url),JSON.stringify(data),{
                     emulateJSON:true,
             }).then((response)=>{
-                //self.isModalOpen = true;
                 console.log('Response: ' + JSON.stringify(response));
-                self.sqs_response = JSON.stringify(response.body, null, 4);
+                if (self.is_admin) {
+		    self.sqs_response = JSON.stringify(response.body, null, 4);
+                } else {
+		    let sqs_response_basic = response.body.layer_data[0].sqs_data
+		    sqs_response_basic.section = response.body.layer_data[0].name
+		    sqs_response_basic.layer_name = response.body.layer_data[0].layer_name
+                    //delete sqs_response_basic.operator_response
+
+                    if (!sqs_response_basic.answer) { delete sqs_response_basic.answer }
+		    self.sqs_response = JSON.stringify(sqs_response_basic, null, 4);
+                }
+                //self.sqs_response = JSON.stringify(response.body.layer_data[0].sqs_data, null, 4);
                 //self.sqs_response = response;
                 //self.showTestJsonResponse = true;
                 //self.showTestModal = false;
@@ -1381,7 +1384,7 @@ export default {
             if (!this.spatialquery.operator) { this.missing_fields.push({'label':'Operator field is required'}); }
             if (!this.spatialquery.buffer) { this.spatialquery.buffer=0 }
 
-            if (!this.spatialquery.answer && ['text', 'text_area'].includes(this.spatialquery.answer_type)) { this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); }
+            if (!this.spatialquery.answer && ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)) { this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); }
 
 
             //if (this.spatialquery.operator && (this.spatialquery.operator == 'Equals' || this.spatialquery.operator != 'GreaterThan' || this.spatialquery.operator != 'LessThan')) { 
@@ -1783,4 +1786,6 @@ hr {
   background-color:black;
   height: 1px;
 }
+
+.superscript { position: relative; top: -0.2em; font-size: 140%; }
 </style>

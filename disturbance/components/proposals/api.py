@@ -4954,17 +4954,31 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             #    if 'LGA_TYPE' in d['attribute']:
             #        attr_values = d['values']
 
-            sqq_column_name = request.data['column_name']
-            #sqq_value = request.data['value']
-            #sqq_operator = request.data['operator']
+            #import ipdb; ipdb.set_trace()
+            sqq_column_name = request.data.get('column_name').strip()
+            sqq_answer = request.data.get('answer').strip()
+            sqq_assessor_info = request.data.get('assessor_info').strip()
 
-            # check column_name in layer_attrs
             if sqq_column_name not in layer_attrs:
+                # check column_name in exists layer_attrs
                 return JsonResponse(
-                    data={'errors': f'Column name {sqq_column_name} not available in Layer {layer_name}.<br><br>Column names available are<br>{layer_attrs}'},
+                    data={'errors': f'Column name \'{sqq_column_name}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            #if sqq_operator != 'IsNotNull':
+
+            if sqq_answer and (not sqq_answer.startswith('::') or sqq_answer.split('::')[1] not in layer_attrs):
+                # check answer (label) in exists layer_attrs
+                return JsonResponse(
+                    data={'errors': f'Answer (Proponent section) \'{sqq_answer}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if sqq_assessor_info and (not sqq_assessor_info.startswith('::') or sqq_assessor_info.split('::')[1] not in layer_attrs):
+                # check assessor_info (label) exists in layer_attrs
+                return JsonResponse(
+                    data={'errors': f'Info for assessor (Assessor section) \'{sqq_assessor_info}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
 
             with transaction.atomic():
 
