@@ -751,10 +751,6 @@ export default {
                 this.spatialquery.question_id = question.id
                 this.spatialquery.answer_type = question.answer_type
             }
-//            if(!this.masterlistQuestionOptions) {
-//                // dummy assignment in case options==null (for SpatialQueryQuestionViewSet.create() serializer)
-//		this.spatialquery.answer_mlq = -1
-//            }
         },
         filterMasterlistOption: function(){
             if (this.masterlistQuestionOptions) {
@@ -767,14 +763,6 @@ export default {
         filterCddpOperator: function(){
             this.spatialquery.operator = this.filterCddpOperator
         },
-//        column_name: function() {
-//            this.spatialquery.column_name = this.column_name;
-//        },
-//        sq_questions: function() {
-//            //this.sq_question = this.sq_questions;
-//      	    $(this.$refs.select_question).val(null).trigger('change');
-//  	    $(this.$refs.select_question_option).trigger('change');
-//        },
     },
     computed: {
         csrf_token: function() {
@@ -786,7 +774,8 @@ export default {
     },
     methods: {
         is_text_widget: function (question) {
-	    return ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)
+	    //return ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)
+	    return ['text', 'text_area'].includes(this.spatialquery.answer_type)
         },
 //        option_disabled: function (mlq) {
 //            let sq_questions_list = this.sq_questions.map((item) => item.question);
@@ -877,9 +866,6 @@ export default {
             //return JSON.stringify(JSON.parse(value), null, 2);
             return JSON.stringify(JSON.parse(value), null, 2);
         },
-//        selected_question: function(selected_id) {
-//            return this.spatialquery_selects.all_masterlist.find( t => t.id === selected_id );
-//        },
         has_options: function(selected_id) {
             return this.selected_question(selected_id).option.length > 0;
         },
@@ -973,7 +959,6 @@ export default {
 
         },
 
-
         saveSpatialquery: async function() {
             const self = this;
             const data = self.spatialquery;
@@ -1006,7 +991,7 @@ export default {
 
             } else {
 
-                //data.group = data.group.id;
+                if (data.operator=='IsNotNull') { data.value = '' } 
 
                 await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query,data.id+'/save_spatialquery'),JSON.stringify(data),{
                         emulateJSON:true,
@@ -1054,18 +1039,16 @@ export default {
                 if (self.is_admin) {
 		    self.sqs_response = JSON.stringify(response.body, null, 4);
                 } else {
+                    // summary response
 		    let sqs_response_basic = response.body.layer_data[0].sqs_data
 		    sqs_response_basic.section = response.body.layer_data[0].name
 		    sqs_response_basic.layer_name = response.body.layer_data[0].layer_name
-                    //delete sqs_response_basic.operator_response
+		    sqs_response_basic.result = response.body.layer_data[0].result
+                    delete sqs_response_basic.operator_response
 
                     if (!sqs_response_basic.answer) { delete sqs_response_basic.answer }
 		    self.sqs_response = JSON.stringify(sqs_response_basic, null, 4);
                 }
-                //self.sqs_response = JSON.stringify(response.body.layer_data[0].sqs_data, null, 4);
-                //self.sqs_response = response;
-                //self.showTestJsonResponse = true;
-                //self.showTestModal = false;
                 self.isModalOpen = true;
                 //self.close();
                 self.requesting = false;
@@ -1083,64 +1066,6 @@ export default {
             self.request_time = new Date() - start_time
             this.isNewEntry = false;
         },
-
-//        show_layer_attrs: async function(e) {
-//            const self = this;
-//            let url = '/get_sqs_attrs'
-//            url = helpers.add_endpoint_join(api_endpoints.spatial_query,'/'+self.spatialquery.layer.layer_name + url)
-//            url += '?attrs_only=true'
-//
-//            console.log(url);
-//            await self.$http.get(url)
-//            .then((response) => {
-//                console.log('Response: ' + JSON.stringify(response));
-//                self.sqs_attrs_response = JSON.stringify(response.body, null, 4);
-//                self.isModalOpen = true;
-//                self.showLayerAttrsModal = true;
-//                //self.showQuestionModal = true;
-//                self.showTestModal = false;
-//         
-//                self.requesting = false;
-//            },(error)=>{
-//                console.log('Error: ' + JSON.stringify(error))
-//                swal(
-//                    'Error',
-//                    helpers.apiVueResourceError(error),
-//                    'error'
-//                )
-//            });
-//
-//            this.isNewEntry = false;
-//        },
-//
-//        show_layer_attr_values: async function(e) {
-//            const self = this;
-//            let url = '/get_sqs_attrs'
-//            url = helpers.add_endpoint_join(api_endpoints.spatial_query,'/'+self.spatialquery.layer.layer_name + url)
-//            url += '?attr_name=' + self.spatialquery.column_name
-//
-//            console.log(url);
-//            await self.$http.get(url)
-//            .then((response) => {
-//                console.log('Response: ' + JSON.stringify(response));
-//                self.sqs_attrs_response = JSON.stringify(response.body, null, 4);
-//                self.isModalOpen = true;
-//                self.showLayerAttrsModal = true;
-//                //self.showQuestionModal = true;
-//                self.showTestModal = false;
-//         
-//                self.requesting = false;
-//            },(error)=>{
-//                console.log('Error: ' + JSON.stringify(error))
-//                swal(
-//                    'Error',
-//                    helpers.apiVueResourceError(error),
-//                    'error'
-//                )
-//            });
-//
-//            this.isNewEntry = false;
-//        },
 
         show_layer_attrs: function() {
             /* for given layer, show all attributes only */
@@ -1364,16 +1289,6 @@ export default {
 
         has_form_errors: function () {
             console.log
-//            if (this.spatialquery.question=='') { this.missing_fields.push({'label':'Question field is required'}); }
-//            if ((this.spatialquery.answer_mlq==='' || this.spatialquery.answer_mlq==-1) && this.masterlistQuestionOptions) { this.missing_fields.push({'label':'Answer field is required'}); }
-//            if (!this.spatialquery.layer) { this.missing_fields.push({'label':'Layer Name field is required'}); }
-//            //if (this.spatialquery.layer_url==='') { this.missing_fields.push({'label':'Layer URL field is required'}); }
-//            if (this.spatialquery.group==='') { this.missing_fields.push({'label':'Spatial Question Group field is required'}); }
-//            if (this.spatialquery.how==='') { this.missing_fields.push({'label':'Intersector operator field is required'}); }
-//            if (this.spatialquery.column_name==='') { this.missing_fields.push({'label':'Column name field is required'}); }
-//            if (this.spatialquery.operator==='') { this.missing_fields.push({'label':'Operator field is required'}); }
-//            if (this.spatialquery.buffer==='' || !this.spatialquery.buffer) { this.spatialquery.buffer=0 }
-
             if (!this.spatialquery.question) { this.missing_fields.push({'label':'Question field is required'}); }
             if ((!this.spatialquery.answer_mlq || this.spatialquery.answer_mlq==-1) && this.masterlistQuestionOptions) { this.missing_fields.push({'label':'Answer field is required'}); }
             if (!this.spatialquery.layer) { this.missing_fields.push({'label':'Layer Name field is required'}); }
@@ -1384,7 +1299,7 @@ export default {
             if (!this.spatialquery.operator) { this.missing_fields.push({'label':'Operator field is required'}); }
             if (!this.spatialquery.buffer) { this.spatialquery.buffer=0 }
 
-            if (!this.spatialquery.answer && ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)) { this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); }
+            if (!this.spatialquery.answer && ['text', 'text_area'].includes(this.spatialquery.answer_type)) { this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); }
 
 
             //if (this.spatialquery.operator && (this.spatialquery.operator == 'Equals' || this.spatialquery.operator != 'GreaterThan' || this.spatialquery.operator != 'LessThan')) { 
@@ -1647,43 +1562,6 @@ export default {
                 });                
 
             });
-
-//            self.$refs.show-layer-attrs.vmDataTable.on('click','.show-layer-attrs', function(e) {
-//                e.preventDefault();
-//                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
-//
-//                let spatialquery_id = self.$refs.spatial_query_question_table.row_of_data.data().id;
-//
-//                //console.log(api_endpoints.spatial_query + '/check_sqs_layer?layer_name=' + layer_name)
-//                swal({
-//                    title: "Check Spatialquery Question",
-//                    text: "Input Proposal Lodgement Number",
-//                    type: "question",
-//                    showCancelButton: true,
-//                    confirmButtonText: 'Check',
-//                    input: 'text',
-//                    //html: '<input type="text" placeholder="Enter Proposal Lodgement Number" style="width: 65%"></input>',
-//                }).then(async (result) => {
-//                    console.log("Result: " + result);
-//                    if (!result) {
-//                        swal(
-//                            'Please input Proposal Lodgement Number',
-//                            null,
-//                            'warning'
-//                        )
-//                        return;
-//                    }
-//
-//                    let proposal_id = result
-//                    let url = api_endpoints.spatial_query + '/' + spatialquery_id + '/check_cddp_question?proposal_id=' + proposal_id;
-//                    self.check_cddp_question(url);
-//
-//                },(error) => {
-//                    //
-//                });                
-//
-//            });
-
         },
         initQuestionSelector: function () {
                 const self = this;
