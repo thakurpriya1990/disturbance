@@ -4735,18 +4735,17 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             This will direct query to SQS Server
         ''' 
 
-        instance = self.get_object()
-        data = self.get_serializer(instance).data
+        layer_name = kwargs['pk']
 
         # check and get from cache to avoid rapid repeated API Calls to SQS
-        cache_key = f'sqs_layer_{instance.layer_name}'
+        cache_key = f'sqs_layer_{layer_name}'
         if 'clear_cache' in request.GET:
             cache.delete(cache_key)
 
         data = cache.get(cache_key)
         if not data:
             url = get_sqs_url(f'layers/check_layer')
-            resp = requests.get(url=url, params={'layer_name':instance.layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
             if resp.status_code != 200:
                 logger.error(f'SpatialQuery API call error: {resp.content}')
                 try:
@@ -4912,10 +4911,11 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
 
-        sqq = SpatialQueryQuestion.objects.filter(
-            question_id=request.data['question_id'], 
-            answer_mlq_id=request.data.get('answer_mlq_id')
-        )
+        fields = {'question_id': request.data['question_id']}
+        if request.data.get('answer_mlq_id'):
+            fields.update({'answer_mlq_id': request.data.get('answer_mlq_id')})
+
+        sqq = SpatialQueryQuestion.objects.filter(**fields)
         if sqq.exists():
             return JsonResponse(
                 data={'errors': 'This SpatialQuery Question/Answer already exists.'},

@@ -8,6 +8,7 @@ cronjobs
 mooring/cache/*
 tmp/
 disturbance/utils/csv
+!disturbance/utils/csv/CDDP_Layers_v4.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -37,7 +38,6 @@ var/
 *.csv
 *.xls*
 *.tgz*
-!CDDP_Layers_v1.xlsx
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

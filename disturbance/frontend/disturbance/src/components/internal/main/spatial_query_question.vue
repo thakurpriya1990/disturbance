@@ -1174,7 +1174,7 @@ export default {
             });
         },
 
-        check_sqs_layer_form: async function(url) {
+        check_sqs_layer_form: async function() {
 	    let self = this;
 	    const data = {}
 	    data['csrfmiddlewaretoken'] = self.csrf_token;
@@ -1202,7 +1202,7 @@ export default {
 		}
 
 		if (result=='check_layer') {
-		    let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer');
+		    let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer');
 		    self.check_sqs_layer(url)
 
 		}
@@ -1218,7 +1218,7 @@ export default {
 
 
         check_sqs_layer: async function(url) {
-            //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer'))
+            //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer'))
             const self = this;
             self.show_spinner = true;
             await self.$http.get(url)
@@ -1324,6 +1324,7 @@ export default {
 		this.spatialquery.answer_type = '';
 		//this.spatialquery.question = '';
 		this.spatialquery.answer_mlq = null;
+		this.spatialquery.answer_mlq_id = null;
 		//this.spatialquery.layer_name = null;
 		//this.spatialquery.layer_url = null;
 		this.filterMasterlistQuestion = '';
@@ -1513,7 +1514,7 @@ export default {
                     }
 
                     if (result=='check_layer') {
-                        let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.id+'/check_sqs_layer');
+                        let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer');
                         self.check_sqs_layer(url)
 
                     }
