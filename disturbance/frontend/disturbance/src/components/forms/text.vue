@@ -58,9 +58,10 @@ export default {
     computed:{
         has_comment_value:function () {
             let has_value=false;
-            for(var i=0; i<this.comment_boxes.length; i++){
-                if(this.comment_boxes[i].hasOwnProperty('value')){
-                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
+            let boxes=JSON.parse(this.comment_boxes)
+            for(var i=0; i<boxes.length; i++){
+                if(boxes[i].hasOwnProperty('value')){
+                    if(boxes[i].value!=null && boxes[i].value!=undefined && boxes[i].value!= '' ){
                         has_value=true;
                     }
                 } 
