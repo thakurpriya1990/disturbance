@@ -1294,13 +1294,15 @@ def create_richtext_help(question, name):
     
     if question.help_text_url and question.help_text:
        
-        richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        # richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext += u'<h1 style="text-align:justify"><span style="font-size:14px"><a id="{0}" name="{0}"><span style="color:#2980b9"> <strong> {1}</strong></span></a></span></h1>'.format(name, question.question)
         richtext += question.help_text
         richtext += u'<p>&nbsp;</p>'
 
     if question.help_text_assessor_url and question.help_text_assessor:
        
-        richtext_assessor += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        # richtext_assessor += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext_assessor += u'<h1 style="text-align:justify"><span style="font-size:14px"><a id="{0}" name="{0}"><span style="color:#2980b9"> <strong> {1}</strong></span></a></span></h1>'.format(name, question.question)
         richtext_assessor += question.help_text_assessor
         richtext_assessor += u'<p>&nbsp;</p>'
 
