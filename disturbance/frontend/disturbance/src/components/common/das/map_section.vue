@@ -26,7 +26,7 @@
                                 The shapefile can be made up of one multi-part polygon.
                             </li>
                             <li>
-                                The Shapefile must be zipped and in GDA94 or GDA202 latitude/longitude only.
+                                The Shapefile must be in GDA94 or GDA202 latitude/longitude only.
                             </li>
                             <li>
                                 Max file size is 10MB.
