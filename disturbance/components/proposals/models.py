@@ -537,6 +537,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
     shapefile_json = JSONField(blank=True, null=True)
+    reissued = models.BooleanField(default=False)
+
 
     class Meta:
         app_label = 'disturbance'
@@ -1863,6 +1865,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     self.log_user_action(ProposalUserAction.ACTION_REISSUE_APPROVAL.format(self.lodgement_number), request)
                 elif self.__approver_group() in request.user.proposalapprovergroup_set.all():
                     self.processing_status = status
+                    self.reissued=True
                     self.save()
                     self.approval.reissued=True
                     self.approval.save()
@@ -3176,6 +3179,7 @@ def clone_proposal_with_status_reset(proposal):
 
                 proposal.id = None
                 proposal.approval_level_document = None
+                proposal.reissued=False
 
                 proposal.save(no_revision=True)
 
