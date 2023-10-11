@@ -87,12 +87,21 @@
                             <input type="checkbox" :value="true" v-model="masterlist.help_text_url" >&nbsp;&nbsp;&nbsp;<label>Help Text url?</label></input>
                         </div>
                     </div>
-                    <div class="row" v-if="isHelptextUrl">
+                    <!-- <div class="row" v-if="isHelptextUrl">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Help Text</label>
                         </div>
                         <div class="col-md-9">
                             <textarea class="form-control" name="question" v-model="masterlist.help_text"></textarea>
+                        </div>
+                    </div> -->
+                    <div class="row" v-if="isHelptextUrl">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Rich Help Text</label>
+                        </div>
+                        <div class="col-md-9">
+                            <!-- <textarea class="form-control" name="question" v-model="masterlist.help_text"></textarea> -->
+                            <ckeditor :config="editorConfig" name="question" v-model="masterlist.help_text"></ckeditor>
                         </div>
                     </div>
 
@@ -106,7 +115,8 @@
                             <label class="control-label pull-left" >Help Text assessor</label>
                         </div>
                         <div class="col-md-9">
-                            <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea>
+                            <!-- <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea> -->
+                        <ckeditor :config="editorConfig" name="question" v-model="masterlist.help_text_assessor"></ckeditor>
                         </div>
                     </div>
 
@@ -148,6 +158,12 @@ export default {
     data:function () {
         let vm = this;
         vm.schema_masterlist_url = helpers.add_endpoint_join(api_endpoints.schema_masterlist_paginated, 'schema_masterlist_datatable_list/?format=datatables');
+        var toolbar_options = [
+                [ '-', 'Bold', 'Italic' ],
+                [ 'Format' ],
+                [ 'NumberedList', 'BulletedList' ],
+                [ 'Table' ],
+            ]
         return {
             schema_masterlist_id: 'schema-materlist-datatable-'+vm._uid,
             pMasterListBody: 'pMasterListBody' + vm._uid,
@@ -157,6 +173,15 @@ export default {
             filterOptions: '',
             isModalOpen:false,
             missing_fields: [],
+            editorConfig: {
+                // The configuration of the editor.
+                toolbar: toolbar_options,
+                format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
+
+                // remove bottom bar
+                removePlugins: 'elementspath',
+                resize_enabled: false, 
+            },
             // masterlist table
             dtHeadersSchemaMasterlist: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
             dtOptionsSchemaMasterlist:{
