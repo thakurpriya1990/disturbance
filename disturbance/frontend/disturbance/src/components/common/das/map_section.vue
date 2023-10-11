@@ -18,7 +18,22 @@
                 </div>
                 <div>  
                      <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_id"  :isRepeatable="true" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
+                    <ul>
+                            <li>
+                                Upload a shapefile identifying the maximum area affected by the proposal, including all associated activities.
+                            </li>
+                            <li>
+                                The shapefile can be made up of one multi-part polygon.
+                            </li>
+                            <li>
+                                The Shapefile must be in GDA94 or GDA202 latitude/longitude only.
+                            </li>
+                            <li>
+                                Max file size is 10MB.
+                            </li>
+                        </ul>
                 </div>
+
                 <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
                 <div>
                     <div class="row">

@@ -29,7 +29,7 @@
                     <input :name="name" type="file" class="form-control" :data-que="n" :accept="fileTypes" @change="handleChange" :required="isRequired"/>
                     <!-- <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert> -->
                 </div>
-            </div><br>
+            </div><br v-if="showError">
             <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
 
         </div>

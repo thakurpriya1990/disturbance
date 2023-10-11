@@ -1580,6 +1580,34 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         #res = requests.get('{}'.format(self.url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
 
 
+    def combine_shapefile_json():
+        import geopandas as gpd
+        import requests
+
+        qs=Proposal.objects.filter(shapefile_json__isnull=False)
+        gdf = gpd.GeoDataFrame()
+        combined_features=[]
+        if qs:
+            for proposal in qs:
+                if proposal.shapefile_json:
+                    features=proposal.shapefile_json.get('features',[])
+                    combined_features.extend(features)
+        combined_geojson={
+            'type': 'FeatureCollection',
+            'features': combined_features
+        }
+                    # if 'public' not in proposal.layer_url:
+                    #     response = requests.get('{}'.format(layer.layer_url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
+                    # else:
+                    #     response=requests.get('{}'.format(layer.layer_url), verify=None)
+                    # layer_gdf = gpd.GeoDataFrame.from_features(re sponse.json()["features"])
+                    # gdf = gdf.append(layer_gdf)
+
+        output_file_path='/data/data/projects/disturbance_das_gis/media/proposals/1734/documents/map_docs/output/proposal.geojson'
+        with open(output_file_path, 'w') as output_file:
+            json.dump(combined_geojson, output_file)
+        #gdf.to_file(output_file, driver="GeoJSON")
+
 
     def submit(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
@@ -5343,8 +5371,8 @@ class ApiaryReferral(RevisionedMixin):
 # --------------------------------------------------------------------------------------
 @python_2_unicode_compatible
 class QuestionOption(models.Model):
-    label = models.CharField(max_length=100, unique=True)
-    value = models.CharField(max_length=100)
+    label = models.CharField(max_length=255, unique=True)
+    value = models.CharField(max_length=255)
 
     class Meta:
         app_label = 'disturbance'

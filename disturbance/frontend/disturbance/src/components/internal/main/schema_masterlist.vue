@@ -116,7 +116,7 @@
                         </div>
                         <div class="col-md-9">
                             <!-- <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea> -->
-                        <ckeditor :config="editorConfig" name="question" v-model="masterlist.help_text_assessor"></ckeditor>
+                        <ckeditor :config="editorConfigAssessor" name="question" v-model="masterlist.help_text_assessor"></ckeditor>
                         </div>
                     </div>
 
@@ -174,6 +174,15 @@ export default {
             isModalOpen:false,
             missing_fields: [],
             editorConfig: {
+                // The configuration of the editor.
+                toolbar: toolbar_options,
+                format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
+
+                // remove bottom bar
+                removePlugins: 'elementspath',
+                resize_enabled: false, 
+            },
+            editorConfigAssessor: {
                 // The configuration of the editor.
                 toolbar: toolbar_options,
                 format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
