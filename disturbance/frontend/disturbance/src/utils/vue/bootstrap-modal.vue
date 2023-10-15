@@ -52,6 +52,10 @@
                 type: Boolean,
                 default: false
             },
+            xlarge: {
+                type: Boolean,
+                default: false
+            },
             full: {
                 type: Boolean,
                 default: false
@@ -94,6 +98,7 @@
         computed: {
             modalClass () {
                 return {
+                    'modal-xl': this.xlarge,
                     'modal-lg': this.large,
                     'modal-sm': this.small,
                     'modal-full': this.full
@@ -192,4 +197,22 @@
     #okBtn {
         margin-bottom: 0px;
     }
+
+    @media (min-width: 768px) {
+      .modal-dialog {
+	width: 600px;
+	margin: 30px auto;
+      }
+      .modal-content {
+	-webkit-box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      }
+      .modal-sm {
+	width: 300px;
+      }
+      .modal-xl {
+	width: 85%;
+      }
+    }
+
 </style>

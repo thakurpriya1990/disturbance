@@ -21,6 +21,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.reverse import reverse_lazy
 from ledger.accounts.models import EmailUser
 from datetime import datetime
+import time
 from reversion.models import Version
 from django.core.cache import cache
 
@@ -82,6 +83,7 @@ from disturbance.components.proposals.models import (
     MasterlistQuestion,
     CddpQuestionGroup,
     SpatialQueryQuestion,
+    SpatialQueryMetrics,
     ProposalUserAction,
 )
 from disturbance.components.proposals.serializers import (
@@ -116,6 +118,8 @@ from disturbance.components.proposals.serializers import (
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
     DTSpatialQueryQuestionSerializer,
+    DTSpatialQueryMetricsSerializer,
+    DTSpatialQueryMetricsDetailsSerializer,
     #SpatialQueryQuestionSerializer,
     CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
@@ -2375,6 +2379,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 pass
             else:
                 if instance.shapefile_json:
+                    start_time = time.time()
+
                     proposal = instance
                     # current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
                     if proposal.prefill_timestamp:
@@ -2445,11 +2451,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         print(instance.history_add_info_assessor)
                         instance.add_info_assessor= resp['add_info_assessor']
                     if resp and 'when' in resp and resp['when']:
-                        when=datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
+                        when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
                         instance.prefill_timestamp=when
                     else:
                         # set this to prevent SQS cache looping indefinitely
-                        instance.prefill_timestamp=datetime.now().replace(tzinfo=pytz.utc)
+                        when = datetime.now().replace(tzinfo=pytz.utc)
+                        instance.prefill_timestamp=when
                     instance.save()
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
@@ -2471,6 +2478,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             instance.save(version_comment='Prefill Proposal')
             instance.log_user_action(ProposalUserAction.ACTION_PREFILL_PROPOSAL.format(instance.lodgement_number), request)
+            instance.log_metrics(when, resp, time.time()-start_time)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
             #return redirect(reverse('external'))
@@ -4444,6 +4452,32 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
             logger.exception()
             raise serializers.ValidationError(str(e))
 
+
+class SpatialQueryMetricsFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        search_text = request.GET.get('search[value]')
+        if queryset.model is SpatialQueryMetrics:
+            if search_text:
+                search_text = search_text.lower()
+                search_text_masterlist_ids = SpatialQueryMetrics.objects.values('id').filter(
+                    Q(id=search_text) | Q(proposal__lodgement_number__icontains=search_text)
+                )
+
+                queryset = queryset.filter(
+                    id__in=search_text_masterlist_ids
+                ).distinct()
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
 class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
     """
     Custom filters
@@ -4468,13 +4502,13 @@ class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
-class SpatialQueryQuestionRenderer(DatatablesRenderer):
+class SpatialQueryRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if 'view' in renderer_context and \
                 hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = \
                 renderer_context['view']._datatables_total_count
-        return super(SpatialQueryQuestionRenderer, self).render(
+        return super(SpatialQueryRenderer, self).render(
             data, accepted_media_type, renderer_context)
 
 
@@ -4482,7 +4516,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
     """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Questions' tab """
     filter_backends = (SpatialQueryQuestionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (SpatialQueryQuestionRenderer,)
+    renderer_classes = (SpatialQueryRenderer,)
     queryset = SpatialQueryQuestion.objects.none()
     serializer_class = DTSpatialQueryQuestionSerializer
     page_size = 10
@@ -4529,6 +4563,89 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
         response = self.paginator.get_paginated_response(data)
 
+        return response
+
+class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
+    """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
+    filter_backends = (SpatialQueryMetricsFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SpatialQueryRenderer,)
+    queryset = SpatialQueryMetrics.objects.none()
+    serializer_class = DTSpatialQueryMetricsSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return SpatialQueryMetrics.objects.all()
+
+    @list_route(methods=['GET', ])
+    def spatial_query_metrics_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryMetricsSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryMetricsSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
+
+    @list_route(methods=['GET', ])
+    def spatial_query_metrics_details_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryMetricsDetailsSerializer
+        queryset = self.get_queryset().filter(id=9)
+        queryset = queryset.values('proposal__metrics')
+        #queryset = self.get_queryset().values('metrics')
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryMetricsDetailsSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
+
+
+class SpatialQueryMetricsDetailsPaginatedViewSet(viewsets.ModelViewSet):
+    """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
+    #filter_backends = (SpatialQueryMetricsFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SpatialQueryRenderer,)
+    queryset = SpatialQueryMetrics.objects.none()
+    serializer_class = DTSpatialQueryMetricsDetailsSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return SpatialQueryMetrics.objects.all()
+
+    @list_route(methods=['GET', ])
+    def spatial_query_metrics_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryMetricsDetailsSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryMetricsSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
         return response
 
 
@@ -4954,7 +5071,6 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             #    if 'LGA_TYPE' in d['attribute']:
             #        attr_values = d['values']
 
-            #import ipdb; ipdb.set_trace()
             sqq_column_name = request.data.get('column_name').strip()
             sqq_answer = request.data.get('answer').strip()
             sqq_assessor_info = request.data.get('assessor_info').strip()

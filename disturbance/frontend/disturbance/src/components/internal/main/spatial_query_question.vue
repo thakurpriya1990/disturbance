@@ -76,34 +76,49 @@
             <div>
                 <form class="form-horizontal" name="spatial_query_question">
 
-                    <div class="row">&nbsp;</div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Question</label><label class="superscript">*</label>
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Question</label><label class="superscript">*</label>
+                            </div>
                         </div>
-                        <div class="col-md-9">
-                            <select class="form-control" ref="select_question" name="select-question" v-model="filterMasterlistQuestion" >
-                                <option v-for="(m, mid) in masterlist_questions" :value="m.question" v-bind:key="`question_${mid}`" :disabled="option_disabled(m)">{{m.question}}</option>
-                            </select>                         
-                            <i>{{spatialquery.answer_type}}</i>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-10">
+                                <select class="form-control" ref="select_question" name="select-question" v-model="filterMasterlistQuestion" >
+                                    <option v-for="(m, mid) in masterlist_questions" :value="m.question" v-bind:key="`question_${mid}`" :disabled="option_disabled(m)">{{m.question}}</option>
+                                </select>                         
+                                <i>{{spatialquery.answer_type}}</i>
+                            </div>
                         </div>
                     </div>
+
+
 <!--
                     {{sq_questions}}
 -->
 
-                    <div class="row">&nbsp;</div>
-                    <div class="row" v-if="spatialquery.question && masterlistQuestionOptions">
-                        <!-- Only show widget if there are options for the given masterlist question i.e. radiobuttons and checkboxes -->
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Answer</label><label class="superscript">*</label>
+                    <div class="row"><div class="col-md-12" ></div></div>
+                    <!-- Only show widget if there are options for the given masterlist question i.e. radiobuttons and checkboxes -->
+                    <div v-if="spatialquery.question && masterlistQuestionOptions">
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" >Answer</label><label class="superscript">*</label>
+                            </div>
                         </div>
-                        <div class="col-md-9">
-                            <select class="form-control" ref="select_answer" name="select-answer" v-model="filterMasterlistOption" >
-                                <option v-for="(o, oid) in masterlistQuestionOptions" :value="o.label" v-bind:key="`answer_${oid}`">{{o.label}}</option>
-                            </select>                         
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-10">
+                                <select class="form-control" ref="select_answer" name="select-answer" v-model="filterMasterlistOption" >
+                                    <option v-for="(o, oid) in masterlistQuestionOptions" :value="o.label" v-bind:key="`answer_${oid}`">{{o.label}}</option>
+                                </select>                         
+                            </div>
                         </div>
                     </div>
+
 <!--
                     1. {{ masterlistQuestionOptions }}<br>
                     2. a. {{ filterMasterlistQuestion }} b. {{ spatialquery.question }}<br>
@@ -112,104 +127,82 @@
 -->
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Layer name</label><label class="superscript">*</label>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-9">
+                                <label class="control-label pull-left" >Layer name</label><label class="superscript">*</label>
+                            </div>
                         </div>
-                        <div class="col-md-5">
-                            <select class="form-control" ref="select_layer" name="select-layer" v-model="spatialquery.layer">
-                                <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer" >{{layer.layer_name}}</option>
-                            </select>     
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-10">
+                                <select class="form-control" ref="select_layer" name="select-layer" v-model="spatialquery.layer">
+                                    <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer" >{{layer.layer_name}}</option>
+                                </select>     
+                            </div>
+                            <span v-if="spatialquery.layer">
+                                <a @click="check_sqs_layer_form" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="Check/Update/Create Layer in SQS">&nbsp;</i></a>
+                            </span>
+                            <span v-else>
+                                <i class="fa fa-lg fa-info-circle" style="color: grey;" title="Must select Layer name">&nbsp;</i>
+                            </span>
                         </div>
-                        <a @click="check_sqs_layer_form" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="Check/Update/Create Layer in SQS">&nbsp;</i></a>
-                        <!--
-			<div v-if="spatialquery.layer && is_admin">
-			    <a @click="show_layer_attrs_and_values" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="View layer attrs and values available">&nbsp;</i></a>
-			    <a @click="show_layer_json" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="View layer JSON">&nbsp;</i></a>
-			</div>
-                        -->
                     </div>
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div class="row">
                         <br>
-                        <div class="col-md-3"></div>
-             	        <div class="col-md-5" v-if="spatialquery.layer && is_admin">
+                        <div class="col-md-1"></div>
+             	        <div class="col-md-10" v-if="spatialquery.layer && is_admin">
                             <button type="button" class="btn btn-primary" @click="show_layer_attrs_and_values()" title="Show Layer Attrs and Values">View Layer Summary</button>
                             <button type="button" class="btn btn-primary" @click="output_vars()" title="Output SQQ form data to console log">To Console Log</button>
-                            <!--
-                            <button type="button" class="btn btn-primary" @click="show_layer_json()">View Layer JSON</button>
-                            <button type="button" v-if="requesting" class="btn btn-primary" @click="show_layer_attrs_and_values()"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                            <button type="button" v-else class="btn btn-primary" @click="show_layer_attrs_and_values()">View Layer Summary</button>
-                            -->
 			</div>
                     </div>
 
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Question Group</label><label class="superscript">*</label>
-                        </div>
-                        <div class="col-md-3">
-                           <!--{{spatialquery.group}}-->
-                            <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group">
-                                <option v-if="group.can_user_edit" v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
-                            </select>     
-                        </div>
-                        <div v-if="showQuestionModal && has_no_editable_groups()" class="col-md-6">
-                            <p style="color:red;">You are currently not a member of any Spatial Question Group. To create a new Spatial Query Question, you must first be added to at least one Spatial Question Group.</p>
-                        </div>
-                    </div>
 
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" style="font-weight:normal !important;">Expiry</label>
-                        </div>
-                        <div class="col-md-3">
-                            <input type="date" class="form-control" name="expiry" v-model="spatialquery.expiry"></input>
-                        </div>
-                        <div class="col-md-6"></div>
-                    </div>
 
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div>
                         <div class="row">
-                            <div class="col-md-3"></div>
-                            <div class="col-md-3">
-                                <label class="control-label pull-left" >Visible to proponent</label><label class="superscript">*</label>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="control-label pull-left" style="font-weight:normal !important;">Buffer (metres)</label>
+                            <div class="col-md-1"></div>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <label class="control-label pull-left" >Question Group</label><label class="superscript">*</label>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="control-label pull-left" >Intersection operator</label><label class="superscript">*</label>
+                                </div>
+                                <div class="col-md-3" v-if="spatialquery.question && is_text_widget()">
+                                    <label class="control-label pull-left" >Visible to proponent</label><label class="superscript">*</label>
+                                </div>
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-3"></div>
+                            <div class="col-md-1"></div>
                             <div class="col-md-3">
+                                <!--{{spatialquery.group}}-->
+                                <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group">
+                                    <option v-if="group.can_user_edit" v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
+                                </select>     
+                            </div>
+                            <div class="col-md-3">
+                                <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
+                                    <option v-for="operator in spatialquery_selects.how" :value="operator.value" >{{operator.label}}</option>
+                                </select>     
+                            </div>
+                            <div class="col-md-3" v-if="spatialquery.question && is_text_widget(spatialquery.question && is_text_widget())">
                                 <input type="radio" id="visible_to_proponent_yes" name="visible_to_proponent" value="true" v-model="spatialquery.visible_to_proponent">
                                 <label for="visible_to_proponent_yes">Yes</label>&nbsp;&nbsp;&nbsp;
                                 <input type="radio" id="visible_to_proponent_no" name="visible_to_proponent" value="false" v-model="spatialquery.visible_to_proponent">
                                 <label for="visible_to_proponent_no">No</label>
-
-
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" min="0" class="form-control" name="buffer" v-model="spatialquery.buffer"></input>
                             </div>
                         </div>
-                    </div>
-
-
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label class="control-label pull-left" >Intersection operator</label><label class="superscript">*</label>
-                        </div>
-                        <div class="col-md-3">
-                            <select class="form-control" ref="select_how" name="select-how" v-model="spatialquery.how">
-                                <option v-for="operator in spatialquery_selects.how" :value="operator.value" >{{operator.label}}</option>
-                            </select>     
+                        <div class="row" v-if="showQuestionModal && has_no_editable_groups()">
+                            <div class="col-md-1"></div>
+                            <div  class="col-md-3">
+                                <p style="color:red;">You are currently not a member of any Spatial Question Group. To create a new Spatial Query Question, you must first be added to at least one Spatial Question Group.</p>
+                            </div>
                         </div>
                     </div>
 
@@ -220,15 +213,11 @@
                     <div class="row"><div class="col-md-12" >&nbsp;</div></div>
                     <div>
                         <div class="row">
-                            <div class="col-md-3"></div>
+                            <div class="col-md-1"></div>
                             <div class="col-md-3">
                                 <label class="control-label pull-left" >Column name</label><label class="superscript">*</label>
                                 <span v-if="spatialquery.layer">
                                     <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
-                                    <!--
-                                    <div v-if="requesting" class="center-all" @click="show_layer_attrs"><i class="fa fa-lg fa-spinner fa-spin"></i> Processing</div>
-                                    <a v-else @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
-                                    -->
                                 </span>
                                 <span v-else>
                                     <i class="fa fa-lg fa-info-circle" style="color: grey;" title="Must select Layer name">&nbsp;</i>
@@ -241,10 +230,6 @@
                                 <label class="control-label pull-left" >Value</label><label class="superscript">*</label>
                                 <span v-if="spatialquery.column_name">
                                     <a @click="show_layer_attr_values" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attribute values available">&nbsp;</i></a>
-                                    <!--
-                                    <div v-if="requesting" class="center-all" @click="show_layer_attr_values()"><i class="fa fa-spinner fa-spin"></i> Processing</div>
-                                    <a v-else @click="show_layer_attr_values" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="View attribute values available">&nbsp;</i></a>
-                                    -->
                                 </span>
                                 <span v-else>
                                     <i class="fa fa-lg fa-info-circle" style="color: grey;" title="Must select Layer name and Column name">&nbsp;</i>
@@ -252,7 +237,7 @@
                             </div>
                         </div>
                         <div class="row">
-                            <div class="col-md-3"></div>
+                            <div class="col-md-1"></div>
                             <div class="col-md-3">
                                 <input type="text" class="form-control" name="column_name" v-model="spatialquery.column_name" style="width:100%;"></input>
                             </div>
@@ -272,70 +257,86 @@
                         -->
                     </div>
 
-                    
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" style="font-weight:normal !important;">Expiry</label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" style="font-weight:normal !important;">Buffer (metres)</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-3">
+                                <input type="date" class="form-control" name="expiry" v-model="spatialquery.expiry"></input>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" min="0" class="form-control" name="buffer" v-model="spatialquery.buffer"></input>
+                            </div>
+                        </div>
+                    </div>
+
+                   
                     <div v-if="spatialquery.question && is_text_widget()">
-			<hr /><label><i>Proponent Section</i></label>
+			<hr />
+			<div class="row"><div class="col-md-12" ></div></div>
+			<div class="row">
+                            <div class="col-md-1"></div>
+			    <div class="col-md-3">
+			        <label><i>Proponent Section</i></label>
+			    </div>
+			</div>
 			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
 			<div class="row">
+                            <div class="col-md-1"></div>
 			    <div class="col-md-3">
 				<label class="control-label pull-left" style="font-weight:normal !important;">Prefix answer</label>
 			    </div>
-			    <div class="col-md-9">
+			    <div class="col-md-8">
 				<input type="text" class="form-control" name="prefix_answer" v-model="spatialquery.prefix_answer"></input>
 			    </div>
 			</div>
 
-                        <!--
 			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
 			<div class="row">
-			    <div class="col-md-3">
-				<label class="control-label pull-left" style="text-align: left;" title="-1 to process all polygons">Number of polygons to process (Proponent)</label>
-			    </div>
-			    <div class="col-md-3">
-				<input type="number" min="-1" class="form-control" name="no_polygons_proponent" v-model="spatialquery.no_polygons_proponent"></input>
-			    </div>
-			</div>
-                        -->
-
-			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
-			<div class="row">
+                            <div class="col-md-1"></div>
 			    <div class="col-md-3">
 				<label class="control-label pull-left" title="::<layer_property_name> Eg. ::region">Answer</label><label class="superscript">*</label>
 			    </div>
-			    <div class="col-md-9">
+			    <div class="col-md-8">
 				<input type="text" class="form-control" name="answer" v-model="spatialquery.answer"></input>
 			    </div>
 			</div>
 
-			<hr /><label><i>Assessor Section</i></label>
+			<hr />
+			<div class="row"><div class="col-md-12" ></div></div>
+			<div class="row">
+                            <div class="col-md-1"></div>
+			    <div class="col-md-3">
+			        <label><i>Assessor Section</i></label>
+			    </div>
+			</div>
 			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
 			<div class="row">
+                            <div class="col-md-1"></div>
 			    <div class="col-md-3">
 				<label class="control-label pull-left" style="font-weight:normal !important;">Prefix info</label>
 			    </div>
-			    <div class="col-md-9">
+			    <div class="col-md-8">
 				<input type="text" class="form-control" name="prefix_info" v-model="spatialquery.prefix_info"></input>
 			    </div>
 			</div>
 
-                        <!--
 			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
 			<div class="row">
-			    <div class="col-md-3">
-				<label class="control-label pull-left" style="text-align: left;" title="-1 to process all polygons">Number of polygons to process (Assessor)</label>
-			    </div>
-			    <div class="col-md-3">
-				<input type="number" min="-1" class="form-control" name="no_polygons_assessor" v-model="spatialquery.no_polygons_assessor"></input>
-			    </div>
-			</div>
-                        -->
-
-			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
-			<div class="row">
+                            <div class="col-md-1"></div>
 			    <div class="col-md-3">
 				<label class="control-label pull-left" style="font-weight:normal !important;" title="::<layer_property_name> Eg. ::region">Info for assessor</label>
 			    </div>
-			    <div class="col-md-9">
+			    <div class="col-md-8">
 				<input type="text" class="form-control" name="assessor_info" v-model="spatialquery.assessor_info"></input>
 			    </div>
 			</div>
@@ -478,6 +479,8 @@ export default {
     data:function () {
         let vm = this;
         vm.spatial_query_question_url = helpers.add_endpoint_join(api_endpoints.spatial_query_paginated, 'spatial_query_question_datatable_list/?format=datatables');
+        console.log(vm.spatial_query_question_url)
+
 //        vm.proposal = {
 //            lodgement_number: '',
 //            masterlist_question_id: '',
@@ -565,17 +568,19 @@ export default {
 			'render': function (value) {
 	  		    return helpers.dtPopover(value, 50);
 			},
-                        createdCell: function(td, cellData, rowData, row, col){
-                            if (vm.is_question_expired(rowData.expiry)) {
-                                vm.expired_questions.push(rowData.id) 
-                                $(td).css('color', 'blue');
-                                $(td).attr('title', 'This question has expired: ' + rowData.expiry);
-                            } else {
-                                // keep list for all non-expired questions, all layer names on the dashboard
-                                vm.current_layers.push(rowData.id) 
-                            }
-                            helpers.dtPopoverCellFn;
-                        }
+                        'createdCell': helpers.dtPopoverCellFn,
+                        
+//                        createdCell: function(td, cellData, rowData, row, col){
+//                            if (vm.is_question_expired(rowData.expiry)) {
+//                                vm.expired_questions.push(rowData.id) 
+//                                $(td).css('color', 'blue');
+//                                $(td).attr('title', 'This question has expired: ' + rowData.expiry);
+//                            } else {
+//                                // keep list for all non-expired questions, all layer names on the dashboard
+//                                vm.current_layers.push(rowData.id) 
+//                            }
+//                            helpers.dtPopoverCellFn;
+//                        }
                     },
                     { 
                         data: "answer_mlq",
@@ -773,7 +778,7 @@ export default {
         },
     },
     methods: {
-        is_text_widget: function (question) {
+        is_text_widget: function () {
 	    //return ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)
 	    return ['text', 'text_area'].includes(this.spatialquery.answer_type)
         },
@@ -1309,6 +1314,9 @@ export default {
                 }
             }
 
+            if (!this.spatialquery.visible_to_proponent && !this.masterlistQuestionOptions) { this.missing_fields.push({'label':'Visible to Proponent field is required'}); }
+            if (!this.spatialquery.visible_to_proponent && this.masterlistQuestionOptions) { this.spatialquery.visible_to_proponent=true; }
+
             if (this.missing_fields.length>0) {
                 return true;
             } 
@@ -1333,8 +1341,8 @@ export default {
 		this.spatialquery.layer = '';
 		this.spatialquery.group = '';
 		this.spatialquery.expiry = null;
-		this.spatialquery.visible_to_proponent = '';
-		this.spatialquery.buffer = '';
+		this.spatialquery.visible_to_proponent = null;
+		this.spatialquery.buffer = 0;
 		this.spatialquery.how = '';
 		this.spatialquery.column_name = '';
 		this.spatialquery.operator = '';
