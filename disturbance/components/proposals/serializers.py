@@ -476,7 +476,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'requirements_completed',
                 'reversion_history',
-                'shapefile_json'
+                'shapefile_json',
                 'reissued',
                 )
         read_only_fields=('documents','requirements','gis_info',)

@@ -7,6 +7,7 @@ from django.conf import settings
 
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
+from disturbance.components.main.models import GlobalSettings
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,14 @@ def get_sender_user():
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     return sender_user
+
+def get_das_sharepoint_url():
+    sharepoint_url = ''
+    try:
+        sharepoint_url = GlobalSettings.objects.get(key=GlobalSettings.DAS_SHAREPOINT_PAGE).value
+    except:
+        sharepoint_url = ''
+    return sharepoint_url
 
 
 class ReferralSendNotificationEmail(TemplateEmailBase):
@@ -332,10 +341,17 @@ def send_submit_email_notification(request, proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
-
+    help_page_url=''
+    help_page_url_qs= GlobalSettings.objects.filter(key=GlobalSettings.PROPOSAL_ASSESS_HELP_PAGE)
+    if help_page_url_qs:
+        help_page_url=help_page_url_qs.last().value
     context = {
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'greeting': 'Assessors',
+        'proposal_assess_help_page': help_page_url,
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url()
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
