@@ -314,7 +314,7 @@
 					<input :name="`data[${index}]prefix`" class="form-control" placeholder="Prefix" v-model="item.prefix"></input>
 				    </div>
 				    <div class="col-md-5">
-			                <input :name="`data[${index}]answer`" class="form-control" placeholder="::<Attribute-Name>" v-model="item.answer"></input>
+			                <input :name="`data[${index}]answer`" class="form-control" placeholder="<Attribute-Name>" v-model="item.answer"></input>
 				    </div>
   		                    <a v-if="spatialquery.proponent_items.length>1" v-on:click="spatialquery.proponent_items.splice(index, 1)" href="#"><i class="fa fa-lg fa-trash">&nbsp;</i></a>
 				</div>
@@ -352,7 +352,7 @@
 					<input :name="`data[${index}]prefix`" class="form-control" placeholder="Prefix" v-model="item.prefix"></input>
 				    </div>
 				    <div class="col-md-5">
-			                <input :name="`data[${index}]info`" class="form-control" placeholder="::<Attribuet-Name>" v-model="item.info"></input>
+			                <input :name="`data[${index}]info`" class="form-control" placeholder="<Attribuet-Name>" v-model="item.info"></input>
 				    </div>
   		                    <a v-if="spatialquery.assessor_items.length>1" v-on:click="spatialquery.assessor_items.splice(index, 1)" href="#"><i class="fa fa-lg fa-trash">&nbsp;</i></a>
 				</div>
