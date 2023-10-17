@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    <modal class="my-modal" transition="modal fade" @ok="ok()" title="Metrics" xlarge>
+    <modal class="my-modal" transition="modal fade" @ok="ok()" title="Metrics" xxlarge>
         <div class="container-fluid">
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
                 <b>Please answer the following mandatory question(s):</b>
@@ -176,7 +176,7 @@ export default {
                 },
             },
 
-            dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Layer Cached", "Condition", "Error", "Retrive Layer Time", "Query Time"],
+            dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Operator Response", "Layer Cached", "Error", "Retrive Layer Time (s)"],
             //dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name"],
             //dtHeadersSchemaMetrics: ["Question"],
             dtOptionsSchemaMetrics:{
@@ -184,8 +184,17 @@ export default {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
                 },
                 responsive: true,
+//    fixedColumns: {
+//        left: 1,
+//        right: 1
+//    },
+//    paging: true,
+    //scrollCollapse: true,
+    //scrollX: true,
+    //scrollY: 300,
+
                 //serverSide: false,
-                //autowidth: true,
+                //////autowidth: false,
                 //processing: true,
 //                "ajax": function (data, callback, settings) {
 //		    callback(
@@ -208,7 +217,7 @@ export default {
                         data: "question",
                         searchable: true,
 			'render': function (value) {
-	  		    return helpers.dtPopover(value, 50);
+	  		    return helpers.dtPopover(value, 35);
 			},
                         'createdCell': helpers.dtPopoverCellFn,
                     },
@@ -216,7 +225,7 @@ export default {
                         data: "answer_mlq",
                         searchable: true,
 			'render': function (value) {
-	  		    return helpers.dtPopover(value, 50);
+	  		    return helpers.dtPopover(value, 35);
 			},
                         'createdCell': helpers.dtPopoverCellFn,
                     },
@@ -224,26 +233,55 @@ export default {
                         data: "layer_name",
                         searchable: true,
                     },
-                    {
-	 	        data: "layer_cached",
-	                searchable: false,
-		    },
 		    {
 			data: "condition",
 			searchable: false,
 		    },
 		    {
-			data: "error",
+			data: "result",
+			'render': function (value) {
+	  		    return helpers.dtPopover(value, 20);
+			},
+                        'createdCell': helpers.dtPopoverCellFn,
+		    },
+		    {
+			data: "assessor_answer",
+			'render': function (value) {
+	  		    return helpers.dtPopover(value, 20);
+			},
+                        'createdCell': helpers.dtPopoverCellFn,
+		    },
+		    {
+			data: "time",
 			searchable: false,
+		    },
+		    {
+			data: "operator_response",
+			'render': function (value) {
+	  		    return helpers.dtPopover(value, 20);
+			},
+                        'createdCell': helpers.dtPopoverCellFn,
+		    },
+                    {
+	 	        data: "layer_cached",
+			'render': function (value) {
+	  		    return value=='true' ? 'Yes' : 'No';
+			},
+		    },
+		    {
+			data: "error",
+			'render': function (value) {
+                            if (value=='None') {
+                                return '';
+                            }
+	  		    return helpers.dtPopover(value, 20);
+			},
+                        'createdCell': helpers.dtPopoverCellFn,
 		    },
 		    {
 			data: "time_retrieve_layer",
 			searchable: false,
                         visible: false,
-		    },
-		    {
-			data: "time",
-			searchable: false,
 		    },
 
                 ],
@@ -262,8 +300,11 @@ export default {
             let spatial_query_metrics = self.$refs.spatial_query_metrics_table.row_of_data.data().metrics; 
             console.log(spatial_query_metrics)
 
-            this.$refs.spatial_query_metrics_details_table.vmDataTable.clear().rows.add( spatial_query_metrics ).draw()
+            //this.$refs.spatial_query_metrics_details_table.vmDataTable.clear().rows.add( spatial_query_metrics ).draw()
             this.isModalOpen = true;
+            this.$refs.spatial_query_metrics_details_table.vmDataTable.clear().draw()
+            this.$refs.spatial_query_metrics_details_table.vmDataTable.rows.add( spatial_query_metrics )
+            this.$refs.spatial_query_metrics_details_table.vmDataTable.columns.adjust().draw()
         },
         close: function() {
             const self = this;

@@ -1375,6 +1375,8 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
           'prefix_info',
           'no_polygons_assessor',
           'assessor_info',
+          'proponent_items',
+          'assessor_items',
           'regions',
           'layer',
           'group',
@@ -1480,6 +1482,7 @@ class DTSpatialQueryMetricsSerializer(UniqueFieldsMixin, WritableNestedModelSeri
     def get_metrics(self, obj):
         return obj.metrics
 
+
 class DTSpatialQueryMetricsDetailsSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
     '''
     Serializer for Datatable SpatialQueryQuestion.
@@ -1499,6 +1502,28 @@ class DTSpatialQueryMetricsDetailsSerializer(UniqueFieldsMixin, WritableNestedMo
 
     def get_metrics(self, obj):
         return obj.metrics
+    
+
+class DTSpatialQueryLayersUsedSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+    '''
+    Serializer for Datatable SpatialQuery Layers Used.
+    '''
+#    lodgement_number = serializers.CharField(source='proposal.lodgement_number')
+#    metrics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        #fields = '__all__'
+        fields = (
+          'id',
+          'lodgement_number',
+          'layer_data',
+        )
+        datatables_always_serialize = fields
+
+#    def get_metrics(self, obj):
+#        return obj.metrics
+
 
 class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()

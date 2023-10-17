@@ -50,9 +50,13 @@
             },
             large: {
                 type: Boolean,
-                default: false
+                default: true
             },
             xlarge: {
+                type: Boolean,
+                default: false
+            },
+            xxlarge: {
                 type: Boolean,
                 default: false
             },
@@ -98,6 +102,7 @@
         computed: {
             modalClass () {
                 return {
+                    'modal-xxl': this.xxlarge,
                     'modal-xl': this.xlarge,
                     'modal-lg': this.large,
                     'modal-sm': this.small,
@@ -211,8 +216,25 @@
 	width: 300px;
       }
       .modal-xl {
-	width: 85%;
+	width: 80%;
+      }
+      .modal-xxl {
+	width: 95%;
       }
     }
+
+    @media (min-width: 992px) {
+      .modal-lg {
+	width: 900px;
+      }
+      .modal-xl {
+	width: 80%;
+      }
+      .modal-xxl {
+	width: 95%;
+      }
+
+    }
+
 
 </style>

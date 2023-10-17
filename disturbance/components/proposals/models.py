@@ -5912,6 +5912,9 @@ class SpatialQueryQuestion(models.Model):
     no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
     assessor_info = models.TextField(blank=True, null=True)
 
+    proponent_items = JSONField('Proponent response set', default=[{}])
+    assessor_items = JSONField('Assessor response set', default=[{}])
+
     regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
                                 
     objects = models.Manager()

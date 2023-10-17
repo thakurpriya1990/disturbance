@@ -61,7 +61,7 @@
     </div>
 
     <div v-show="showQuestionModal">
-    <modal id="showQuestionModal" transition="modal fade" @ok="ok()" title="Spatial Query Question" large>
+    <modal id="showQuestionModal" transition="modal fade" @ok="ok()" title="Spatial Query Question">
         <div class="container-fluid">
 <!--
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -215,7 +215,7 @@
                         <div class="row">
                             <div class="col-md-1"></div>
                             <div class="col-md-3">
-                                <label class="control-label pull-left" >Column name</label><label class="superscript">*</label>
+                                <label class="control-label pull-left" >Attribute name</label><label class="superscript">*</label>
                                 <span v-if="spatialquery.layer">
                                     <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
                                 </span>
@@ -281,6 +281,7 @@
 
                    
                     <div v-if="spatialquery.question && is_text_widget()">
+<!--
 			<hr />
 			<div class="row"><div class="col-md-12" ></div></div>
 			<div class="row">
@@ -311,14 +312,6 @@
 			    </div>
 			</div>
 
-			<hr />
-			<div class="row"><div class="col-md-12" ></div></div>
-			<div class="row">
-                            <div class="col-md-1"></div>
-			    <div class="col-md-3">
-			        <label><i>Assessor Section</i></label>
-			    </div>
-			</div>
 			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
 			<div class="row">
                             <div class="col-md-1"></div>
@@ -340,6 +333,128 @@
 				<input type="text" class="form-control" name="assessor_info" v-model="spatialquery.assessor_info"></input>
 			    </div>
 			</div>
+-->
+			<hr />
+			<div class="row"><div class="col-md-12" ></div></div>
+			<div class="row">
+                            <div class="col-md-1"></div>
+			    <div class="col-md-3">
+			        <label><i>Proponent Section</i></label>
+			    </div>
+			    <div class="col-md-7" style="text-align: right;">
+				<button v-on:click="spatialquery.proponent_items.push({})" type="button">Add</button><br>
+			    </div>
+			</div>
+			<div v-for="(item, index) in spatialquery.proponent_items" :key="`proponent_${index}`">
+			    <div class="row"><div class="col-md-12" ></div></div>
+			    <div>
+				<div class="row">
+				    <div class="col-md-1"></div>
+				    <div class="col-md-5">
+					<label :for="`data[${index}]prefix`" class="control-label pull-left" style="font-weight:normal !important;">Proponent Prefix</label>
+				    </div>
+				    <div class="col-md-5">
+                                        <div v-if="index==0">
+					    <label :for="`data[${index}]answer`" class="control-label pull-left" >Proponent Answer</label><label class="superscript">*</label>
+				        </div>
+                                        <div v-else>
+					    <label :for="`data[${index}]answer`" class="control-label pull-left" style="font-weight:normal !important;">Proponent Answer</label>
+				        </div>
+				    </div>
+				</div>
+				<div class="row">
+				    <div class="col-md-1"></div>
+				    <div class="col-md-5">
+					<input :name="`data[${index}]prefix`" class="form-control" placeholder="Prefix" v-model="item.prefix"></input>
+				    </div>
+				    <div class="col-md-5">
+			                <input :name="`data[${index}]answer`" class="form-control" placeholder="::<Attribute-Name>" v-model="item.answer"></input>
+				    </div>
+  		                    <a v-if="spatialquery.proponent_items.length>1" v-on:click="spatialquery.proponent_items.splice(index, 1)" href="#"><i class="fa fa-lg fa-trash">&nbsp;</i></a>
+				</div>
+			    </div>
+			</div>
+                        {{spatialquery.proponent_items}}
+
+
+			<hr />
+			<div class="row"><div class="col-md-12" ></div></div>
+			<div class="row">
+                            <div class="col-md-1"></div>
+			    <div class="col-md-3">
+			        <label><i>Assessor Section</i></label>
+			    </div>
+			    <div class="col-md-7" style="text-align: right;">
+				<button v-on:click="spatialquery.assessor_items.push({})" type="button">Add</button><br>
+			    </div>
+			</div>
+			<div v-for="(item, index) in spatialquery.assessor_items" :key="`assessor_${index}`">
+			    <div class="row"><div class="col-md-12" ></div></div>
+			    <div>
+				<div class="row">
+				    <div class="col-md-1"></div>
+				    <div class="col-md-5">
+					<label :for="`data[${index}]prefix`" class="control-label pull-left" style="font-weight:normal !important;">Assessor Prefix</label>
+				    </div>
+				    <div class="col-md-5">
+					<label :for="`data[${index}]info`" class="control-label pull-left" style="font-weight:normal !important;">Assessor Info</label>
+				    </div>
+				</div>
+				<div class="row">
+				    <div class="col-md-1"></div>
+				    <div class="col-md-5">
+					<input :name="`data[${index}]prefix`" class="form-control" placeholder="Prefix" v-model="item.prefix"></input>
+				    </div>
+				    <div class="col-md-5">
+			                <input :name="`data[${index}]info`" class="form-control" placeholder="::<Attribuet-Name>" v-model="item.info"></input>
+				    </div>
+  		                    <a v-if="spatialquery.assessor_items.length>1" v-on:click="spatialquery.assessor_items.splice(index, 1)" href="#"><i class="fa fa-lg fa-trash">&nbsp;</i></a>
+				</div>
+			    </div>
+			</div>
+                        {{spatialquery.assessor_items}}
+
+
+                              <!--
+                                    <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
+			      <label :for="`data[${index}]name`">name:</label>
+			      <input :name="`data[${index}]name`" required type="text" v-model="item.name">
+			      
+			      <label :for="`data[${index}]email`">email:</label>
+			      <input :name="`data[${index}]email`" required type="email" v-model="item.email">
+			      
+			      <label :for="`data[${index}]enabled`">enabled:</label>
+			      <input :name="`data[${index}]enabled`" type="checkbox" v-model="item.enabled">
+                              -->
+
+			    
+			    <!--<button type="submit">save</button>-->
+
+<!--
+                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
+                    <div>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" style="font-weight:normal !important;">Expiry</label>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="control-label pull-left" style="font-weight:normal !important;">Buffer (metres)</label>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-3">
+                                <input type="date" class="form-control" name="expiry" v-model="spatialquery.expiry"></input>
+                            </div>
+                            <div class="col-md-3">
+                                <input type="number" min="0" class="form-control" name="buffer" v-model="spatialquery.buffer"></input>
+                            </div>
+                        </div>
+                    </div>
+-->
+
+
                     </div>
 
                 </form>
@@ -526,6 +641,19 @@ export default {
             column_name: null,
             sq_questions: [],
             is_admin: false,
+
+//	    proponent_items: [
+//	      {
+//		prefix: '',
+//		answer: '',
+//	      },
+//	    ],
+//	    assessor_items: [
+//	      {
+//		prefix: '',
+//		info: '',
+//	      },
+//	    ],
 
             dtHeadersSpatialQueryQuestion: ["ID", "Question", "Answer Option", "Layer name", "Visible to proponent", "Buffer (m)", "Group", "Overlapping/Outside", "Column", "Operator", "Value", "Layer URL", "Expiry", "Prefix Answer", "Number of polygons (Proponent)", "Answer", "Prefix Info", "Number of polygons (Assessor)", "Assessor Info", "Regions", "Action"],
             dtOptionsSpatialQueryQuestion:{
@@ -715,6 +843,18 @@ export default {
 //                    answer_type: '',
 //                    options: null
 //                },
+		proponent_items: [
+		  {
+		    prefix: '',
+		    answer: '',
+		  },
+		],
+		assessor_items: [
+		  {
+		    prefix: '',
+		    info: '',
+		  },
+		],
             },
             proposal: {
                 lodgement_number: '',
@@ -778,6 +918,13 @@ export default {
         },
     },
     methods: {
+
+        didSubmitForm(e) {
+            /* https://codepen.io/sirthxalot-1471782131/pen/wvByQbz */
+  	    e.preventDefault();
+	    const data = new FormData(e.target);
+	    console.log('Form data:', data);
+        },
         is_text_widget: function () {
 	    //return ['text', 'text_area', 'select', 'multi-select'].includes(this.spatialquery.answer_type)
 	    return ['text', 'text_area'].includes(this.spatialquery.answer_type)
@@ -1304,8 +1451,14 @@ export default {
             if (!this.spatialquery.operator) { this.missing_fields.push({'label':'Operator field is required'}); }
             if (!this.spatialquery.buffer) { this.spatialquery.buffer=0 }
 
-            if (!this.spatialquery.answer && ['text', 'text_area'].includes(this.spatialquery.answer_type)) { this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); }
+//            if (!this.spatialquery.answer && ['text', 'text_area'].includes(this.spatialquery.answer_type)) { this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); }
+	    if (!this.spatialquery.proponent_items[0]['answer'] && ['text', 'text_area'].includes(this.spatialquery.answer_type)) { 
+                this.missing_fields.push({'label':'Answer (Proponent Section) field is required'}); 
+            }
 
+//	    for (let i = 0; i < this.spatialquery.proponent_items.length; i++) {
+//	        if (this.spatialquery.proponent_items[i])
+//	    }
 
             //if (this.spatialquery.operator && (this.spatialquery.operator == 'Equals' || this.spatialquery.operator != 'GreaterThan' || this.spatialquery.operator != 'LessThan')) { 
             if(['Equals','GreaterThan','LessThan'].includes(this.spatialquery.operator)) {
@@ -1355,7 +1508,10 @@ export default {
 		this.spatialquery.assessor_info = '';
 		this.spatialquery.regions = '';
 		this.spatialquery.id = '';
-		this.addedOptions = [];
+		//this.spatialquery.proponent_items = [{'prefix': '', 'answer': ''}];
+		//this.spatialquery.assessor_items = [{'prefix': '', 'info': ''}];
+		this.spatialquery.proponent_items = [{'': '', '': ''}];
+		this.spatialquery.assessor_items = [{'': '', '': ''}];
 		this.addedHeaders = [];
 		this.addedExpanders = [];
      
@@ -1408,13 +1564,16 @@ export default {
 		    self.spatialquery.column_name = self.$refs.spatial_query_question_table.row_of_data.data().column_name;
 		    self.spatialquery.operator = self.$refs.spatial_query_question_table.row_of_data.data().operator;
 		    self.spatialquery.value = self.$refs.spatial_query_question_table.row_of_data.data().value;
+		    self.spatialquery.regions = self.$refs.spatial_query_question_table.row_of_data.data().regions;
+		    self.spatialquery.proponent_items = self.$refs.spatial_query_question_table.row_of_data.data().proponent_items;
+		    self.spatialquery.assessor_items = self.$refs.spatial_query_question_table.row_of_data.data().assessor_items;
+
 		    self.spatialquery.prefix_answer = self.$refs.spatial_query_question_table.row_of_data.data().prefix_answer;
 		    self.spatialquery.no_polygons_proponent = self.$refs.spatial_query_question_table.row_of_data.data().no_polygons_proponent;
 		    self.spatialquery.answer = self.$refs.spatial_query_question_table.row_of_data.data().answer;
 		    self.spatialquery.prefix_info = self.$refs.spatial_query_question_table.row_of_data.data().prefix_info;
 		    self.spatialquery.no_polygons_assessor = self.$refs.spatial_query_question_table.row_of_data.data().no_polygons_assessor;
 		    self.spatialquery.assessor_info = self.$refs.spatial_query_question_table.row_of_data.data().assessor_info;
-		    self.spatialquery.regions = self.$refs.spatial_query_question_table.row_of_data.data().regions;
 
 		    self.filterMasterlistQuestion = self.spatialquery.question
 		    self.filterMasterlistOption = self.spatialquery.answer_mlq
