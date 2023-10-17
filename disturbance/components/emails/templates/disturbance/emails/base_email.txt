@@ -1,5 +1,9 @@
 {% block greetings %}
-Dear Sir/Madam,
+{% if greeting %}
+    Dear {{ greeting }},   
+{% else %}
+    Dear Sir/Madam,
+{% endif %}
 {% endblock %}
 
 {% block content %}

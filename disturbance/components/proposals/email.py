@@ -30,6 +30,22 @@ def get_das_sharepoint_url():
         sharepoint_url = ''
     return sharepoint_url
 
+def get_proposal_assess_help_url():
+    proposal_assess_help_url = ''
+    try:
+        proposal_assess_help_url = GlobalSettings.objects.get(key=GlobalSettings.PROPOSAL_ASSESS_HELP_PAGE).value
+    except:
+        proposal_assess_help_url = ''
+    return proposal_assess_help_url
+
+def get_assessment_reminder_days():
+    assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
+    try:
+        assessment_reminder_days = GlobalSettings.objects.get(key='assessment_reminder_days').value
+    except:
+        assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
+    return assessment_reminder_days
+
 
 class ReferralSendNotificationEmail(TemplateEmailBase):
     subject = 'A referral for a proposal has been sent to you.'
@@ -341,15 +357,11 @@ def send_submit_email_notification(request, proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
-    help_page_url=''
-    help_page_url_qs= GlobalSettings.objects.filter(key=GlobalSettings.PROPOSAL_ASSESS_HELP_PAGE)
-    if help_page_url_qs:
-        help_page_url=help_page_url_qs.last().value
     context = {
         'proposal': proposal,
         'url': url,
         'greeting': 'Assessors',
-        'proposal_assess_help_page': help_page_url,
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
         'assessor_footer': True,
         'DAS_sharepoint_page': get_das_sharepoint_url()
     }
@@ -569,10 +581,17 @@ def send_assessment_reminder_email_notification(proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
 
     context = {
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Assessors',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
