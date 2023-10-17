@@ -506,8 +506,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         """ http://localhost:8003/api/proposal_paginated/spatial_query_layers_used_datatable_list/?format=datatables&draw=1&length=10 """
         self.serializer_class = DTSpatialQueryLayersUsedSerializer 
         queryset = self.get_queryset().filter(layer_data__isnull=False, processing_status=Proposal.PROCESSING_STATUS_APPROVED)
-        #queryset = queryset.values('proposal__metrics')
-        #queryset = self.get_queryset().values('metrics')
 
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
@@ -4623,9 +4621,9 @@ class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
     def spatial_query_metrics_details_datatable_list(self, request, *args, **kwargs):
         """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
         self.serializer_class = DTSpatialQueryMetricsDetailsSerializer
-        queryset = self.get_queryset().filter(id=9)
-        queryset = queryset.values('proposal__metrics')
-        #queryset = self.get_queryset().values('metrics')
+        #queryset = self.get_queryset().filter(id=9)
+        #queryset = queryset.values('proposal__metrics')
+        queryset = self.get_queryset().values('proposal__metrics')
 
         queryset = self.filter_queryset(queryset)
         self.paginator.page_size = queryset.count()
@@ -4638,27 +4636,6 @@ class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
 
         response = self.paginator.get_paginated_response(data)
         return response
-
-    @list_route(methods=['GET', ])
-    def spatial_query_layers_used_datatable_list(self, request, *args, **kwargs):
-        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
-        self.serializer_class = DTSpatialQueryMetricsDetailsSerializer
-        queryset = self.get_queryset().filter(id=9)
-        queryset = queryset.values('proposal__metrics')
-        #queryset = self.get_queryset().values('metrics')
-
-        queryset = self.filter_queryset(queryset)
-        self.paginator.page_size = queryset.count()
-        # self.paginator.page_size = 0
-        result_page = self.paginator.paginate_queryset(queryset, request)
-        serializer = DTSpatialQueryMetricsDetailsSerializer(
-            result_page, context={'request': request}, many=True
-        )
-        data = serializer.data
-
-        response = self.paginator.get_paginated_response(data)
-        return response
-
 
 
 class SpatialQueryMetricsDetailsPaginatedViewSet(viewsets.ModelViewSet):

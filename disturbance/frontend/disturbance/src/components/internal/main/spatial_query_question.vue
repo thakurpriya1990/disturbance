@@ -279,61 +279,7 @@
                         </div>
                     </div>
 
-                   
                     <div v-if="spatialquery.question && is_text_widget()">
-<!--
-			<hr />
-			<div class="row"><div class="col-md-12" ></div></div>
-			<div class="row">
-                            <div class="col-md-1"></div>
-			    <div class="col-md-3">
-			        <label><i>Proponent Section</i></label>
-			    </div>
-			</div>
-			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
-			<div class="row">
-                            <div class="col-md-1"></div>
-			    <div class="col-md-3">
-				<label class="control-label pull-left" style="font-weight:normal !important;">Prefix answer</label>
-			    </div>
-			    <div class="col-md-8">
-				<input type="text" class="form-control" name="prefix_answer" v-model="spatialquery.prefix_answer"></input>
-			    </div>
-			</div>
-
-			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
-			<div class="row">
-                            <div class="col-md-1"></div>
-			    <div class="col-md-3">
-				<label class="control-label pull-left" title="::<layer_property_name> Eg. ::region">Answer</label><label class="superscript">*</label>
-			    </div>
-			    <div class="col-md-8">
-				<input type="text" class="form-control" name="answer" v-model="spatialquery.answer"></input>
-			    </div>
-			</div>
-
-			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
-			<div class="row">
-                            <div class="col-md-1"></div>
-			    <div class="col-md-3">
-				<label class="control-label pull-left" style="font-weight:normal !important;">Prefix info</label>
-			    </div>
-			    <div class="col-md-8">
-				<input type="text" class="form-control" name="prefix_info" v-model="spatialquery.prefix_info"></input>
-			    </div>
-			</div>
-
-			<div class="row"><div class="col-md-12" >&nbsp;</div></div>
-			<div class="row">
-                            <div class="col-md-1"></div>
-			    <div class="col-md-3">
-				<label class="control-label pull-left" style="font-weight:normal !important;" title="::<layer_property_name> Eg. ::region">Info for assessor</label>
-			    </div>
-			    <div class="col-md-8">
-				<input type="text" class="form-control" name="assessor_info" v-model="spatialquery.assessor_info"></input>
-			    </div>
-			</div>
--->
 			<hr />
 			<div class="row"><div class="col-md-12" ></div></div>
 			<div class="row">
@@ -374,7 +320,7 @@
 				</div>
 			    </div>
 			</div>
-                        {{spatialquery.proponent_items}}
+                        <!--{{spatialquery.proponent_items}}-->
 
 
 			<hr />
@@ -412,51 +358,9 @@
 				</div>
 			    </div>
 			</div>
-                        {{spatialquery.assessor_items}}
-
-
-                              <!--
-                                    <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
-			      <label :for="`data[${index}]name`">name:</label>
-			      <input :name="`data[${index}]name`" required type="text" v-model="item.name">
-			      
-			      <label :for="`data[${index}]email`">email:</label>
-			      <input :name="`data[${index}]email`" required type="email" v-model="item.email">
-			      
-			      <label :for="`data[${index}]enabled`">enabled:</label>
-			      <input :name="`data[${index}]enabled`" type="checkbox" v-model="item.enabled">
-                              -->
-
-			    
-			    <!--<button type="submit">save</button>-->
-
-<!--
-                    <div class="row"><div class="col-md-12" >&nbsp;</div></div>
-                    <div>
-                        <div class="row">
-                            <div class="col-md-1"></div>
-                            <div class="col-md-3">
-                                <label class="control-label pull-left" style="font-weight:normal !important;">Expiry</label>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="control-label pull-left" style="font-weight:normal !important;">Buffer (metres)</label>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-1"></div>
-                            <div class="col-md-3">
-                                <input type="date" class="form-control" name="expiry" v-model="spatialquery.expiry"></input>
-                            </div>
-                            <div class="col-md-3">
-                                <input type="number" min="0" class="form-control" name="buffer" v-model="spatialquery.buffer"></input>
-                            </div>
-                        </div>
-                    </div>
--->
-
+                        <!--{{spatialquery.assessor_items}}-->
 
                     </div>
-
                 </form>
             </div>
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">

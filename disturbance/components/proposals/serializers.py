@@ -1508,9 +1508,6 @@ class DTSpatialQueryLayersUsedSerializer(UniqueFieldsMixin, WritableNestedModelS
     '''
     Serializer for Datatable SpatialQuery Layers Used.
     '''
-#    lodgement_number = serializers.CharField(source='proposal.lodgement_number')
-#    metrics = serializers.SerializerMethodField()
-
     class Meta:
         model = Proposal
         #fields = '__all__'
@@ -1520,9 +1517,6 @@ class DTSpatialQueryLayersUsedSerializer(UniqueFieldsMixin, WritableNestedModelS
           'layer_data',
         )
         datatables_always_serialize = fields
-
-#    def get_metrics(self, obj):
-#        return obj.metrics
 
 
 class DASMapFilterSerializer(BaseProposalSerializer):

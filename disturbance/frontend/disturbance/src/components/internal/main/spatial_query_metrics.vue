@@ -23,6 +23,15 @@
                                     :dtHeaders="dtHeadersSchemaQuestion" 
                                 />
 
+<!--
+                                <datatable ref="spatial_query_layers_used_table"
+                                    :id="spatial_query_layers_used_id" 
+                                    :dtOptions="dtOptionsLayersUsed"
+                                    :dtHeaders="dtHeadersLayersUsed" 
+                                />
+-->
+
+
                             </div>
                         </div>
                     </div>
@@ -33,17 +42,6 @@
 
     <modal class="my-modal" transition="modal fade" @ok="ok()" title="Metrics" xxlarge>
         <div class="container-fluid">
-            <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
-                <b>Please answer the following mandatory question(s):</b>
-                <ul>
-                    <li v-for="error in missing_fields">
-                        {{ error.label }}
-                    </li>
-                </ul>
-            </div>
-             
-        </div>
-
 	<div class="row">
 	    <div class="col-md-12">
 		<div class="form-group">
@@ -55,6 +53,7 @@
 		</div>
 	    </div>
 	</div>
+        </div>
 
     </modal>
 
@@ -83,11 +82,14 @@ export default {
     data:function () {
         let vm = this;
         vm.spatial_query_metrics_url = helpers.add_endpoint_join(api_endpoints.spatial_query_metrics_paginated, 'spatial_query_metrics_datatable_list/?format=datatables');
+        vm.spatial_query_layer_used_url = helpers.add_endpoint_join(api_endpoints.spatial_query_layers_used_paginated, 'spatial_query_layers_used_datatable_list/?format=datatables');
         console.log(vm.spatial_query_metrics_url)
+        console.log(vm.spatial_query_layer_used_url)
 
         return {
             spatial_query_metrics_id: 'spatial_query_metrics-datatable-'+vm._uid,
             spatial_query_metrics_details_id: 'spatial_query_metrics_details-datatable-'+vm._uid,
+            spatial_query_layers_used_id: 'spatial_query_layers_used-datatable-'+vm._uid,
             pOptionsBody: 'pOptionsBody' + vm._uid,
             pQuestionBody: 'pQuestionBody' + vm._uid,
             isModalOpen: false,
@@ -175,6 +177,38 @@ export default {
                     return _data.id
                 },
             },
+
+//            dtHeadersLayersUsed: ["ID", "Lodgement Number", "Layer name"],
+//            dtOptionsLayersUsed:{
+//                language: {
+//                    processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
+//                },
+//                responsive: true,
+//                serverSide: true,
+//                processing: true,
+//                ajax: {
+//                    "url": vm.spatial_query_layer_used_url,
+//                    "dataSrc": 'data',
+//                },
+//                columnDefs: [
+//                    { visible: true } 
+//                ],
+//                columns: [
+//                    { 
+//                        data: "id",
+//                    },
+//                    { 
+//                        data: "lodgement_number",
+//                    },
+//                    { 
+//                        data: "layer_data.name",
+//                    },
+//                ],
+//                rowId: function(_data) {
+//                    return _data.id
+//                },
+//            },
+
 
             dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Operator Response", "Layer Cached", "Error", "Retrive Layer Time (s)"],
             //dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name"],
