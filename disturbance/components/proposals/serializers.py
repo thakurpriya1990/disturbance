@@ -20,6 +20,7 @@ from disturbance.components.proposals.models import (
                                     MasterlistQuestion,
                                     QuestionOption,
                                     SpatialQueryQuestion,
+                                    SpatialQueryMetrics,
                                     CddpQuestionGroup,
                                 )
 from disturbance.components.organisations.models import (
@@ -476,7 +477,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'requirements_completed',
                 'reversion_history',
-                'shapefile_json'
+                'shapefile_json',
                 'reissued',
                 )
         read_only_fields=('documents','requirements','gis_info',)
@@ -1374,6 +1375,8 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
           'prefix_info',
           'no_polygons_assessor',
           'assessor_info',
+          'proponent_items',
+          'assessor_items',
           'regions',
           'layer',
           'group',
@@ -1443,6 +1446,77 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 
     def _get_allowed_editors(self, obj):
         return obj.email
+
+
+class DTSpatialQueryMetricsSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+    '''
+    Serializer for Datatable SpatialQueryQuestion.
+    '''
+    lodgement_number = serializers.CharField(source='proposal.lodgement_number')
+    total_query_time = serializers.SerializerMethodField()
+    total_api_time = serializers.SerializerMethodField()
+    metrics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SpatialQueryMetrics
+        #fields = '__all__'
+        fields = (
+          'id',
+          'lodgement_number',
+          'when',
+          'system',
+          'request_type',
+          'total_query_time',
+          'total_api_time',
+          'metrics',
+        )
+        datatables_always_serialize = fields
+
+    def get_total_query_time(self, obj):
+        return obj.total_query_time
+
+    def get_total_api_time(self, obj):
+        ''' Total Time for API Request Response '''
+        return obj.time_taken
+
+    def get_metrics(self, obj):
+        return obj.metrics
+
+
+class DTSpatialQueryMetricsDetailsSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+    '''
+    Serializer for Datatable SpatialQueryQuestion.
+    '''
+    lodgement_number = serializers.CharField(source='proposal.lodgement_number')
+    metrics = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SpatialQueryMetrics
+        #fields = '__all__'
+        fields = (
+          'id',
+          'lodgement_number',
+          'metrics',
+        )
+        datatables_always_serialize = fields
+
+    def get_metrics(self, obj):
+        return obj.metrics
+    
+
+class DTSpatialQueryLayersUsedSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+    '''
+    Serializer for Datatable SpatialQuery Layers Used.
+    '''
+    class Meta:
+        model = Proposal
+        #fields = '__all__'
+        fields = (
+          'id',
+          'lodgement_number',
+          'layer_data',
+        )
+        datatables_always_serialize = fields
 
 
 class DASMapFilterSerializer(BaseProposalSerializer):
