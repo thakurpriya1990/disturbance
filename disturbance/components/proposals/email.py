@@ -7,6 +7,7 @@ from django.conf import settings
 
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
+from disturbance.components.main.models import GlobalSettings
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,30 @@ def get_sender_user():
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     return sender_user
+
+def get_das_sharepoint_url():
+    sharepoint_url = ''
+    try:
+        sharepoint_url = GlobalSettings.objects.get(key=GlobalSettings.DAS_SHAREPOINT_PAGE).value
+    except:
+        sharepoint_url = ''
+    return sharepoint_url
+
+def get_proposal_assess_help_url():
+    proposal_assess_help_url = ''
+    try:
+        proposal_assess_help_url = GlobalSettings.objects.get(key=GlobalSettings.PROPOSAL_ASSESS_HELP_PAGE).value
+    except:
+        proposal_assess_help_url = ''
+    return proposal_assess_help_url
+
+def get_assessment_reminder_days():
+    assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
+    try:
+        assessment_reminder_days = GlobalSettings.objects.get(key='assessment_reminder_days').value
+    except:
+        assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
+    return assessment_reminder_days
 
 
 class ReferralSendNotificationEmail(TemplateEmailBase):
@@ -332,10 +357,13 @@ def send_submit_email_notification(request, proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
-
     context = {
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'greeting': 'Assessors',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url()
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
@@ -553,10 +581,17 @@ def send_assessment_reminder_email_notification(proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
 
     context = {
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Assessors',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)

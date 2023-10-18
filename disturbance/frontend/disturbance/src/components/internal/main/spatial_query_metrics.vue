@@ -210,7 +210,7 @@ export default {
 //            },
 
 
-            dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Operator Response", "Layer Cached", "Error", "Retrive Layer Time (s)"],
+            dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Layer Cached", "Error", "Retrive Layer Time (s)", "Operator Response"],
             //dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name"],
             //dtHeadersSchemaMetrics: ["Question"],
             dtOptionsSchemaMetrics:{
@@ -289,34 +289,36 @@ export default {
 			data: "time",
 			searchable: false,
 		    },
-		    {
-			data: "operator_response",
-			'render': function (value) {
-	  		    return helpers.dtPopover(value, 20);
-			},
-                        'createdCell': helpers.dtPopoverCellFn,
-		    },
                     {
 	 	        data: "layer_cached",
 			'render': function (value) {
 	  		    return value=='true' ? 'Yes' : 'No';
 			},
 		    },
+
 		    {
 			data: "error",
 			'render': function (value) {
                             if (value=='None') {
                                 return '';
                             }
-	  		    return helpers.dtPopover(value, 20);
+	  		    //return helpers.dtPopover(value, 20);
 			},
-                        'createdCell': helpers.dtPopoverCellFn,
+                        //'createdCell': helpers.dtPopoverCellFn,
 		    },
 		    {
 			data: "time_retrieve_layer",
 			searchable: false,
                         visible: false,
 		    },
+		    {
+			data: "operator_response",
+//			'render': function (value) {
+//	  		    return helpers.dtPopover(value, 20);
+//			},
+//                        'createdCell': helpers.dtPopoverCellFn,
+		    },
+
 
                 ],
             },

@@ -814,9 +814,9 @@ export default {
                 }
              }
              else{
-                if((!vm.proposal.region) || (!vm.proposal.district))
+                if((!vm.proposal.region) || (!vm.proposal.district)||(vm.proposal.management_area=='')||(vm.proposal.approval_level==''))
                 {
-                    blank_fields.push('Region or District cannot be blank')
+                    blank_fields.push('Region or District or Category cannot be blank')
                 }
              }
 

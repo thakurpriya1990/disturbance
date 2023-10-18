@@ -3,17 +3,27 @@
 {%  block content %}
     The Proposal {{ proposal.lodgement_number }} is waiting for assessment.
 
-    Activity: {{proposal.activity}}
-	Region: {{proposal.region}}<br>
+   Region: {{proposal.region}}
 	{% if proposal.district %}
-		District:{{proposal.district}}
+		District: {{proposal.district}}
 	{% else %}
 		District: -
 	{% endif %}
+	Title: {{proposal.title}}
+	Activity: {{proposal.activity}}
+	Organisation: {{proposal.applicant}}
    
     You can access this Proposal using the following link:
   
     {{url}}
-
+	Note:
+	
+			Reminder notifications are sent every {{ assessment_reminder_days }} days until the status of a proposal progresses.
+			It is important an Assessor is ‘Assigned’ to a proposal ASAP.
+			To determine who is responsible for assessing a Proposal consult your local Assessor’s ‘Regional Ready Reckoner’ or discuss with the district or regional manager.
+			Please be aware DBCA states proposals are to be assessed and an approval decision made within 30-working days (from lodgment) unless significant amendments are required.
+			30-working days (from lodgment) unless significant amendments are required.
+			See <a href="{{ proposal_assess_help_page }}">DAS 06 how to assess a proposal</a> for full instructions.
+		
 
 {%  endblock %}
