@@ -398,11 +398,13 @@ class GlobalSettings(models.Model):
     KEY_ASSESSMENT_REMINDER_DAYS = 'assessment_reminder_days'
     DAS_SHAREPOINT_PAGE = 'das_sharepoint_page'
     PROPOSAL_ASSESS_HELP_PAGE ='proposal_assess_help_page'
+    COMPLIANCE_ASSESS_HELP_PAGE='compliance_assess_help_page'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
         (DAS_SHAREPOINT_PAGE, 'DAS Sharepoint page'),
-        (PROPOSAL_ASSESS_HELP_PAGE, 'DAS Proposal assess help page')
+        (PROPOSAL_ASSESS_HELP_PAGE, 'DAS Proposal assess help page'),
+        (COMPLIANCE_ASSESS_HELP_PAGE, 'DAS compliance assess')
     )
     default_values = (
     )

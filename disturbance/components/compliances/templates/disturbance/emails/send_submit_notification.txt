@@ -7,6 +7,18 @@
     You can access this Compliance using the following link:
     </p>
     {{url}}
+        Region: {{proposal.region}}
+		{% if proposal.district %}
+			District: {{proposal.district}}
+		{% else %}
+			District: -
+		{% endif %}
+        Approval No: {{ approval.lodgement_number}}
+        Proposal No: {{proposal.lodgement_number}}
+		Title: {{proposal.title}}
+		Activity: {{proposal.activity}}
+		Assessor: {{ assessor_name}}
+        Compliance No: {{ compliance.reference }}
 
 
 {%  endblock %}

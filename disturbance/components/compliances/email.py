@@ -7,6 +7,7 @@ from django.conf import settings
 
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
+from disturbance.components.main.models import GlobalSettings
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,23 @@ def get_sender_user():
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     return sender_user
+
+def get_das_sharepoint_url():
+    sharepoint_url = ''
+    try:
+        sharepoint_url = GlobalSettings.objects.get(key=GlobalSettings.DAS_SHAREPOINT_PAGE).value
+    except:
+        sharepoint_url = ''
+    return sharepoint_url
+
+def get_compliance_assess_help_url():
+    compliance_assess_help_url = ''
+    try:
+        compliance_assess_help_url = GlobalSettings.objects.get(key=GlobalSettings.COMPLIANCE_ASSESS_HELP_PAGE).value
+    except:
+        compliance_assess_help_url = ''
+    return compliance_assess_help_url
+
 
 class ComplianceExternalSubmitSendNotificationEmail(TemplateEmailBase):
     subject = 'Your Compliance with requirements has been submitted.'
@@ -402,10 +420,17 @@ def send_submit_email_notification(request, compliance):
     if "-internal" not in url:
         # add it. This email is for internal staff
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    assessor_name=compliance.assigned_to.get_full_name() if compliance.assigned_to else ''
 
     context = {
         'compliance': compliance,
-        'url': url
+        'url': url,
+        'proposal': compliance.proposal,
+        'assessor_name': assessor_name,
+        'greeting': 'Assessors',
+        'compliance_assess_help_page': get_compliance_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
     }
 
     msg = email.send(compliance.proposal.assessor_recipients, context=context)
