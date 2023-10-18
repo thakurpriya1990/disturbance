@@ -173,7 +173,7 @@
 									</div>
 								</div>
 
-								<div v-if="categories.length > 0">
+								<!-- <div v-if="categories.length > 0">
 									<label for="" class="control-label" >Category * <a :href="category_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
 									<div class="col-sm-12">
 										<div class="form-group">
@@ -185,7 +185,7 @@
 											</select>
 										</div>
 									</div>
-								</div>
+								</div> -->
                             </div>
                             <!-- For Testing
                             <div v-if="approval_level">
@@ -477,7 +477,8 @@ export default {
 
         if (!['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
             // if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.approval_level == ''){
-            if (vm.behalf_of == '' || vm.selected_application_id == ''  || vm.approval_level == ''){
+            //if (vm.behalf_of == '' || vm.selected_application_id == ''  || vm.approval_level == ''){
+            if (vm.behalf_of == '' || vm.selected_application_id == '' ){
                 return true;
             }
         } else {
