@@ -1750,6 +1750,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     answer_response['sqs_timestamp']=layer['sqs_timestamp']
                 answer_response['value']=resp_val
             else:
+                print(sqs_resp)
                 layer_data= sqs_resp['layer_data'][0]
                 if 'response' in layer_data:
                     answer_response['value']=layer_data['response']

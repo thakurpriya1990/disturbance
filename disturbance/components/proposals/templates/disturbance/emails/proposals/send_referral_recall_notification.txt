@@ -3,9 +3,21 @@
 {%  block content %}
         A referral for Proposal {{proposal.lodgement_number}} has been recalled. 
         
-
+    Region: {{proposal.region}}
+        {% if proposal.district %}
+            District: {{proposal.district}}
+        {% else %}
+            District: -
+        {% endif %}
+        Title: {{proposal.title}}
+        Activity: {{proposal.activity}}
+        Assessor: {{assessor_name}}
     You can access this referral using the following link:
 
     {{url}}
+    Note:
+    The timeframe for comment has passed.
+    If you foresee any issues with this proposal, please promptly advise the Assessor as it may impact Approval timelines. 
+
 
 {%  endblock %}

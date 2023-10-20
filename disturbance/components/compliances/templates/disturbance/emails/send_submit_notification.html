@@ -3,11 +3,7 @@
 {%  block content %}
 	The Compliance {{ compliance.reference }} has been submitted and can be assessed.
 
-    <p>
-    You can access this Compliance using the following link:
-    </p>
-    <a href="{{url}}">Access Compliance</a>
-
+    
     <p>
 		Region: {{proposal.region}}<br>
 		{% if proposal.district %}
@@ -23,6 +19,11 @@
         Compliance No: {{ compliance.reference }}<br>
 	</p>
 
+	<p>
+		You can access this Compliance using the following link:
+	</p>
+		<a href="{{url}}">Access Compliance</a>
+	
     <p>
 		Note:
 		<ul>

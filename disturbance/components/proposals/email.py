@@ -38,6 +38,14 @@ def get_proposal_assess_help_url():
         proposal_assess_help_url = ''
     return proposal_assess_help_url
 
+def get_referral_assess_help_url():
+    referral_assess_help_url = ''
+    try:
+        referral_assess_help_url = GlobalSettings.objects.get(key=GlobalSettings.REFERRAL_ASSESS_HELP_PAGE).value
+    except:
+        referral_assess_help_url = ''
+    return referral_assess_help_url
+
 def get_assessment_reminder_days():
     assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
     try:
@@ -178,12 +186,17 @@ class ApiaryApproverSendBackNotificationEmail(TemplateEmailBase):
 def send_referral_email_notification(referral,request,reminder=False):
     email = ReferralSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
-
+    assessor_name=referral.proposal.assigned_officer.get_full_name() if referral.proposal.assigned_officer else ''
     context = {
         'proposal': referral.proposal,
         'url': url,
         'reminder':reminder,
-        'comments': referral.text
+        'comments': referral.text,
+        'greeting': 'Referee',
+        'referral_assess_help_page': get_referral_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessor_name': assessor_name,
     }
 
     msg = email.send(referral.referral.email, context=context)
@@ -196,10 +209,15 @@ def send_referral_email_notification(referral,request,reminder=False):
 def send_referral_recall_email_notification(referral,request):
     email = ReferralRecallNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
-
+    assessor_name=referral.proposal.assigned_officer.get_full_name() if referral.proposal.assigned_officer else ''
     context = {
         'proposal': referral.proposal,
         'url': url,
+        'greeting': 'Referee',
+        'referral_assess_help_page': get_referral_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessor_name': assessor_name,
     }
 
     msg = email.send(referral.referral.email, context=context)
@@ -213,11 +231,16 @@ def send_referral_recall_email_notification(referral,request):
 def send_referral_complete_email_notification(referral,request):
     email = ReferralCompleteNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': referral.proposal.id}))
-
+    referral_name=referral.referral.get_full_name() if referral.referral else ''
     context = {
         'proposal': referral.proposal,
         'url': url,
-        'referral_comments': referral.referral_text
+        'referral_comments': referral.referral_text,
+        'greeting': 'Assessor',
+        'referral_assess_help_page': get_referral_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'referral_name': referral_name,
     }
 
     msg = email.send(referral.sent_by.email, context=context)
