@@ -58,14 +58,14 @@ data: function() {
                 var val=response.body.value;
                 if(val){
                     for (const el of ele){
-                        // if(el.value == val){
-                        //     el.checked=true;
-                        //     found=el;                    
-                        // }
-                        if(el.labels && el.labels[0] && el.labels[0].innerText== val){
+                        if(el.value == val){
                             el.checked=true;
                             found=el;                    
                         }
+                        //if(el.labels && el.labels[0] && el.labels[0].innerText== val){
+                        //    el.checked=true;
+                        //    found=el;                    
+                        //}
                     }
                     if(found){
                         var e = document.createEvent('HTMLEvents');
