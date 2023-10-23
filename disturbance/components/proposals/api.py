@@ -1764,8 +1764,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if len(sqs_resp['layer_data']) > 1:
                 resp_val=[]
                 for layer in sqs_resp['layer_data']:
-                    if 'response' in layer:
-                        resp_val.append(layer['response'])
+                    if 'result' in layer:
+                        resp_val.append(layer['result'])
                         #update the layer_data for each checkbox option
                         layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer['name']), None)
                         if layer_index:
@@ -1774,10 +1774,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             proposal.layer_data.append(layer)                    
                     answer_response['sqs_timestamp']=layer['sqs_timestamp']
                 answer_response['value']=resp_val
-            else:
+            elif len(sqs_resp['layer_data']) == 1:
                 layer_data= sqs_resp['layer_data'][0]
-                if 'response' in layer_data:
-                    answer_response['value']=layer_data['response']
+                if 'result' in layer_data:
+                    answer_response['value']=layer_data['result']
                     #update the layer data for the item
                     layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer_data['name']), None)
                     if layer_index:
@@ -1786,12 +1786,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         proposal.layer_data.append(layer_data)
                 if 'sqs_timestamp' in layer_data:
                     answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+#            else:
+#                # Nothing in SQS response. Need to re-enable the component, if previously was disabled
+#                # TODO
+#                pass 
+
             proposal.save()
             proposal.log_user_action(ProposalUserAction.ACTION_REFRESH_PROPOSAL.format(proposal.lodgement_number), request)
         #refresh the add_info_assessor
         # if 'add_info_assessor' in sqs_resp:
         #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
-        #return Response(resp.json())
         return Response(answer_response)
 
     @detail_route(methods=['POST',])
