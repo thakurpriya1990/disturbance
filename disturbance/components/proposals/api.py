@@ -1774,7 +1774,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             proposal.layer_data.append(layer)                    
                     answer_response['sqs_timestamp']=layer['sqs_timestamp']
                 answer_response['value']=resp_val
-            else:
+            elif len(sqs_resp['layer_data']) == 1:
                 layer_data= sqs_resp['layer_data'][0]
                 if 'result' in layer_data:
                     answer_response['value']=layer_data['result']
@@ -1786,12 +1786,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         proposal.layer_data.append(layer_data)
                 if 'sqs_timestamp' in layer_data:
                     answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+#            else:
+#                # Nothing in SQS response. Need to re-enable the component, if previously was disabled
+#                # TODO
+#                pass 
+
             proposal.save()
             proposal.log_user_action(ProposalUserAction.ACTION_REFRESH_PROPOSAL.format(proposal.lodgement_number), request)
         #refresh the add_info_assessor
         # if 'add_info_assessor' in sqs_resp:
         #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
-        #return Response(resp.json())
         return Response(answer_response)
 
     @detail_route(methods=['POST',])

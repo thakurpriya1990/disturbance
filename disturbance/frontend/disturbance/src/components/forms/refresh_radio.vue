@@ -1,5 +1,8 @@
 <template lang="html">
         <span>
+            <!--
+            <template v-if="!assessorMode">
+            -->
             <template v-if="layer_data && !assessorMode">
                 <template>
                     <label  for="refresh_time_value" class="inline" > {{ refresh_time_val }}</label>
@@ -56,8 +59,9 @@ data: function() {
             }).then((response)=>{
                 //self.isModalOpen = true;
                 var val=response.body.value;
-                if(val){
+                //if(val){
                     for (const el of ele){
+                      if(val){
                         if(el.value == val){
                             el.checked=true;
                             found=el;                    
@@ -66,13 +70,17 @@ data: function() {
                         //    el.checked=true;
                         //    found=el;                    
                         //}
+                      } else {
+			el.checked=false;
+                        found=el;                    
+                      }
                     }
                     if(found){
                         var e = document.createEvent('HTMLEvents');
                         e.initEvent('change', true, true);
                         found.dispatchEvent(e);
                     }
-                }
+                //}
                 vm.refresh_time= response.body.sqs_timestamp
                 vm.isRefreshing=false;
                 
