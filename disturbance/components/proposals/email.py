@@ -383,7 +383,7 @@ def send_submit_email_notification(request, proposal):
     context = {
         'proposal': proposal,
         'url': url,
-        'greeting': 'Assessors',
+        'greeting': 'Assessor',
         'proposal_assess_help_page': get_proposal_assess_help_url(),
         'assessor_footer': True,
         'DAS_sharepoint_page': get_das_sharepoint_url()
@@ -439,10 +439,16 @@ def send_approver_decline_email_notification(reason, request, proposal):
     else:
         email = ApproverDeclineSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
     context = {
         'proposal': proposal,
         'reason': reason,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Approver',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
@@ -458,12 +464,19 @@ def send_approver_approve_email_notification(request, proposal):
     else:
         email = ApproverApproveSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
     context = {
         'start_date' : proposal.proposed_issuance_approval.get('start_date'),
         'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
         'details': proposal.proposed_issuance_approval.get('details'),
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Assessor',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
@@ -508,10 +521,17 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     else:
         email = ApproverSendBackNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    approver_name=proposal.assigned_approver.get_full_name() if proposal.assigned_approver else ''
     context = {
         'proposal': proposal,
         'url': url,
-        'approver_comment': proposal.approver_comment
+        'approver_comment': proposal.approver_comment,
+        'approver_name': approver_name,
+        'greeting': 'Assessor',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
@@ -610,7 +630,7 @@ def send_assessment_reminder_email_notification(proposal):
         'proposal': proposal,
         'url': url,
         'assessor_name': assessor_name,
-        'greeting': 'Assessors',
+        'greeting': 'Assessor',
         'proposal_assess_help_page': get_proposal_assess_help_url(),
         'assessor_footer': True,
         'DAS_sharepoint_page': get_das_sharepoint_url(),

@@ -39,15 +39,20 @@
                     <br>The DAS inbox ({{ settings.SUPPORT_EMAIL }}) is monitored from 0800 – 1600 Monday to Friday (except Public Holidays).
                 </em></strong>
                 {% else %}
-                <strong><em>
-                    Please do not reply directly to this email. Should you need to contact the {{settings.DEP_NAME}}, 
-                    please contact the respective DBCA region/district or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
-                </em></strong> 
-                {% endif %}
                 <!-- <strong><em>
                     Please do not reply directly to this email. Should you need to contact the {{settings.DEP_NAME}}, 
                     please contact the respective DBCA region/district or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
                 </em></strong>  -->
+                <strong><em>
+                    Please do not reply directly to this email. For DAS enquiries, 
+                    please contact the relevant {{settings.DEP_NAME}} (DBCA) district or region or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
+                    <br>The DAS inbox ({{ settings.SUPPORT_EMAIL }}) is monitored from 0800 – 1600 Monday to Friday (except Public Holidays).
+                </em></strong> 
+                <!-- <strong><em>
+                    Please do not reply directly to this email. Should you need to contact the {{settings.DEP_NAME}}, 
+                    please contact the respective DBCA region/district or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
+                </em></strong>  -->
+                {% endif %}
             </p> 
         {% endblock %}
     </body> 
