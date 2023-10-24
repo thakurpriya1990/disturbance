@@ -1,8 +1,17 @@
 {%  extends 'disturbance/emails/base_email.html' %}
 
 {%  block content %}
-	Your Proposal {{ proposal.lodgement_number }} has been reviewed and requires an amendment before further assessment.
-
+	Your Proposal {{ proposal.lodgement_number }} has been reviewed and requires amending before further assessment.
+    <p>
+        Region: {{proposal.region}}<br>
+        {% if proposal.district %}
+            District: {{proposal.district}}<br>
+        {% else %}
+            District: -<br>
+        {% endif %}
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+    </p>
     {% if reason %}
         <p>
         	<span>Amendment Reason: {{ reason }}</span>
@@ -16,6 +25,15 @@
     You can access this Proposal using the following link:
     </p>
     <a href="{{url}}">Access Proposal</a>
+
+    <p>
+		Note:
+		<ul>
+			<li>Please address amendment requirements as soon as is practicable as delays in resubmitting the proposal may impact on approval timelines.</li>
+			<li>Please contact the relevant DBCA district or region to determine who the assessor is for your proposal.</li>
+            <li>Maintain regular liaison with the assigned assessor to ensure no delays.</li>
+		</ul>
+	</p>
 
 
 {%  endblock %}
