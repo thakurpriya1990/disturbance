@@ -2,6 +2,18 @@
 
 {%  block content %}
 	The Proposal {{ proposal.lodgement_number }} has been sent back by approver.
+    
+    <p>
+        Region: {{proposal.region}}<br>
+        {% if proposal.district %}
+            District: {{proposal.district}}<br>
+        {% else %}
+            District: -<br>
+        {% endif %}
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+        Approver: {{ approver_name }}<br>
+    </p>
 
     <p>Approver comments: {{ approver_comment }}</p>
     
@@ -10,6 +22,13 @@
     You can access this Proposal using the following link:
     </p>
     <a href="{{url}}">Access Proposal</a>
+    <p>
+		Note:
+		<ul>
+			<li>Please complete this request within 2 weeks.</li>
+			<li>If you foresee any issues with meeting this timeline please promptly advise the Approver as it may impact on DBCAs Approvals timeline.</li>
+		</ul>
+	</p>
 
 
 {%  endblock %}

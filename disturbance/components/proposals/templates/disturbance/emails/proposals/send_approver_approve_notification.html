@@ -5,19 +5,20 @@
     
     
     <p>
-    Title: {{proposal.title}}<br>
-    Activity: {{proposal.activity}}<br>
-    Region: {{proposal.region}}<br>
-    {% if proposal.district %}
-        District:{{proposal.district}}
-    {% else %}
-        District: -
-    {% endif %}
+        Region: {{proposal.region}}<br>
+        {% if proposal.district %}
+            District: {{proposal.district}}<br>
+        {% else %}
+            District: -<br>
+        {% endif %}
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+        Assessor: {{ assessor_name }}<br>
     </p>
 
     {% if proposal.proposed_issuance_approval %}
         <p>
-        	<span>Approved: </span>
+        	<span>Recommended approval: </span>
         </p>
         <p>Start date: {{ start_date }}</p>
         <p>Expiry date: {{ expiry_date }}</p>
@@ -28,6 +29,14 @@
     You can access this Proposal using the following link:
     </p>
     <a href="{{url}}">Access Proposal</a>
+
+    <p>
+		Note:
+		<ul>
+			<li>Please complete this request within 2 weeks.</li>
+			<li>If you foresee any issues with meeting this timeline please promptly advise the Approver as it may impact on DBCAs Approvals timeline.</li>
+		</ul>
+	</p>
 
 
 {%  endblock %}

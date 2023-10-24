@@ -3,27 +3,32 @@
 {%  block content %}
     The Proposal {{ proposal.lodgement_number }} has been assessed and has been recommended for approval.
 
+    Region: {{proposal.region}}
+    {% if proposal.district %}
+        District: {{proposal.district}}
+    {% else %}
+        District: -
+    {% endif %}
     Title: {{proposal.title}}
     Activity: {{proposal.activity}}
-	Region: {{proposal.region}}
-	{% if proposal.district %}
-		District:{{proposal.district}}
-	{% else %}
-		District: -
-	{% endif %}
+    Assessor: {{assessor_name}}
 
 	{% if proposal.proposed_issuance_approval %}
-        <p>
-        	<span>Approved: </span>
-        </p>
-        <p>Start date: {{ start_date }}</p>
-        <p>Expiry date: {{ expiry_date }}</p>
-        <p>Details: {{ details }}</p>
+        
+        	<span>Recommended approval: </span>
+        
+        Start date: {{ start_date }}
+        Expiry date: {{ expiry_date }}
+        Details: {{ details }}
     {% endif %}
 
-    <p>
+    
     You can access this Proposal using the following link:
-    </p>
+    
     {{url}}
+
+    Note:
+    Please complete this request within 2 weeks.
+    If you foresee any issues with meeting this timeline please promptly advise the Approver as it may impact on DBCAs Approvals timeline.
 
 {%  endblock %}

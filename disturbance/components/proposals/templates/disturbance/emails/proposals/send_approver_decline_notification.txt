@@ -1,7 +1,17 @@
 {%  extends 'disturbance/emails/base_email.txt' %}
 
 {%  block content %}
-	Your Proposal {{ proposal.lodgement_number }} has been reviewed and has been recommended for decline.
+	The Proposal {{ proposal.lodgement_number }} has been reviewed and has been recommended for decline.
+     Region: {{proposal.region}}
+    {% if proposal.district %}
+        District: {{proposal.district}}
+    {% else %}
+        District: -
+    {% endif %}
+    Title: {{proposal.title}}
+    Activity: {{proposal.activity}}
+    Assessor: {{ assessor_name }}
+   
 
     {% if reason %}
         

@@ -2,10 +2,21 @@
 
 {%  block content %}
         A referral for Proposal {{proposal.lodgement_number}} has been completed: 
+        Region: {{proposal.region}}
+            {% if proposal.district %}
+                District: {{proposal.district}}
+            {% else %}
+                District: -
+            {% endif %}
+            Title: {{proposal.title}}
+            Activity: {{proposal.activity}}
+            Referee: {{referral_name}}
         Referral Comments: {{referral_comments}}
 
     You can access this referral using the following link:
 
     {{url}}
+    Note:
+    Review referral comments and update the Assessor management actions and/or deficiencies (boxes) (as required), as referee comments will not be visible to the proponent.
 
 {%  endblock %}
