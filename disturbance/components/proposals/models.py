@@ -76,6 +76,9 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_ST
 
 logger = logging.getLogger(__name__)
 
+DATE_FMT = '%Y-%m-%d'
+DATETIME_FMT = '%Y-%m-%d %H:%M:%S'
+
 
 def update_proposal_doc_filename(instance, filename):
     return 'proposals/{}/documents/{}'.format(instance.proposal.id,filename)
@@ -1482,6 +1485,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
+
+    def log_metrics(self, when, sqs_response, time_taken):
+        system = sqs_response['system'] if sqs_response and 'system' in sqs_response else 'Unknown'
+        request_type = sqs_response['request_type'] if sqs_response and 'request_type' in sqs_response else 'Unknown'
+        return SpatialQueryMetrics.objects.create(proposal=self, when=when, system=system, request_type=request_type, sqs_response=sqs_response, time_taken=time_taken)
 
     def validate_map_files(self, request):
         import geopandas as gpd
@@ -5904,6 +5912,9 @@ class SpatialQueryQuestion(models.Model):
     no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
     assessor_info = models.TextField(blank=True, null=True)
 
+    proponent_items = JSONField('Proponent response set', default=[{}])
+    assessor_items = JSONField('Assessor response set', default=[{}])
+
     regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
                                 
     objects = models.Manager()
@@ -5939,9 +5950,66 @@ class SpatialQueryQuestion(models.Model):
         return group.members.all() if group else []
 
 
+class SpatialQueryMetrics(models.Model):
+    FULL = 'FULL'
+    PARTIAL = 'PARTIAL'
+    SINGLE = 'SINGLE'
+    REQUEST_TYPE_CHOICES = (
+        (FULL, 'FULL'),
+        (PARTIAL, 'PARTIAL'),
+        (SINGLE, 'SINGLE'),
+    )
+                         
+    proposal = models.ForeignKey(Proposal, related_name='metrics', on_delete=models.PROTECT)
+    when = models.DateTimeField()
+    system = models.CharField('Application System Name', max_length=64)
+    request_type = models.CharField(max_length=40, choices=REQUEST_TYPE_CHOICES)
+    sqs_response = JSONField('Response from SQS', default=[{}])
+    time_taken = models.DecimalField('Total time for request/response', max_digits=9, decimal_places=3)
 
-#    def get_options(self):
-#        return "\n".join([q.label for q in self.question.option.all()])
+    #when = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.system}|{self.proposal.lodgement_number}|{self.when.strftime(DATETIME_FMT)}'
+
+    @property
+    def metrics(self):
+        try:
+            return self.sqs_response['metrics']['spatial_query'] 
+        except Exception as e:
+            logger.error(f'Metrics not found in sqs_response: {e}')
+        return None
+
+    @property
+    def total_query_time(self):
+        ''' Total time taken for all Spatial Query Intersection - sum of each intersection query
+        '''
+        try:
+            return self.sqs_response['metrics']['total_query_time']
+        except Exception as e:
+            logger.error(f'Total Query Time not found in sqs_response: {e}')
+        return None
+
+    def metrics_table(self):
+        ''' Tabulated summary of metrics '''
+        
+        try:
+            print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Layer cached|Condition|Expired|Error|Time retrieve layer|Time taken")
+            count = 0
+            for idx, m in enumerate(self.metrics, 1):
+                print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['layer_cached']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                count += 1
+
+            print(f'Total Query Time:        {self.total_query_time}')
+            print(f'Total API Request Time:  {self.time_taken}')
+            print(f'Total Responses/Results: {count}')
+
+        except Exception as e:
+            logger.error(f'Total Query Time not found in sqs_response: {e}')
 
 import reversion
 reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])

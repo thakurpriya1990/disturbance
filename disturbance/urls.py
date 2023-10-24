@@ -79,6 +79,8 @@ router.register(r'das_map_layers', main_api.DASMapLayerViewSet)
 router.register(
     r'spatial_query_paginated', proposal_api.SpatialQueryQuestionPaginatedViewSet)
 router.register(
+    r'spatial_query_metrics_paginated', proposal_api.SpatialQueryMetricsPaginatedViewSet)
+router.register(
     r'spatial_query',
     proposal_api.SpatialQueryQuestionViewSet
 )

@@ -50,6 +50,14 @@
             },
             large: {
                 type: Boolean,
+                default: true
+            },
+            xlarge: {
+                type: Boolean,
+                default: false
+            },
+            xxlarge: {
+                type: Boolean,
                 default: false
             },
             full: {
@@ -94,6 +102,8 @@
         computed: {
             modalClass () {
                 return {
+                    'modal-xxl': this.xxlarge,
+                    'modal-xl': this.xlarge,
                     'modal-lg': this.large,
                     'modal-sm': this.small,
                     'modal-full': this.full
@@ -192,4 +202,39 @@
     #okBtn {
         margin-bottom: 0px;
     }
+
+    @media (min-width: 768px) {
+      .modal-dialog {
+	width: 600px;
+	margin: 30px auto;
+      }
+      .modal-content {
+	-webkit-box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+	box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+      }
+      .modal-sm {
+	width: 300px;
+      }
+      .modal-xl {
+	width: 80%;
+      }
+      .modal-xxl {
+	width: 95%;
+      }
+    }
+
+    @media (min-width: 992px) {
+      .modal-lg {
+	width: 900px;
+      }
+      .modal-xl {
+	width: 80%;
+      }
+      .modal-xxl {
+	width: 95%;
+      }
+
+    }
+
+
 </style>

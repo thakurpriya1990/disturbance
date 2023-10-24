@@ -21,6 +21,7 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.reverse import reverse_lazy
 from ledger.accounts.models import EmailUser
 from datetime import datetime
+import time
 from reversion.models import Version
 from django.core.cache import cache
 
@@ -82,6 +83,7 @@ from disturbance.components.proposals.models import (
     MasterlistQuestion,
     CddpQuestionGroup,
     SpatialQueryQuestion,
+    SpatialQueryMetrics,
     ProposalUserAction,
 )
 from disturbance.components.proposals.serializers import (
@@ -116,6 +118,9 @@ from disturbance.components.proposals.serializers import (
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
     DTSpatialQueryQuestionSerializer,
+    DTSpatialQueryMetricsSerializer,
+    DTSpatialQueryMetricsDetailsSerializer,
+    DTSpatialQueryLayersUsedSerializer,
     #SpatialQueryQuestionSerializer,
     CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
@@ -495,6 +500,26 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    def spatial_query_layers_used_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/proposal_paginated/spatial_query_layers_used_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryLayersUsedSerializer 
+        queryset = self.get_queryset().filter(layer_data__isnull=False, processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryLayersUsedSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
+
+
 
 
 class OnSiteInformationViewSet(viewsets.ModelViewSet):
@@ -1739,8 +1764,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             if len(sqs_resp['layer_data']) > 1:
                 resp_val=[]
                 for layer in sqs_resp['layer_data']:
-                    if 'response' in layer:
-                        resp_val.append(layer['response'])
+                    if 'result' in layer:
+                        resp_val.append(layer['result'])
                         #update the layer_data for each checkbox option
                         layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer['name']), None)
                         if layer_index:
@@ -1749,11 +1774,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             proposal.layer_data.append(layer)                    
                     answer_response['sqs_timestamp']=layer['sqs_timestamp']
                 answer_response['value']=resp_val
-            else:
-                print(sqs_resp)
+
+            elif len(sqs_resp['layer_data']) == 1:
                 layer_data= sqs_resp['layer_data'][0]
-                if 'response' in layer_data:
-                    answer_response['value']=layer_data['response']
+                if 'result' in layer_data:
+                    answer_response['value']=layer_data['result']
                     #update the layer data for the item
                     layer_index=next((i for i, item in enumerate(proposal.layer_data) if item['name']==layer_data['name']), None)
                     if layer_index:
@@ -1762,12 +1787,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         proposal.layer_data.append(layer_data)
                 if 'sqs_timestamp' in layer_data:
                     answer_response['sqs_timestamp']=layer_data['sqs_timestamp']
+#            else:
+#                # Nothing in SQS response. Need to re-enable the component, if previously was disabled
+#                # TODO
+#                pass 
+
             proposal.save()
             proposal.log_user_action(ProposalUserAction.ACTION_REFRESH_PROPOSAL.format(proposal.lodgement_number), request)
         #refresh the add_info_assessor
         # if 'add_info_assessor' in sqs_resp:
         #     proposal.add_info_assessor[schema_name]= sqs_resp['add_info_assessor']
-        #return Response(resp.json())
         return Response(answer_response)
 
     @detail_route(methods=['POST',])
@@ -2376,6 +2405,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 pass
             else:
                 if instance.shapefile_json:
+                    start_time = time.time()
+
                     proposal = instance
                     # current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
                     if proposal.prefill_timestamp:
@@ -2446,11 +2477,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         print(instance.history_add_info_assessor)
                         instance.add_info_assessor= resp['add_info_assessor']
                     if resp and 'when' in resp and resp['when']:
-                        when=datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
+                        when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
                         instance.prefill_timestamp=when
                     else:
                         # set this to prevent SQS cache looping indefinitely
-                        instance.prefill_timestamp=datetime.now().replace(tzinfo=pytz.utc)
+                        when = datetime.now().replace(tzinfo=pytz.utc)
+                        instance.prefill_timestamp=when
                     instance.save()
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
@@ -2472,6 +2504,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             instance.save(version_comment='Prefill Proposal')
             instance.log_user_action(ProposalUserAction.ACTION_PREFILL_PROPOSAL.format(instance.lodgement_number), request)
+            instance.log_metrics(when, resp, time.time()-start_time)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
             #return redirect(reverse('external'))
@@ -4445,6 +4478,32 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
             logger.exception()
             raise serializers.ValidationError(str(e))
 
+
+class SpatialQueryMetricsFilterBackend(DatatablesFilterBackend):
+    """
+    Custom filters
+    """
+    def filter_queryset(self, request, queryset, view):
+        # Get built-in DRF datatables queryset first to join with search text,
+        # then apply additional filters.
+        search_text = request.GET.get('search[value]')
+        if queryset.model is SpatialQueryMetrics:
+            if search_text:
+                search_text = search_text.lower()
+                search_text_masterlist_ids = SpatialQueryMetrics.objects.values('id').filter(
+                    Q(id=search_text) | Q(proposal__lodgement_number__icontains=search_text)
+                )
+
+                queryset = queryset.filter(
+                    id__in=search_text_masterlist_ids
+                ).distinct()
+
+        total_count = queryset.count()
+
+        setattr(view, '_datatables_total_count', total_count)
+        return queryset
+
+
 class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
     """
     Custom filters
@@ -4469,13 +4528,13 @@ class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
-class SpatialQueryQuestionRenderer(DatatablesRenderer):
+class SpatialQueryRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if 'view' in renderer_context and \
                 hasattr(renderer_context['view'], '_datatables_total_count'):
             data['recordsTotal'] = \
                 renderer_context['view']._datatables_total_count
-        return super(SpatialQueryQuestionRenderer, self).render(
+        return super(SpatialQueryRenderer, self).render(
             data, accepted_media_type, renderer_context)
 
 
@@ -4483,7 +4542,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
     """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Questions' tab """
     filter_backends = (SpatialQueryQuestionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (SpatialQueryQuestionRenderer,)
+    renderer_classes = (SpatialQueryRenderer,)
     queryset = SpatialQueryQuestion.objects.none()
     serializer_class = DTSpatialQueryQuestionSerializer
     page_size = 10
@@ -4530,6 +4589,89 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
         response = self.paginator.get_paginated_response(data)
 
+        return response
+
+class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
+    """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
+    filter_backends = (SpatialQueryMetricsFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SpatialQueryRenderer,)
+    queryset = SpatialQueryMetrics.objects.none()
+    serializer_class = DTSpatialQueryMetricsSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return SpatialQueryMetrics.objects.all()
+
+    @list_route(methods=['GET', ])
+    def spatial_query_metrics_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryMetricsSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryMetricsSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
+
+    @list_route(methods=['GET', ])
+    def spatial_query_metrics_details_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryMetricsDetailsSerializer
+        #queryset = self.get_queryset().filter(id=9)
+        #queryset = queryset.values('proposal__metrics')
+        queryset = self.get_queryset().values('proposal__metrics')
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryMetricsDetailsSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
+
+
+class SpatialQueryMetricsDetailsPaginatedViewSet(viewsets.ModelViewSet):
+    """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
+    #filter_backends = (SpatialQueryMetricsFilterBackend,)
+    pagination_class = DatatablesPageNumberPagination
+    renderer_classes = (SpatialQueryRenderer,)
+    queryset = SpatialQueryMetrics.objects.none()
+    serializer_class = DTSpatialQueryMetricsDetailsSerializer
+    page_size = 10
+
+    def get_queryset(self):
+        # user = self.request.user
+        return SpatialQueryMetrics.objects.all()
+
+    @list_route(methods=['GET', ])
+    def spatial_query_metrics_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_metrics_paginated/spatial_query_metrics_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryMetricsDetailsSerializer
+        queryset = self.get_queryset()
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryMetricsSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
         return response
 
 
@@ -4955,10 +5097,16 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             #    if 'LGA_TYPE' in d['attribute']:
             #        attr_values = d['values']
 
-            #import ipdb; ipdb.set_trace()
             sqq_column_name = request.data.get('column_name').strip()
             sqq_answer = request.data.get('answer').strip()
             sqq_assessor_info = request.data.get('assessor_info').strip()
+
+            proponent_items = request.data.get('proponent_items')
+            proponent_attrs_unavailable = [i['answer'] for i in proponent_items if 'answer' in i and i['answer'] not in layer_attrs]
+
+            assessor_items = request.data.get('assessor_items')
+            assessor_attrs_unavailable = [i['info'] for i in assessor_items if 'info' in i and i['info'] not in layer_attrs]
+
 
             if sqq_column_name not in layer_attrs:
                 # check column_name in exists layer_attrs
@@ -4967,17 +5115,19 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if sqq_answer and (not sqq_answer.startswith('::') or sqq_answer.split('::')[1] not in layer_attrs):
+            #if sqq_answer and (not sqq_answer.startswith('::') or sqq_answer.split('::')[1] not in layer_attrs):
+            if proponent_attrs_unavailable:
                 # check answer (label) in exists layer_attrs
                 return JsonResponse(
-                    data={'errors': f'Answer (Proponent section) \'{sqq_answer}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    data={'errors': f'Answer(s) (Proponent section) \'{proponent_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            if sqq_assessor_info and (not sqq_assessor_info.startswith('::') or sqq_assessor_info.split('::')[1] not in layer_attrs):
+            #if sqq_assessor_info and (not sqq_assessor_info.startswith('::') or sqq_assessor_info.split('::')[1] not in layer_attrs):
+            if assessor_attrs_unavailable:
                 # check assessor_info (label) exists in layer_attrs
                 return JsonResponse(
-                    data={'errors': f'Info for assessor (Assessor section) \'{sqq_assessor_info}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    data={'errors': f'Info for assessor (Assessor section) \'{assessor_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
