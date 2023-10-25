@@ -1486,10 +1486,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
-    def log_metrics(self, when, sqs_response, time_taken):
+    def log_metrics(self, when, sqs_response, time_taken, response_cached):
         system = sqs_response['system'] if sqs_response and 'system' in sqs_response else 'Unknown'
         request_type = sqs_response['request_type'] if sqs_response and 'request_type' in sqs_response else 'Unknown'
-        return SpatialQueryMetrics.objects.create(proposal=self, when=when, system=system, request_type=request_type, sqs_response=sqs_response, time_taken=time_taken)
+        return SpatialQueryMetrics.objects.create(proposal=self, when=when, system=system, request_type=request_type, sqs_response=sqs_response, time_taken=time_taken, response_cached=response_cached)
 
     def validate_map_files(self, request):
         import geopandas as gpd
@@ -5966,6 +5966,7 @@ class SpatialQueryMetrics(models.Model):
     request_type = models.CharField(max_length=40, choices=REQUEST_TYPE_CHOICES)
     sqs_response = JSONField('Response from SQS', default=[{}])
     time_taken = models.DecimalField('Total time for request/response', max_digits=9, decimal_places=3)
+    response_cached = models.NullBooleanField()
 
     #when = models.DateTimeField(auto_now_add=True, null=False, blank=False)
 

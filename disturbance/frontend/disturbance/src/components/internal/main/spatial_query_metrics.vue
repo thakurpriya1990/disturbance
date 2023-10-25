@@ -106,7 +106,7 @@ export default {
 //		"data": [{"question":"100  initialised"}]
 //            },
 
-            dtHeadersSchemaQuestion: ["ID", "Lodgement Number", "When", "Query Time", "API Time", "Request Type", "Action"],
+            dtHeadersSchemaQuestion: ["ID", "Lodgement Number", "When", "Query Time", "API Time (s)", "Request Type", "Action"],
             dtOptionsSchemaQuestion:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"
@@ -154,7 +154,10 @@ export default {
                     },
                     { 
                         data: "total_api_time",
-                        searchable: false,
+                        mRender:function (data,type,full) {
+                            return full.response_cached ? data + ' (Cached)' : data
+                        }
+
                     },
                     { 
                         data: "request_type",

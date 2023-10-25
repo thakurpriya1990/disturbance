@@ -1468,6 +1468,7 @@ class DTSpatialQueryMetricsSerializer(UniqueFieldsMixin, WritableNestedModelSeri
           'request_type',
           'total_query_time',
           'total_api_time',
+          'response_cached',
           'metrics',
         )
         datatables_always_serialize = fields

@@ -2463,6 +2463,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     #url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
                     if not in_cache():
+                        response_cached = False
                         url = get_sqs_url('das/spatial_query/')
                         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
                         if resp.status_code != 200:
@@ -2501,6 +2502,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         cache.set(f'sqs_response_{proposal.id}', json.dumps(resp_cache), settings.SQS_RESPONSE_CACHE_TIMEOUT)
 
                     else:
+                        response_cached = True
                         resp = json.loads(cached_data)['sqs_response']
                         when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
                         logger.info(f'SpatialQuery API - SQS response retrieved from cache: Proposal ID {proposal.id}')
@@ -2524,7 +2526,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             instance.save(version_comment='Prefill Proposal')
             instance.log_user_action(ProposalUserAction.ACTION_PREFILL_PROPOSAL.format(instance.lodgement_number), request)
-            instance.log_metrics(when, resp, time.time()-start_time)
+            instance.log_metrics(when, resp, time.time()-start_time, response_cached)
             serializer = self.get_serializer(instance)
             return Response(serializer.data)
             #return redirect(reverse('external'))
