@@ -125,6 +125,7 @@ CACHES = {
 }
 SQS_LAYERS_CACHE_TIMEOUT = env('SQS_LAYERS_CACHE_TIMEOUT', 60*5) # 5 mins
 SQS_LAYER_EXISTS_CACHE_TIMEOUT = env('SQS_LAYER_EXISTS_CACHE_TIMEOUT', 60*5) # 5 mins
+SQS_RESPONSE_CACHE_TIMEOUT = env('SQS_RESPONSE_CACHE_TIMEOUT', 60*60) # 60 mins
 
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))

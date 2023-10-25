@@ -7,6 +7,7 @@ from requests.auth import HTTPBasicAuth
 
 import json
 from dateutil import parser
+from deepdiff import DeepDiff
 
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
@@ -2440,7 +2441,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             current_ts=current_ts,
                             schema=proposal.schema,
                             data=proposal.data,
-
                         ),
                         request_type=self.FULL,
                         system=settings.SYSTEM_NAME_SHORT,
@@ -2448,41 +2448,61 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         geojson = geojson,
                     )
 
-#                    # send query to SQS - need to first retrieve csrf token and cookie from SQS 
-#                    url = get_sqs_url('das/spatial_query/')
-#                    resp = requests.get(f'{settings.SQS_APIURL}/csrf_token/', auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-#                    meta = resp.cookies.get_dict()
-#                    csrftoken = meta['csrftoken'] if 'csrftoken' in meta else None
-#                    sessionid = meta['sessionid'] if 'sessionid' in meta else None
-#                    cookies = cookies={'csrftoken': csrftoken, 'sessionid': sessionid}
-#                    headers={'X-CSRFToken' : csrftoken}
+                    cached_data = cache.get(f'sqs_response_{proposal.id}')
+
+                    def in_cache():
+                        if cached_data:
+                            logger.info(f'SpatialQuery API - SQS cache exists: Proposal ID {proposal.id}')
+                            _data = json.loads(cached_data)
+                            if not DeepDiff(question_group_list, _data['masterlist_questions']) and not DeepDiff(geojson, _data['geojson']):
+                                logger.info(f'SpatialQuery API - SQS cache data changed: Proposal ID {proposal.id}')
+                                # masterlist_questions and shape_file has not changed
+                                return True
+                        return False
 
                     #url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-                    url = get_sqs_url('das/spatial_query/')
-                    resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-                    if resp.status_code != 200:
-                        logger.error(f'SpatialQuery API call error: {resp.content}')
-                        try:
-                            return Response(resp.json(), status=resp.status_code)
-                        except:
-                            return Response({'errors': resp.content}, status=resp.status_code)
-                    resp=resp.json()
-                    if resp and resp['data']:
-                        instance.data=resp['data']
-                    if resp and resp['layer_data']:
-                        instance.layer_data=resp['layer_data']
-                    if resp and resp['add_info_assessor']:
-                        instance.history_add_info_assessor=instance.get_history_add_info_assessor()
-                        print(instance.history_add_info_assessor)
-                        instance.add_info_assessor= resp['add_info_assessor']
-                    if resp and 'when' in resp and resp['when']:
-                        when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
-                        instance.prefill_timestamp=when
+                    if not in_cache():
+                        url = get_sqs_url('das/spatial_query/')
+                        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                        if resp.status_code != 200:
+                            logger.error(f'SpatialQuery API call error: {resp.content}')
+                            try:
+                                return Response(resp.json(), status=resp.status_code)
+                            except:
+                                return Response({'errors': resp.content}, status=resp.status_code)
+                        resp=resp.json()
+                        if resp and resp['data']:
+                            instance.data=resp['data']
+                        if resp and resp['layer_data']:
+                            instance.layer_data=resp['layer_data']
+                        if resp and resp['add_info_assessor']:
+                            instance.history_add_info_assessor=instance.get_history_add_info_assessor()
+                            print(instance.history_add_info_assessor)
+                            instance.add_info_assessor= resp['add_info_assessor']
+                        if resp and 'when' in resp and resp['when']:
+                            when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
+                            instance.prefill_timestamp=when
+                        else:
+                            # set this to prevent SQS cache looping indefinitely
+                            when = datetime.now().replace(tzinfo=pytz.utc)
+                            instance.prefill_timestamp=when
+                        instance.save()
+
+                        resp_cache = dict(
+                            id=proposal.id,
+                            request_type=self.FULL,
+                            system=settings.SYSTEM_NAME_SHORT,
+                            masterlist_questions = question_group_list,
+                            geojson = geojson,
+                            sqs_response=resp,
+                        )
+
+                        cache.set(f'sqs_response_{proposal.id}', json.dumps(resp_cache), settings.SQS_RESPONSE_CACHE_TIMEOUT)
+
                     else:
-                        # set this to prevent SQS cache looping indefinitely
-                        when = datetime.now().replace(tzinfo=pytz.utc)
-                        instance.prefill_timestamp=when
-                    instance.save()
+                        resp = json.loads(cached_data)['sqs_response']
+                        when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
+                        logger.info(f'SpatialQuery API - SQS response retrieved from cache: Proposal ID {proposal.id}')
                 else:
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
 
