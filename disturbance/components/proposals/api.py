@@ -1775,6 +1775,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             proposal.layer_data.append(layer)                    
                     answer_response['sqs_timestamp']=layer['sqs_timestamp']
                 answer_response['value']=resp_val
+
             elif len(sqs_resp['layer_data']) == 1:
                 layer_data= sqs_resp['layer_data'][0]
                 if 'result' in layer_data:

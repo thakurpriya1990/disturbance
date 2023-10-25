@@ -2,6 +2,15 @@
 
 {%  block content %}
     The Proposal {{ proposal.lodgement_number }} has been sent back by approver.
+     Region: {{proposal.region}}
+    {% if proposal.district %}
+        District: {{proposal.district}}
+    {% else %}
+        District: -
+    {% endif %}
+    Title: {{proposal.title}}
+    Activity: {{proposal.activity}}
+    Approver: {{ approver_name }}
 
     Approver comments: {{ approver_comment }}
 
@@ -9,5 +18,8 @@
 
     {{url}}
 
+    Note:
+    Please complete this request within 2 weeks.
+    If you foresee any issues with meeting this timeline please promptly advise the Approver as it may impact on DBCAs Approvals timeline.
 
 {%  endblock %}

@@ -3,10 +3,7 @@
 {%  block content %}
     The Compliance {{ Compliance.reference }} has been submitted and can be assessed.
 
-    <p>
-    You can access this Compliance using the following link:
-    </p>
-    {{url}}
+    
         Region: {{proposal.region}}
 		{% if proposal.district %}
 			District: {{proposal.district}}
@@ -19,6 +16,11 @@
 		Activity: {{proposal.activity}}
 		Assessor: {{ assessor_name}}
         Compliance No: {{ compliance.reference }}
+    
+    
+    You can access this Compliance using the following link:
+    
+    {{url}}
 
 
 {%  endblock %}

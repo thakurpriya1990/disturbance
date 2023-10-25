@@ -5,11 +5,26 @@
         This is a reminder for a referral for Proposal <strong>{{proposal.lodgement_number}}</strong> that has been sent to you
     {% else %}
         A referral for Proposal P{{proposal.id}} has been sent to you: 
-        Comments: {{comments}}
+        
     {% endif %}
+        Region: {{proposal.region}}
+        {% if proposal.district %}
+            District: {{proposal.district}}
+        {% else %}
+            District: -
+        {% endif %}
+        Title: {{proposal.title}}
+        Activity: {{proposal.activity}}
+        Assessor: {{assessor_name}}
 
     You can access this referral using the following link:
 
     {{url}}
 
+    Note:
+		
+			Please complete this referral within 2 weeks.
+			If you foresee issues meeting this timeline, please advise the Assessor ASAP as it may impact on approval timelines. 
+			See {{ referral_assess_help_page }} DAS 06 How to complete a proposal referred to you for full instructions.
+		
 {%  endblock %}
