@@ -23,7 +23,15 @@ import {
 from '@/utils/hooks'
 export default {
     name:"Refresh",
-    props:["parent_name","parent_label","assessorMode","layer_data", "proposal_id", "refresh_time_value"],
+    props:[
+        "parent_name",
+        "parent_label",
+        "assessorMode",
+        "layer_data", 
+        "proposal_id", 
+        "refresh_time_value",
+        "isMultiple"
+        ],
 
 components: {  },
 data: function() {
@@ -42,9 +50,10 @@ data: function() {
  },
 
  methods:{
-         refresh: async function(){
+         refreshOld: async function(){
             let vm=this;
             var ele=$('[name='+vm.parent_name+']')[0]
+            //var ele=$('[name='+vm.parent_name+']')
             //add api call here to get the refresh value and refresh time stamp
             const mlq_data={label: '',
                             name: ''};
@@ -64,9 +73,13 @@ data: function() {
                 }
                 else if(val && typeof(val)=='object'){
                     for (const op of ele.options){
-                        if(op.value == val){
-                            op.selected=true;
-                            found=op;                    
+                        for (const value of val){
+                            if(op.label.toLowerCase() == value){
+                                // console.log('op value', op.value.toLowerCase())
+                                // console.log('value', value)
+                                op.selected=true;
+                                //found=op;                    
+                            }
                         }
                     }
                 }
@@ -76,6 +89,64 @@ data: function() {
                         e.initEvent('change', true, true);
                         ele.dispatchEvent(e);
                     }
+                }
+                vm.refresh_time= response.body.sqs_timestamp;
+                vm.isRefreshing= false;   
+            },(error)=>{
+                swal(
+                    'Error',
+                    helpers.apiVueResourceError(error),
+                    //error.body,
+                    'error'
+                )
+            });
+            vm.isRefreshing= false;  
+        },
+        refresh: async function(){
+            let vm=this;
+            var ele=$('[name='+vm.parent_name+']')[0]
+            //var ele=$('[name='+vm.parent_name+']')
+            //add api call here to get the refresh value and refresh time stamp
+            const mlq_data={label: '',
+                            name: ''};
+            mlq_data.label=vm.parent_label;
+            mlq_data.name=vm.parent_name;
+            let url = '/refresh'
+            vm.isRefreshing=true;
+            await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,this.proposal_id + url),JSON.stringify(mlq_data),{
+                    emulateJSON:true,
+            }).then((response)=>{
+                //self.isModalOpen = true;
+                console.log(response);
+                var val=response.body.value;
+                if(!vm.isMultiple)
+                {
+                    ele.value=val;
+                }
+                else if(vm.isMultiple){
+                    var found_options=[]
+                    for (const op of ele.options){
+                        for (const value of val){
+                            if(op.label.toLowerCase() == value){
+                                // console.log('op value', op.value.toLowerCase())
+                                // console.log('value', value)
+                                op.selected=true;
+                                found_options.push(op);                    
+                            }
+                        }
+                    }
+                    //Uncheck all the options which are not in response value
+                    for( const selected_option of ele.selectedOptions){
+                    console.log('selected op', selected_option)
+                        if(!(found_options.includes(selected_option))){
+                            selected_option.selected=false;
+                        }
+                    }
+                }
+                if(ele){
+                    var e = document.createEvent('HTMLEvents');
+                    e.initEvent('change', true, true);
+                    ele.dispatchEvent(e);
                 }
                 vm.refresh_time= response.body.sqs_timestamp;
                 vm.isRefreshing= false;   
