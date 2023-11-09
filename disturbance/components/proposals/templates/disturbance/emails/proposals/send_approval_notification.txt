@@ -7,5 +7,16 @@
 
         	Proposal {{proposal.lodgement_number}} has been approved.
         {% endif %}
+		Region: {{proposal.region}}
+		{% if proposal.district %}
+			District: {{proposal.district}}
+		{% else %}
+			District: -
+		{% endif %}
+		Title: {{proposal.title}}
+		Activity: {{proposal.activity}}
+		Approval No.: {{ proposal.approval.lodgement_number }}
+		ATTENTION: 
+		Attached is the Approval letter outlining the terms and conditions. Please read carefully before commencing disturbance activities. 
 
 {%  endblock %}

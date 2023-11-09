@@ -2,10 +2,32 @@
 
 {%  block content %}
 	Your Compliance {{ compliance.reference }} has been submitted.<br><br>
+    <p>
+		Region: {{proposal.region}}<br>
+		{% if proposal.district %}
+			District: {{proposal.district}}<br>
+		{% else %}
+			District: -<br>
+		{% endif %}
+        Approval No: {{ approval.lodgement_number}}<br>
+        Proposal No: {{proposal.lodgement_number}}<br>
+		Title: {{proposal.title}}<br>
+		Activity: {{proposal.activity}}<br>
+        Assessor: {{assessor_name}}<br>
+        Compliance No: {{ compliance.reference }} - {{ compliance.requirement.requirement }}<br>
+	</p>
 
 	Submitter: {{ compliance.submitter.get_full_name }}<br>
 	Lodgement date: {{ compliance.lodgement_date }}
 
+    <p>
+		Note:
+		<ul>
+			<li>Your submission will be provided to an assessor to assess compliance.</li>
+            <li>You will be notified by email once your submission has been reviewed and approved, or if further action is required.</li>
+			
+		</ul>
+	</p>
     <p>
     You can access this Compliance using the following link:
     </p>

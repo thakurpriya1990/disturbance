@@ -21,6 +21,7 @@
     You can access this Compliance using the following link:
     
     {{url}}
-
+	Note:
+	See {{ compliance_assess_help_page }} DAS 06 how to assess a compliance with requirements for full instructions.
 
 {%  endblock %}

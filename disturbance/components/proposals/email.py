@@ -38,6 +38,14 @@ def get_proposal_assess_help_url():
         proposal_assess_help_url = ''
     return proposal_assess_help_url
 
+def get_proposal_approver_help_url():
+    proposal_assess_help_url = ''
+    try:
+        proposal_approver_help_url = GlobalSettings.objects.get(key=GlobalSettings.PROPOSAL_APPROVER_HELP_PAGE).value
+    except:
+        proposal_approver_help_url = ''
+    return proposal_approver_help_url
+
 def get_referral_assess_help_url():
     referral_assess_help_url = ''
     try:
@@ -473,7 +481,7 @@ def send_approver_approve_email_notification(request, proposal):
         'url': url,
         'assessor_name': assessor_name,
         'greeting': 'Assessor',
-        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'proposal_approver_help_page': get_proposal_approver_help_url(),
         'assessor_footer': True,
         'DAS_sharepoint_page': get_das_sharepoint_url(),
         'assessment_reminder_days': get_assessment_reminder_days(),

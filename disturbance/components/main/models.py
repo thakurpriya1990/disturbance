@@ -400,13 +400,15 @@ class GlobalSettings(models.Model):
     PROPOSAL_ASSESS_HELP_PAGE ='proposal_assess_help_page'
     COMPLIANCE_ASSESS_HELP_PAGE='compliance_assess_help_page'
     REFERRAL_ASSESS_HELP_PAGE='referral_assess_help_page'
+    PROPOSAL_APPROVER_HELP_PAGE ='proposal_approver_help_page'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
         (DAS_SHAREPOINT_PAGE, 'DAS Sharepoint page'),
         (PROPOSAL_ASSESS_HELP_PAGE, 'DAS Proposal assess help page'),
         (COMPLIANCE_ASSESS_HELP_PAGE, 'DAS compliance assess help page'),
-        (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page')
+        (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page'),
+        (PROPOSAL_APPROVER_HELP_PAGE, 'DAS Proposal approver help page'),
     )
     default_values = (
     )

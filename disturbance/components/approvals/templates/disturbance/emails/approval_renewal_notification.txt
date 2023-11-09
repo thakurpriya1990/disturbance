@@ -1,17 +1,36 @@
 {%  extends 'disturbance/emails/base_email.txt' %}
 
 {%  block content %}
-    This is a reminder that your approval:
+    This is a reminder that 
     {% if approval.title %}
-    	{{ approval.lodgement_number }} - {{ approval.title}}
+        {{ approval.lodgement_number }} - {{ approval.title}}
     {% else %}
     	{{ approval.lodgement_number }}
-    {% endif %}
+    {% endif %} 
+     is due to expire on <u>{{ approval.expiry_date }}
     
-    	 Is due to expire on <u>{{ approval.expiry_date }}</u>
-    	If the work is completed and this approval does not need to be renewed, please ignore this renewal notification.
-    	 If the work is ongoing or hasn’t started yet you will need to renew the approval by submitting a renewal proposal prior to the expiry date
-    	Please note that if you have outstanding compliances these are required to be submitted before the approval can be renewed.
+    
+		Region: {{proposal.region}}
+		{% if proposal.district %}
+			District: {{proposal.district}}
+		{% else %}
+			District: -
+		{% endif %}
+        Approval No: {{ approval.lodgement_number}}
+        Proposal No: {{proposal.lodgement_number}}
+		Title: {{proposal.title}}
+		Activity: {{proposal.activity}}
+		Submitter: {{submitter}}
+	
+    
+        Note:
+        
+            
+            If the work is completed and this approval does not need to be renewed, please ignore this renewal notification.
+             If the work is ongoing or hasn’t started yet you will need to renew the approval by submitting a renewal proposal prior to the expiry date
+            To renew a proposal, find the Approval no. (under the ‘Approval’ section) and select Renew. This prefills a new proposal with the original information. Make any necessary changes and resubmit. Note a renewal will have a NEW proposal number. 
+            Please note that if you have outstanding compliances these are required to be submitted before the approval can be renewed.
+        
     
     Please find the attached renewal notice.
 

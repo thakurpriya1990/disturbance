@@ -391,7 +391,8 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
         'details': approval.suspension_details['details'],
         'from_date': approval.suspension_details['from_date'],
         'to_date': approval.suspension_details['to_date'],
-        'future_suspend': future_suspend       
+        'future_suspend': future_suspend,
+        'proposal': proposal,
     }
 
     all_ccs = []
@@ -428,7 +429,8 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
         'approval': approval,
         'details': approval.surrender_details['details'],
         'surrender_date': approval.surrender_details['surrender_date'], 
-        'future_surrender': future_surrender           
+        'future_surrender': future_surrender  ,
+        'proposal' : proposal,
     }
     all_ccs = []
     #if proposal.applicant and proposal.applicant.email:
@@ -462,7 +464,8 @@ def send_approval_renewal_email_notification(approval):
 
     context = {
         'approval': approval,
-        'proposal': approval.current_proposal
+        'proposal': approval.current_proposal,
+        'submitter': approval.current_proposal.submitter.get_full_name(),
                     
     }
     all_ccs = []

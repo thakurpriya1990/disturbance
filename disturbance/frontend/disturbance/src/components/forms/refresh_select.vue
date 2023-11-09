@@ -137,7 +137,6 @@ data: function() {
                     }
                     //Uncheck all the options which are not in response value
                     for( const selected_option of ele.selectedOptions){
-                    console.log('selected op', selected_option)
                         if(!(found_options.includes(selected_option))){
                             selected_option.selected=false;
                         }
