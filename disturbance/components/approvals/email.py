@@ -208,6 +208,10 @@ def send_on_site_notification_email(request_data, sender, update=False):
     period_from = request_data.get('period_from')
     period_to = request_data.get('period_to')
     comments = request_data.get('comments')
+    hives_loc = request_data.get('hives_loc')
+    hives_num = request_data.get('hives_num')
+    people_names = request_data.get('people_names')
+    flora = request_data.get('flora')
     approval = asoa.approval
     proposal = asoa.approval.current_proposal
 
@@ -228,6 +232,10 @@ def send_on_site_notification_email(request_data, sender, update=False):
         'period_from': period_from,
         'period_to': period_to,
         'comments': comments,
+        'hives_loc': hives_loc,
+        'hives_num': hives_num,
+        'people_names': people_names,
+        'flora': flora,
         'sender': sender,
     }
 
