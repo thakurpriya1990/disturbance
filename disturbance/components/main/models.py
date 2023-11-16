@@ -401,6 +401,7 @@ class GlobalSettings(models.Model):
     COMPLIANCE_ASSESS_HELP_PAGE='compliance_assess_help_page'
     REFERRAL_ASSESS_HELP_PAGE='referral_assess_help_page'
     PROPOSAL_APPROVER_HELP_PAGE ='proposal_approver_help_page'
+    SHAPEFILE_INFO='shapefile_info'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
@@ -409,6 +410,7 @@ class GlobalSettings(models.Model):
         (COMPLIANCE_ASSESS_HELP_PAGE, 'DAS compliance assess help page'),
         (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page'),
         (PROPOSAL_APPROVER_HELP_PAGE, 'DAS Proposal approver help page'),
+        (SHAPEFILE_INFO, 'Shapefile further information'),
     )
     default_values = (
     )
