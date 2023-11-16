@@ -215,13 +215,13 @@ def send_on_site_notification_email(request_data, sender, update=False):
     approval = asoa.approval
     proposal = asoa.approval.current_proposal
 
-    applicant = approval.relevant_applicant if isinstance(approval.relevant_applicant, Organisation) else approval.relevant_applicant.get_full_name(),
+    applicant = approval.relevant_applicant if isinstance(approval.relevant_applicant, Organisation) else approval.relevant_applicant.get_full_name()
     if isinstance(approval.relevant_applicant, Organisation):
         applicant = approval.relevant_applicant.name
         delegate = approval.relevant_applicant.delegates.all()[0]
         contact = delegate.phone_number if delegate.phone_number else delegate.mobile_number
     else:
-        applicant = approval.relevant_applicant.get_full_name(),
+        applicant = approval.relevant_applicant.get_full_name()
         contact = approval.relevant_applicant.phone_number if approval.relevant_applicant.phone_number else approval.relevant_applicant.mobile_number
 
     context = {
@@ -237,6 +237,7 @@ def send_on_site_notification_email(request_data, sender, update=False):
         'people_names': people_names,
         'flora': flora,
         'sender': sender,
+        'licence_url': SITE_URL + f'{reverse("external")}approval/{approval.id}'
     }
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
