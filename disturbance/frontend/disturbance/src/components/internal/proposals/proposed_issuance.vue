@@ -133,6 +133,10 @@ export default {
             type: String,
             //default: ''
         },
+        reissued: {
+            type: Boolean,
+            default: false
+        },
     },
     data:function () {
         let vm = this;
@@ -179,7 +183,7 @@ export default {
             return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
         },
         is_amendment: function(){
-            return this.proposal_type == 'Amendment' ? true : false;
+            return (this.proposal_type == 'Amendment' && !this.reissued) ? true : false;
         },
         csrf_token: function() {
           return helpers.getCookie('csrftoken')
