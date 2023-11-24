@@ -402,6 +402,13 @@ class GlobalSettings(models.Model):
     REFERRAL_ASSESS_HELP_PAGE='referral_assess_help_page'
     PROPOSAL_APPROVER_HELP_PAGE ='proposal_approver_help_page'
     SHAPEFILE_INFO='shapefile_info'
+    PROPOSAL_TYPE_HELP='proposal_type_help_url'
+    REGION_HELP='region_help_url'
+    DISTRICT_HELP='district_help_url'
+    ACTIVITY_TYPE_HELP='activity_type_help_url'
+    SUB_ACTIVITY_1_HELP='sub_activity_1_help_url'
+    SUB_ACTIVITY_2_HELP='sub_activity_2_help_url'
+    CATEGORY_HELP='category_help_url'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
@@ -411,6 +418,13 @@ class GlobalSettings(models.Model):
         (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page'),
         (PROPOSAL_APPROVER_HELP_PAGE, 'DAS Proposal approver help page'),
         (SHAPEFILE_INFO, 'Shapefile further information'),
+        (REGION_HELP, 'Region help url'),
+        (DISTRICT_HELP, 'District help url'),
+        (ACTIVITY_TYPE_HELP, 'Activity type help url'),
+        (SUB_ACTIVITY_1_HELP, 'Sub activity 1 help url'),
+        (SUB_ACTIVITY_2_HELP, 'Sub activity 2 help url'),
+        (CATEGORY_HELP, 'Category help url'),
+        
     )
     default_values = (
     )
