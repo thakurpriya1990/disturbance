@@ -165,6 +165,11 @@
                             <input type="checkbox" :value="true" v-model="getCheckedTag('canBeEditedByAssessor').isChecked" >&nbsp;&nbsp;&nbsp;<label>canBeEditedByAssessor</label></input>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isTitleColumnForDashboard').isChecked" >&nbsp;&nbsp;&nbsp;<label>isTitleColumnForDashboard</label></input>
+                        </div>
+                    </div>
 
                     <div class="row">
                         <div class="col-md-3">
@@ -498,7 +503,7 @@ export default {
                     tag: atag,
                     isChecked: set_checked,
                 }
-                if (['isRepeatable','isRequired', 'isCopiedToPermit', 'canBeEditedByAssessor'].includes(atag)){
+                if (['isRepeatable','isRequired', 'isCopiedToPermit', 'canBeEditedByAssessor', 'isTitleColumnForDashboard'].includes(atag)){
                     this.checkedTag.push(checked)
                 }
             }
