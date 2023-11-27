@@ -180,7 +180,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12" v-if="requirementsComplete">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Submit to Approver</button><br/>
                                         </div>
                                     </div>
                                 </template>
