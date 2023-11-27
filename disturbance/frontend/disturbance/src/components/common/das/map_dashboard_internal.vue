@@ -86,11 +86,11 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
-                                    Get GeoJSON</button>
+                                    Get Spatial File</button>
                                 </div>
                                 <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
-                                        Download PNG</button>
+                                        Download Image</button>
                                     <a id="image-download" download="map.png"></a>
                                 </div>
                                 
