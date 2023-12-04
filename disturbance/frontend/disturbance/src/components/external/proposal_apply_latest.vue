@@ -102,7 +102,7 @@
                                 </div>
                             </div>
 
-                            <!-- <div v-if="display_region_selectbox">
+                            <div v-if="display_region_selectbox">
                                 <label for="" class="control-label" >Region * <a :href="region_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a> </label>
                                 <div class="col-sm-12">
                                     <div class="form-group">
@@ -128,7 +128,7 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div> -->
+                            </div>
 
                             <div v-if="display_activity_matrix_selectbox">
 								<div v-if="activities.length > 0">
@@ -543,7 +543,7 @@ export default {
         if (!['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
             // if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.approval_level == ''){
             //if (vm.behalf_of == '' || vm.selected_application_id == ''  || vm.approval_level == ''){
-            if (vm.behalf_of == '' || vm.selected_application_id == '' ||vm.selected_activity=='' ){
+            if (vm.behalf_of == '' || vm.selected_application_id == '' ||vm.selected_region == '' || vm.selected_district == '' || vm.selected_activity=='' ){
                 return true;
             }
         } else {
