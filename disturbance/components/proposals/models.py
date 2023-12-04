@@ -269,6 +269,7 @@ class CddpQuestionGroup(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Spatial Question Group'
 
     def __str__(self):
         return self.name
