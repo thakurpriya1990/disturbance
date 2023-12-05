@@ -13,6 +13,7 @@
                 {% endif %}
                 Title: {{proposal.title}}
                 Activity: {{proposal.activity}}
+                Declined Reason: {{ reason }}
                 Please contact the relevant DBCA district or regional manager for further information, if required.
 
    

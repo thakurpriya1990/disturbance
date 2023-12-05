@@ -1927,6 +1927,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.processing_status = 'declined'
                 self.customer_status = 'declined'
                 self.save()
+                reason = details.get('reason')
 
                 if hasattr(self, 'proposal_apiary') and self.proposal_apiary:
                     # Update apiary site status

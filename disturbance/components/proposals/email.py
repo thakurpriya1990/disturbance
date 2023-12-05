@@ -500,10 +500,10 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
         email = ApiaryProposalDeclineSendNotificationEmail()
     else:
         email = ProposalDeclineSendNotificationEmail()
-
+    reason=proposal_decline.reason
     context = {
         'proposal': proposal,
-
+        'reason': reason,
     }
     cc_list = proposal_decline.cc_email
     all_ccs = []
