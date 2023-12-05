@@ -184,7 +184,7 @@
                 </div>
             </template>
             <template v-else>
-                <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_external="true" />
+                <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_external="true" />
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" :key="proposalComponentMapKey">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
                 <div>
@@ -311,6 +311,13 @@ export default {
         MapSection,
     },
     computed: {
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+        },
         amendmentRequestText: function() {
             let requestText = 'An amendment has been requested for this proposal';
             if (this.apiaryTemplateGroup) {

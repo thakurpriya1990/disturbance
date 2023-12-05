@@ -31,4 +31,5 @@ def apiary_url(request):
         'build_tag': settings.BUILD_TAG,
         'KMI_SERVER_URL': KMI_SERVER_URL,
         'SQS_APIURL': SQS_APIURL,
+        'SHOW_DAS_MAP': settings.SHOW_DAS_MAP,
     }
