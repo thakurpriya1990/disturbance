@@ -86,11 +86,11 @@
                             <div class="row">
                                 <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
-                                    Get GeoJSON</button>
+                                    Get Spatial File</button>
                                 </div>
                                 <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
-                                        Download PNG</button>
+                                        Download Image</button>
                                     <a id="image-download" download="map.png"></a>
                                 </div>
                                 
@@ -1215,11 +1215,12 @@
                     coord=coord.getCoordinates();
                     let processing_status_str = proposal.processing_status_display
                     let customer_status_str = proposal.customer_status_display
-                    let region_str = proposal.region
+                    let region_str = proposal.region_name
                     
                     let proposal_type_str= proposal.proposal_type
                     let lodgement_date_str= proposal.lodgement_date ? moment(proposal.lodgement_date).format('DD/MM/YYYY') : ''
                     let submitter_str=proposal.submitter_full_name
+                    let applicant_name=proposal.applicant_name
                     let approval_rows=''
                     if(proposal.approval_lodgement_number){
                         approval_rows= '<tr>' +
@@ -1250,8 +1251,8 @@
                         a_table = '<table class="table">' +
                               '<tbody>' +
                                 '<tr>' +
-                                  '<th scope="row">Holder/Applicant</th>' +
-                                  '<td><span id=' + unique_id + '></span></td>' +
+                                  '<th scope="row">Applicant</th>' +
+                                  '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
                                 '</tr>' +
                                 '<tr>' +
                                   '<th scope="row">Region</th>' +
@@ -1280,8 +1281,8 @@
                         a_table = '<table class="table">' +
                               '<tbody>' +
                                 '<tr>' +
-                                  '<th scope="row">Holder/Applicant</th>' +
-                                  '<td><span id=' + unique_id + '></span></td>' +
+                                  '<th scope="row">Applicant</th>' +
+                                  '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
                                 '</tr>' +
                                 '<tr>' +
                                   '<th scope="row">Region</th>' +

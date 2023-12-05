@@ -4519,7 +4519,11 @@ class SpatialQueryMetricsFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(
                     id__in=search_text_masterlist_ids
                 ).distinct()
-
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
         total_count = queryset.count()
 
         setattr(view, '_datatables_total_count', total_count)
@@ -4544,7 +4548,12 @@ class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(
                     id__in=search_text_masterlist_ids
                 ).distinct()
-
+        
+        getter = request.query_params.get
+        fields = self.get_fields(getter)
+        ordering = self.get_ordering(getter, fields)
+        if len(ordering):
+            queryset = queryset.order_by(*ordering)
         total_count = queryset.count()
 
         setattr(view, '_datatables_total_count', total_count)

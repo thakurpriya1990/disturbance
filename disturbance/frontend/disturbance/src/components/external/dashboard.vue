@@ -13,7 +13,7 @@
     <ProposalDashTable level='external' :url='proposals_url'/>
     <ApprovalDashTable level='external' :url='approvals_url'/>
     <ComplianceDashTable level='external' :url='compliances_url'/>
-    <MapDashboard level="external" :is_external="true"/>
+    <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/>
 </div>
 </template>
 <script>
@@ -71,6 +71,13 @@ export default {
             }
             return welcomeText;
         },
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+            }
 
     },
     methods: {

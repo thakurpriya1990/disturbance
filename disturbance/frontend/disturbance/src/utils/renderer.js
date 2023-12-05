@@ -239,7 +239,11 @@ module.exports = {
                 if(data !== null && data !== undefined) {
                   value = ( data[c.name] )? data[c.name][0] : null ;
                 }
-                this.sections.push({name:c.name,label:c.label});
+                if(!this.sections.map(a=>a.name).includes(c.name))
+                {
+                    this.sections.push({name:c.name,label:c.label});
+                }
+                //this.sections.push({name:c.name,label:c.label});
                 _elements.push(
                     <Section label={c.label} secKey={c.name} id={c.name}>
                         {c.children.map(d=>{

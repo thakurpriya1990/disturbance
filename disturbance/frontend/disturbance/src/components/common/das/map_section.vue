@@ -31,6 +31,9 @@
                             <li>
                                 Max file size is 10MB.
                             </li>
+                            <li>
+                                Further information <a :href="shapefile_info_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
+                            </li>
                         </ul>
                 </div>
 
@@ -125,6 +128,7 @@
                 showError:false,
                 errorString:'',
                 isValidating:false,
+                global_settings:[],
             }
         },
         components: {
@@ -180,6 +184,17 @@
                     return false;
                 }
                 return true;
+            },
+            shapefile_info_url: function(){
+                let vm=this;
+                if(vm.global_settings){
+                    for(var i=0; i<vm.global_settings.length; i++){
+                        if(vm.global_settings[i].key=='shapefile_info'){
+                            return vm.global_settings[i].value;
+                        }
+                    }
+                }
+                return '';
             },
         },
         methods:{
@@ -266,13 +281,22 @@
                 // vm.$refs.component_map.shapefile_json=helpers.copyObject(vm.proposal.shapefile_json);
                 //vm.$refs.component_map.updateShape();
             },
+            fetchGlobalSettings: function(){
+                let vm = this;
+                vm.$http.get('/api/global_settings.json').then((response) => {
+                    vm.global_settings = response.body;
+                    
+                },(error) => {
+                    console.log(error);
+                } );
+            },
             
         },
         created: function() {
         },
         mounted: function() {
             let vm = this;
-            
+            vm.fetchGlobalSettings();
         }
     }
 </script>

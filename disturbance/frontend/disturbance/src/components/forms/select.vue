@@ -17,7 +17,7 @@
                 <HelpTextUrl  :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
             <template v-if="!assessorMode">
-                <RefreshSelect :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" :proposal_id="proposal_id" :refresh_time_value="refresh_time_value" />
+                <RefreshSelect :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" :proposal_id="proposal_id" :refresh_time_value="refresh_time_value" :isMultiple="isMultiple"/>
             </template>
 
             <template v-if="assessorMode">
@@ -41,7 +41,7 @@
                     <option value="">Select...</option>
                     <option v-for="op in options"  :value="op.value" @change="handleChange" :selected="op.value == value">{{ op.label }}</option>
                 </select>
-                <select v-else disabled ref="selectB" :id="selectid" class="form-control" multiple style="width:100%">
+                <select v-else disabled ref="selectB" :id="selectid" :name="name" class="form-control" multiple style="width:100%">
                     <option value="">Select...</option>
                     <option v-for="op in options"  :value="op.value" :selected="multipleSelection(op.value)">{{ op.label }}</option>
                 </select>

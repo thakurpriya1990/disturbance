@@ -417,6 +417,8 @@
                         source: vm.shapeVectorSource,
                     })
                     vm.map.addLayer(vm.shapeVectorLayer);
+                    // Set zIndex to some layers to be rendered over the other layers
+                    vm.shapeVectorLayer.setZIndex(10)
                     vm.displayAllFeaturesShape();
                 }
                 vm.apiarySitesQuerySource = new VectorSource({ });

@@ -8,6 +8,15 @@
     {% endif %}
 
     Approval : {{ approval.lodgement_number}}
+    Proposal: {{proposal.lodgement_number}}
+        Region: {{proposal.region}}
+        {% if proposal.district %}
+                District: {{proposal.district}}
+        {% else %}
+                District: -
+        {% endif %}
+        Title: {{proposal.title}}
+        Activity: {{proposal.activity}}
 
     Surrender Details : {{details}}
 
