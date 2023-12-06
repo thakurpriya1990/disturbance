@@ -4,7 +4,7 @@
 
 trigger:
 - master
-- das_gis
+
 
 resources:
 - repo: self
