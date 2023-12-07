@@ -7,8 +7,8 @@
         <template slot="tab-panel-question"><SchemaQuestion /></template>
         <template slot="tab-panel-masterlist"><SchemaMasterlist /></template>
         <template slot="tab-panel-proposal-type"><SchemaProposalType /></template>
-        <template slot="tab-panel-spatial-query-question"><SpatialQueryQuestion /></template>
-        <template slot="tab-panel-spatial-query-metrics"><SpatialQueryMetrics /></template>
+        <template v-if="show_das_map" slot="tab-panel-spatial-query-question"><SpatialQueryQuestion /></template>
+        <template v-if="show_das_map" slot="tab-panel-spatial-query-metrics"><SpatialQueryMetrics /></template>
         <!-- <template slot="tab-panel-group"><SchemaGroup /></template> -->
 
     </SchemaTabs>
@@ -36,10 +36,37 @@ export default {
         SpatialQueryMetrics,
         // SchemaGroup,
     },
+    computed: {
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+            },
+        tabs: function(){
+            if(this.show_das_map){
+                return [
+                {'masterlist': 'Schema Masterlist'},
+                {'proposal-type': 'Proposal Type Sections'},
+                // {'group': 'Section Groups'},
+                {'question': 'Section Questions'},
+                {'spatial-query-question': 'Spatial Query Questions'},
+                {'spatial-query-metrics': 'Spatial Query Metrics'},
+                ]
+            }
+            return [
+                    {'masterlist': 'Schema Masterlist'},
+                    {'proposal-type': 'Proposal Type Sections'},
+                    // {'group': 'Section Groups'},
+                    {'question': 'Section Questions'},
+                ]
+        }
+    },
     data() {
         return {
             initialTab: 'masterlist',
-            tabs: [
+            original_tabs: [
                 {'masterlist': 'Schema Masterlist'},
                 {'proposal-type': 'Proposal Type Sections'},
                 // {'group': 'Section Groups'},
