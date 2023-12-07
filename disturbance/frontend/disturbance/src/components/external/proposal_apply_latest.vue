@@ -499,8 +499,8 @@ export default {
 			behalf_of: vm.behalf_of,
 			application: vm.selected_application_id, 
             
-			// region: vm.selected_region,
-			// district: vm.selected_district,
+			region: vm.selected_region,
+			district: vm.selected_district,
 			//tenure: vm.selected_tenure,
 			activity: vm.selected_activity,
             sub_activity1: vm.selected_sub_activity1,
