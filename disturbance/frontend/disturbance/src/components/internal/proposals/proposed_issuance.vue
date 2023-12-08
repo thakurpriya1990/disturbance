@@ -78,7 +78,18 @@
                                     <div class="col-sm-12">
                                         <label>
                                             <input  name="confirmation" type="checkbox" class="control-label pull-left"  v-model="approval.confirmation" /> &nbsp;
-                                            I confirm
+                                            As the Assessor I confirm the following.
+                                            <ul>
+                                                <li>
+                                                    The assessment data is up-to-date and used within its limitations.
+                                                </li>
+                                                <li>
+                                                    The management actions are consistent with departmental protocols, management plans, and tenure. 
+                                                </li>
+                                                <li>
+                                                    Where appropriate this proposal includes specialist referral advice, particularly important if this proposal has the potential to significantly affect another output programs (NC, PVS, SFM, FMS).
+                                                </li>
+                                            </ul>
                                         </label>
                                     </div>
                                     
