@@ -124,6 +124,14 @@
 							{% if DOMAIN_DETECTED != 'apiary' %}
                                                             <li><a href="/internal/schema">Manage Application Schema</a></li>
                                                         {% endif %}
+							{% comment %}
+                                                        {% if is_apiary_admin_user and DOMAIN_DETECTED == 'apiary' %}
+                                                            <li><a href="{% url 'apiary_admin' %}">Apiary Update Panel</a></li>
+                                                        {% endif %}
+                                                        {% if is_disturbance_admin_user and DOMAIN_DETECTED != 'apiary' %}
+                                                            <li><a href="{% url 'apiary_admin' %}">Disturbance Update Panel</a></li>
+                                                        {% endif %}
+							{% endcomment %}
                                                         <li role="separator" class="divider"></li>
                                                     {% endif %}
                                                     {% if request.user.is_superuser %}

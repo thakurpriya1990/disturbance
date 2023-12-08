@@ -218,6 +218,7 @@
                                 <label class="control-label pull-left" >Attribute name</label><label class="superscript">*</label>
                                 <span v-if="spatialquery.layer">
                                     <a @click="show_layer_attrs" href="#"><i class="fa fa-lg fa-info-circle" style="color: blue;" title="View attributes available">&nbsp;</i></a>
+                                    <!--<a @click="show_layer_polygon_overlay" href="#"><i class="fa fa-lg fa-globe" style="color: blue;" title="View Layer/Polygon overlay">&nbsp;</i></a>-->
                                 </span>
                                 <span v-else>
                                     <i class="fa fa-lg fa-info-circle" style="color: grey;" title="Must select Layer name">&nbsp;</i>
@@ -708,6 +709,7 @@ export default {
                                 column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of Spatial Question Group '${full.group.name}'">Check_Layer</a><br/>`;
                                 column += `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of Spatial Question Group '${full.group.name}'">Delete</a><br/>`;
                             }
+                            //column += `<a class="view-layer-overlay" data-rowid=\"__ROWID__\">View Overlay</a><br/>`;
                             column += `<a class="test-row" data-rowid=\"__ROWID__\">Test</a><br/>`;
                             return column.replace(/__ROWID__/g, full.id);
                         }
@@ -1122,6 +1124,30 @@ export default {
             self.request_time = new Date() - start_time
             this.isNewEntry = false;
         },
+
+        show_layer_polygon_overlay: async function(url) {
+            const self = this;
+            self.show_spinner = true;
+
+            //console.log(url)
+            await self.$http.get(url)
+            .then((response) => {
+                //swal(
+                //    'Question Found in Proposal Schema!',
+                //    response.body.message,
+                //    'success'
+                //)
+                self.show_spinner = false;
+            }, (error) => {
+                swal(
+                    'Check Question Error',
+                    helpers.apiVueResourceError(error),
+                    'error'
+                )
+                self.show_spinner = false;
+            });
+        },
+
 
         show_layer_attrs: function() {
             /* for given layer, show all attributes only */
@@ -1634,6 +1660,43 @@ export default {
                 });                
 
             });
+
+            self.$refs.spatial_query_question_table.vmDataTable.on('click','.view-layer-overlay', function(e) {
+                e.preventDefault();
+                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+
+                let spatialquery_id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+
+                //console.log(api_endpoints.spatial_query + '/check_sqs_layer?layer_name=' + layer_name)
+                swal({
+                    title: "View Layer/Polygon Overlay",
+                    text: "Input Proposal Lodgement Number",
+                    type: "question",
+                    showCancelButton: true,
+                    confirmButtonText: 'Check',
+                    input: 'text',
+                    //html: '<input type="text" placeholder="Enter Proposal Lodgement Number" style="width: 65%"></input>',
+                }).then(async (result) => {
+                    console.log("Result: " + result);
+                    if (!result) {
+                        swal(
+                            'Please input Proposal Lodgement Number',
+                            null,
+                            'warning'
+                        )
+                        return;
+                    }
+
+                    let proposal_id = result
+                    let url = api_endpoints.spatial_query + '/' + spatialquery_id + '/view_layer_polygon_overlay?proposal_id=' + proposal_id;
+                    self.show_layer_polygon_overlay(url);
+
+                },(error) => {
+                    //
+                });                
+
+            });
+
         },
         initQuestionSelector: function () {
                 const self = this;

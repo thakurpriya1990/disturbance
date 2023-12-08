@@ -53,6 +53,7 @@ INSTALLED_APPS += [
     'ckeditor',
     # 'corsheaders',
     'smart_selects',
+    'crispy_forms',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -88,6 +89,9 @@ REST_FRAMEWORK = {
 
 USE_DJANGO_JQUERY= True
 # JQUERY_URL = True
+
+#CRISPY_TEMPLATE_PACK = 'uni_form'
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
@@ -126,6 +130,7 @@ CACHES = {
 SQS_LAYERS_CACHE_TIMEOUT = env('SQS_LAYERS_CACHE_TIMEOUT', 60*5) # 5 mins
 SQS_LAYER_EXISTS_CACHE_TIMEOUT = env('SQS_LAYER_EXISTS_CACHE_TIMEOUT', 60*5) # 5 mins
 SQS_RESPONSE_CACHE_TIMEOUT = env('SQS_RESPONSE_CACHE_TIMEOUT', 60*60) # 60 mins
+REQUEST_TIMEOUT = env('REQUEST_TIMEOUT', 60*5) # 5mins
 
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))
@@ -164,6 +169,11 @@ APPROVED_APIARY_EXTERNAL_USERS_GROUP = env('APPROVED_APIARY_EXTERNAL_USERS_GROUP
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
+
+CRS = env('CRS', 'epsg:4326')
+CRS_CARTESIAN = env('CRS_CARTESIAN', 'epsg:3043')
+OGR2OGR = env('OGR2OGR', '/usr/bin/ogr2ogr')
+#GEOM_PRECISION = env('GEOM_PRECISION', 5)
 
 OSCAR_BASKET_COOKIE_OPEN = 'das_basket'
 PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
@@ -209,6 +219,7 @@ SITE_STATUS_SUSPENDED = 'suspended'
 SITE_STATUS_TRANSFERRED = 'transferred'  # This status 'transferred' is assigned to the old relationship (ApiarySiteOnApproval object)
 SITE_STATUS_VACANT = 'vacant'
 SITE_STATUS_DISCARDED = 'discarded'
+
 BASE_EMAIL_TEXT = ''
 BASE_EMAIL_HTML = ''
 
