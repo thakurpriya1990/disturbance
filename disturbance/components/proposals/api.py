@@ -167,6 +167,7 @@ from disturbance.components.main.process_document import (
         process_generic_document, 
         )
 
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -5037,7 +5038,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         data = {'layer_details': json.dumps(request.data.get('layer'))}
         #url = f'{settings.SQS_APIURL}add_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/add_layer/'
         url = get_sqs_url(f'add_layer/')
-        resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
@@ -5049,6 +5050,84 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 
         return Response(resp.json())
 
+#    import geopandas as gpd
+#    import matplotlib as mpl
+#    import matplotlib.pyplot as plt, mpld3
+#    mpl.use('TkAgg')
+#
+#    @detail_route(methods=['GET',])
+#    @api_exception_handler
+#    def view_layer_polygon_overlay(self, request, *args, **kwargs):
+#        '''
+#        EXTERNAL SQS API CALL
+#
+#        Get Layer GeoJSON from SQS
+#        To test (from DAS shell): 
+#            http://localhost:8002/api/v1/layers/geojson
+#            requests.get('http://localhost:8003/api/spatial_query/CPT_LOCAL_GOVT_AREAS/geojson.json')
+#
+#            This will direct query to SQS Server
+#        ''' 
+#
+#
+#        sqq_id = kwargs.get('pk')
+#
+#        sqq = SpatialQueryQuestion.objects.get(id=sqq_id)
+#        column_name = sqq.column_name
+#        layer_name = sqq.layer_name
+#
+#        # check and get from cache to avoid rapid repeated API Calls to SQS
+#        cache_key = f'sqs_layer_geojson_{layer_name}'
+#        if 'clear_cache' in request.GET:
+#            cache.delete(cache_key)
+#
+#        layer_geojson = cache.get(cache_key)
+#        if not layer_geojson:
+#            url = get_sqs_url(f'layers/{layer_name}/geojson')
+#            resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#            if resp.status_code != 200:
+#                logger.error(f'SpatialQuery API call error: {resp.content}')
+#                try:
+#                    return Response(resp.json(), status=resp.status_code)
+#                except:
+#                    return Response({'errors': resp.content}, status=resp.status_code)
+#
+#            layer_geojson = resp.json()
+#            cache.set(cache_key, json.dumps(layer_geojson), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
+#        else:
+#            layer_geojson = json.loads(layer_geojson)
+#
+#        p_lodgement_number = request.GET.get('proposal_id')
+#        proposal = Proposal.objects.get(lodgement_number=p_lodgement_number)
+#        polygon_geojson = proposal.shapefile_json
+#
+#
+#        mpl.use('WebAgg') # opens a browser window with the plot and is fully interactive
+#        layer_gdf = gpd.GeoDataFrame.from_features(layer_geojson)
+#        polygon_gdf = gpd.GeoDataFrame.from_features(polygon_geojson)
+#        #mpoly = gpd.read_file(json.dumps(geojson))
+#
+#        #layer_gdf = layer_gdf.to_crs(CRS_CART)
+#        #polygon_gdf = polygon_gdf.to_crs(CRS_CART)
+#        layer_gdf.crs = settings.CRS
+#        polygon_gdf.crs = settings.CRS
+#
+#        fig, ax = plt.subplots(figsize=(10,10))
+#
+#        layer_gdf.boundary.plot(ax=ax, color='black', alpha=0.5)
+#        polygon_gdf.plot(ax=ax, color='darkgreen', alpha=.5)
+#
+#        layer_gdf['coords'] = layer_gdf['geometry'].apply(lambda x: x.representative_point().coords[:])
+#        layer_gdf['coords'] = [coords[0] for coords in layer_gdf['coords']]
+#
+#        for idx, row in layer_gdf.iterrows():
+#           plt.annotate(text=row[column_name], xy=row['coords'], horizontalalignment='center', color='blue')
+#
+#        g = mpld3.fig_to_html(fig)
+#        return HttpResponse(g)
+#
+#        #plt.show()
+#        #return Response(polygon_geojson)
 
     @detail_route(methods=['DELETE', ])
     def delete_spatialquery(self, request, *args, **kwargs):

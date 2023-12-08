@@ -1,0 +1,64 @@
+{% extends 'disturbance/base.html' %}
+{% load static %}
+{% load i18n %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+
+<div class="container">
+  <div class="page-header">
+    <h1>Apiary Admin Panel <small></small></h1>
+  </div>
+  <div class="panel panel-default">
+    <div class="panel-heading panel-heading-nav">
+      <ul class="nav nav-tabs">
+        <li role="presentation" class="active">
+          <a href="#one" aria-controls="one" role="tab" data-toggle="tab">Apiary Site</a>
+        </li>
+        <!--
+        <li role="presentation">
+          <a href="#two" aria-controls="two" role="tab" data-toggle="tab">Tab2</a>
+        </li>
+        <li role="presentation">
+          <a href="#three" aria-controls="three" role="tab" data-toggle="tab">Tab3</a>
+        </li>
+        -->
+      </ul>
+    </div>
+    <div class="panel-body">
+      <div class="tab-content">
+        <div role="tabpanel" class="tab-pane fade in active" id="one">
+
+          <div class="well">
+	    <h3><i>Site Status Update</i></h3>
+  	    {% crispy apiary_site_status_form %}
+          </div>
+
+          <div class="well">
+	    <h3><i>Site Lon/Lat Update</i></h3>
+  	    {% crispy apiary_site_lonlat_form %}
+          </div>
+
+        </div>
+
+        <!--
+        <div role="tabpanel" class="tab-pane fade" id="two">
+          2
+        </div>
+
+
+        <div role="tabpanel" class="tab-pane fade" id="three">
+          3
+        </div>
+        -->
+
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+

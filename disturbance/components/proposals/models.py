@@ -72,7 +72,8 @@ from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField, G
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
     SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX, \
-    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED
+    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED, \
+    CRS, OGR2OGR
 
 logger = logging.getLogger(__name__)
 
@@ -1500,12 +1501,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             if shp_file_qs:
                 shp_file_obj= shp_file_qs[0]
                 #shp_file=shp_file_obj._file
-                shp= gpd.read_file(shp_file_obj.path)
-                #if shp.is_valid():
-                shp_transform=shp.to_crs(crs=4326)
-                shp_json=shp_transform.to_json()
-                #print(shp_json)
-                import json
+                #shp= gpd.read_file(shp_file_obj.path)
+                #shp_transform=shp.to_crs(crs=4326)
+                #shp_json=shp_transform.to_json()
+
+                #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                shp_json = json.loads(result.stdout)
+
                 if type(shp_json)==str:
                     self.shapefile_json=json.loads(shp_json)
                 else:
@@ -1520,8 +1523,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 #     raise ValidationError('Please upload a valid shapefile')
             else:
                 raise ValidationError('Please upload a valid shapefile') 
-        except:
-            raise ValidationError('Please upload a valid shapefile')
+        except Exception as e:
+            raise ValidationError(f'Please upload a valid shapefile\n{e}')
 
     def get_lonlat(self):
        ''' Get longitude and latitude from centroid of polygon

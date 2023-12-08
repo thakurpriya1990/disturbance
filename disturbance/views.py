@@ -1,17 +1,25 @@
-import logging
-from datetime import datetime
-
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.urls import reverse
-from django.views.generic import DetailView
+from django.views.generic import DetailView, UpdateView
 from django.views.generic.base import TemplateView
 from django.conf import settings
 from django.contrib.auth.mixins import UserPassesTestMixin, LoginRequiredMixin
-from ledger.payments.invoice.models import Invoice
+from django.core.cache import cache
+from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponseRedirect
+from django.template.response import TemplateResponse
+from django.contrib import messages
+from django.views.generic.edit import FormView
+from django.core.management import call_command
+from django.views.decorators.csrf import csrf_exempt
+
 from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer
+from rest_framework.response import Response
+from rest_framework import views, status
+from ledger.payments.invoice.models import Invoice
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.serializers import WaCoastSerializer, WaCoastOptimisedSerializer
 from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
@@ -20,18 +28,13 @@ from disturbance.forms import *
 from disturbance.components.proposals.models import Referral, Proposal, HelpPage
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.proposals.mixins import ReferralOwnerMixin
-from django.core.management import call_command
-from rest_framework.response import Response
-from rest_framework import views
 
-from django.views.decorators.csrf import csrf_exempt
-#from proxy.views import proxy_view
 from wagov_utils.components.proxy.views import proxy_view
-from django.core.cache import cache
-from django.http import HttpResponse, JsonResponse
 import base64
 import json
+from datetime import datetime
 
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -297,7 +300,6 @@ def kmiProxyView(request, path):
         if proxy_cache is None:
             proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
             proxy_response_content_encoded = base64.b64encode(proxy_response.content)
-            #import ipdb; ipdb.set_trace()
             base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'][1], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
             if proxy_response.status_code == 200: 
                 cache.set(query_string_remote_url, json.dumps(base64_json), CACHE_EXPIRY)
@@ -309,7 +311,6 @@ def kmiProxyView(request, path):
         proxy_response_content = base64.b64decode(base64_json["content"].encode())
         http_response =   HttpResponse(proxy_response_content, content_type=base64_json['content_type'], status=base64_json['status_code'])
         
-        #import ipdb; ipdb.set_trace()        
         http_response['Django-Cache-Expiry']= str(base64_json['cache_expiry']) + " seconds"
         return http_response
         #return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
@@ -335,7 +336,6 @@ def kbProxyView(request, path):
             print ("NOT CACHED")
             proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
             proxy_response_content_encoded = base64.b64encode(proxy_response.content)
-            #import ipdb; ipdb.set_trace()
             base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'][1], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
             if proxy_response.status_code == 200: 
                 cache.set(query_string_remote_url, json.dumps(base64_json), CACHE_EXPIRY)
@@ -348,7 +348,6 @@ def kbProxyView(request, path):
         proxy_response_content = base64.b64decode(base64_json["content"].encode())
         http_response =   HttpResponse(proxy_response_content, content_type=base64_json['content_type'], status=base64_json['status_code'])
         
-        #import ipdb; ipdb.set_trace()        
         http_response['Django-Cache-Expiry']= str(base64_json['cache_expiry']) + " seconds"
         return http_response
         #return proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
@@ -423,3 +422,95 @@ def mapProxyView(request, path):
         return response
     else:
         raise ValidationError('User is not authenticated')
+
+
+from disturbance.components.proposals.models import ApiarySite, ApiarySiteOnProposal
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED, SITE_STATUS_SUSPENDED
+
+from django.contrib.gis.geos import Point
+class ApiarySiteStatusView(LoginRequiredMixin, FormView):
+    ''' Make 'suspended' site 'current'
+    '''
+    template_name = 'disturbance/apiary_admin_crispy_form.html'
+    form_class = ApiarySiteStatusForm
+    success_url = 'apiary_admin'
+ 
+    def get_context_data(self, **kwargs):
+        context = super(ApiarySiteStatusView, self).get_context_data(**kwargs)
+        context.pop('form')
+        context['apiary_site_status_form'] = ApiarySiteStatusForm()
+        context['apiary_site_lonlat_form'] = ApiarySiteLonLatForm()
+        return context
+
+    def post(self, request):
+        try:
+            if is_apiary_admin(request) or request.user.is_superuser:
+                if 'submit_apiary_site_status_form' in request.POST:
+                    self.update_status(request)
+
+                elif 'submit_apiary_site_lonlat_form' in request.POST:
+                    self.update_lonlat(request)
+
+                else:
+                    messages.error(request, f'Error: Unknown form {request.POST}' )
+            else:
+                messages.error(request, f'You are not authorised to make changes' )
+
+
+        except Exception as e:
+            messages.error(request, f'Exception Error: {e}' )
+ 
+        return HttpResponseRedirect(self.get_success_url())
+
+    def update_status(self, request):
+        form = ApiarySiteStatusForm(request.POST) #, instance=request.user)
+        if form.is_valid():
+            if 'cancel' not in self.request.POST:
+                site_id = int(form.data.get('site_id'))
+                status = form.data.get('status')
+
+                qs = ApiarySite.objects.filter(id=site_id)
+                if qs.exists():
+                    asoa = qs[0].latest_approval_link
+                    status_choices = [SITE_STATUS_DENIED, SITE_STATUS_CURRENT, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED, SITE_STATUS_DISCARDED]
+                    if asoa.site_status in status_choices:
+                        asoa.site_status = status
+                        asoa.save()
+                        messages.success(request, f'Apiary Site Updated: {asoa.id} - {asoa.site_status}' )
+                    else:
+                        messages.warning(request, f'Apiary Site NOT Updated. Existing site status is {asoa.site_status} - Existing status must be one of {status_choices}')
+
+                else:
+                    messages.error(request, f'Apiary Site Not Found: {site_id}' )
+        else:
+            logger.error(form.errors)
+            messages.error(request, form.errors )
+
+    def update_lonlat(self, request):
+        form = ApiarySiteLonLatForm(request.POST) #, instance=request.user)
+        if form.is_valid():
+            if 'cancel' not in self.request.POST:
+                site_id = int(form.data.get('site_id'))
+                lon = float(form.data.get('longitude'))
+                lat = float(form.data.get('latitude'))
+
+                # TODO need to confirm status logic for the below
+#                qs = ApiarySiteOnProposal.objects.filter(apiary_site_id=site_id)
+#                if qs.exists():
+#                    asop = qs[0]
+#                    asop.wkb_geometry_draft = Point(lon, lat)
+#                    asop.save()
+#
+#                qs = ApiarySiteOnApproval.objects.filter(apiary_site_id=site_id)
+#                if qs.exists():
+#                    asoa = qs[0]
+#                    asoa.wkb_geometry_draft = Point(lon, lat)
+#                    asoa.save()
+#
+#                    messages.success(request, f'Apiary Site Updated: {asoa.id} - {asoa.site_status}' )
+#                else:
+#                    messages.error(request, f'Apiary Site Not Found: {site_id}' )
+        else:
+            logger.error(form.errors)
+            messages.error(request, form.errors )
+
