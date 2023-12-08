@@ -28,7 +28,9 @@
     {{url}}
 
     Note:
-    Please complete this request within 2 weeks.
-    If you foresee any issues with meeting this timeline please promptly advise the Approver as it may impact on DBCAs Approvals timeline.
+    3 approval decisions a) Approve b) Decline or c) Request more information.
+	If more information or changes are needed push it ‘Back to Assessor’ including comments on what’s needed and by when.
+    Ensure appropriate Approval Level (authorisation) is gained prior to approval, attach evidence or comments to justify.
+    See {{ proposal_approver_help_page }} DAS 05 How to approve or decline an assessed proposal</a> for full instructions.
 
 {%  endblock %}

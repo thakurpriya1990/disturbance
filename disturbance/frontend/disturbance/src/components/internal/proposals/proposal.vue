@@ -180,7 +180,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12" v-if="requirementsComplete">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Submit to Approver</button><br/>
                                         </div>
                                     </div>
                                 </template>
@@ -344,7 +344,7 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
-                                    <MapSection v-if="proposal" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_internal="true"/>
+                                    <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_internal="true"/>
                                     <ProposalDisturbance 
                                     ref="proposal_disturbance"
                                     :key="'proposal_disturbance' + uuid"
@@ -551,6 +551,13 @@ export default {
         },
         hasAssessorMode:function(){
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
+        },
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
         },
         canAction: function(){
             if (this.proposal.processing_status == 'With Approver'){

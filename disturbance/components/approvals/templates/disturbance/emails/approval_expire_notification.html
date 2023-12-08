@@ -2,7 +2,24 @@
 
 {%  block content %}
     <p>Your Approval has been expired:</p>
-    <p><strong>Approval : {{ approval.lodgement_number}}</strong></p>
-    <p><strong>Proposal : {{ proposal.lodgement_number}}</strong></p>
+    <p>
+        Approval : {{ approval.lodgement_number}}<br>
+        Proposal No: {{proposal.lodgement_number}}<br>
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+		Region: {{proposal.region}}<br>
+		{% if proposal.district %}
+			District: {{proposal.district}}<br>
+		{% else %}
+			District: -<br>
+		{% endif %}
+	</p>
+    <p>
+        Note:
+        <ul>
+            <li>This Approval cannot be renewed or re-issued.</li>
+            <li>If disturbance works are still ongoing a new proposal must be completed and submitted for approval prior to disturbance works continuing. </li>   
+        </ul>
+    </p>
     
 {%  endblock %}

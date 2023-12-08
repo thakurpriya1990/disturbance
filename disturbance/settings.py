@@ -284,6 +284,8 @@ KB_LAYER_URL = env('KB_LAYER_URL', 'https://kaartdijin-boodja.dbca.wa.gov.au/api
 
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
+SHOW_DAS_MAP = env('SHOW_DAS_MAP', True)
+
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice
 #        WHERE archive_date IS NULL OR archive_date > now()

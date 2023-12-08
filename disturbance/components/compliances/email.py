@@ -144,7 +144,9 @@ def send_reminder_email_notification(compliance):
     url+=reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id})
     context = {
         'compliance': compliance,
-        'url': url
+        'url': url,
+        'proposal': compliance.proposal,
+        'approval': compliance.approval,
     }
     all_ccs = []
     if compliance.proposal.applicant.email:
@@ -243,7 +245,9 @@ def send_due_email_notification(compliance):
     url+=reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id})
     context = {
         'compliance': compliance,
-        'url': url
+        'url': url,
+        'proposal': compliance.proposal,
+        'approval': compliance.approval,
     }
     all_ccs = []
     if compliance.proposal.applicant.email:
@@ -375,10 +379,14 @@ def send_external_submit_email_notification(request, compliance):
     email = ComplianceExternalSubmitSendNotificationEmail()
     url = request.build_absolute_uri(reverse('external-compliance-detail',kwargs={'compliance_pk': compliance.id}))
     url = ''.join(url.split('-internal'))
+    assessor_name=compliance.assigned_to.get_full_name() if compliance.assigned_to else ''
     context = {
         'compliance': compliance,
         'submitter': compliance.submitter.get_full_name(),
-        'url': url
+        'url': url,
+        'proposal': compliance.proposal,
+        'approval': compliance.approval,
+        'assessor_name': assessor_name,
     }
     all_ccs = []
     if compliance.proposal.applicant.email:
@@ -426,6 +434,7 @@ def send_submit_email_notification(request, compliance):
         'compliance': compliance,
         'url': url,
         'proposal': compliance.proposal,
+        'approval': compliance.approval,
         'assessor_name': assessor_name,
         'greeting': 'Assessors',
         'compliance_assess_help_page': get_compliance_assess_help_url(),

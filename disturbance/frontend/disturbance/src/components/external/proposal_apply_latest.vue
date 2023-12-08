@@ -102,7 +102,7 @@
                                 </div>
                             </div>
 
-                            <!-- <div v-if="display_region_selectbox">
+                            <div v-if="display_region_selectbox">
                                 <label for="" class="control-label" >Region * <a :href="region_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a> </label>
                                 <div class="col-sm-12">
                                     <div class="form-group">
@@ -128,7 +128,7 @@
                                         </select>
                                     </div>
                                 </div>
-                            </div> -->
+                            </div>
 
                             <div v-if="display_activity_matrix_selectbox">
 								<div v-if="activities.length > 0">
@@ -252,6 +252,7 @@ export default {
         site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
         apiaryTemplateGroup: false,
         dasTemplateGroup: false,
+        global_settings:[],
     }
   },
   components: {
@@ -352,25 +353,89 @@ export default {
       return this.districts.length > 1;
     },
     proposal_type_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_proposal_type"
+        //return this.site_url + "help/disturbance/user/#apply_proposal_type"
+        let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='proposal_type_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     region_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_region"
+      //return this.site_url + "help/disturbance/user/#apply_region"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='region_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     district_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_district"
+      //return this.site_url + "help/disturbance/user/#apply_district"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='district_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     activity_type_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_activity_type"
+      //return this.site_url + "help/disturbance/user/#apply_activity_type"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='activity_type_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
+
     },
     sub_activity_1_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_sub_activity_1"
+      //return this.site_url + "help/disturbance/user/#apply_sub_activity_1"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='sub_activity_1_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     sub_activity_2_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_sub_activity_2"
+      //return this.site_url + "help/disturbance/user/#apply_sub_activity_2"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='sub_activity_2_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     category_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_category"
+      //return this.site_url + "help/disturbance/user/#apply_category"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='category_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     }
 
   },
@@ -434,8 +499,8 @@ export default {
 			behalf_of: vm.behalf_of,
 			application: vm.selected_application_id, 
             
-			// region: vm.selected_region,
-			// district: vm.selected_district,
+			region: vm.selected_region,
+			district: vm.selected_district,
 			//tenure: vm.selected_tenure,
 			activity: vm.selected_activity,
             sub_activity1: vm.selected_sub_activity1,
@@ -478,7 +543,7 @@ export default {
         if (!['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
             // if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.approval_level == ''){
             //if (vm.behalf_of == '' || vm.selected_application_id == ''  || vm.approval_level == ''){
-            if (vm.behalf_of == '' || vm.selected_application_id == '' ){
+            if (vm.behalf_of == '' || vm.selected_application_id == '' ||vm.selected_region == '' || vm.selected_district == '' || vm.selected_activity=='' ){
                 return true;
             }
         } else {
@@ -710,6 +775,15 @@ export default {
             }
         }
     },
+    fetchGlobalSettings: function(){
+                let vm = this;
+                vm.$http.get('/api/global_settings.json').then((response) => {
+                    vm.global_settings = response.body;
+                    
+                },(error) => {
+                    console.log(error);
+                } );
+    },
     get_approval_level: function(category_name) {
         let vm = this;
         for (var i = 0; i < vm.categories.length; i++) {
@@ -726,6 +800,7 @@ export default {
     vm.fetchRegions();
     vm.fetchApplicationTypes();
     vm.fetchActivityMatrix();
+    vm.fetchGlobalSettings();
     vm.form = document.forms.new_proposal;
   },
   beforeRouteEnter: function(to, from, next) {

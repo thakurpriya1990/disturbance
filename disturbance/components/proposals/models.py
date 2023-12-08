@@ -270,6 +270,7 @@ class CddpQuestionGroup(models.Model):
 
     class Meta:
         app_label = 'disturbance'
+        verbose_name = 'Spatial Question Group'
 
     def __str__(self):
         return self.name
@@ -1929,6 +1930,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.processing_status = 'declined'
                 self.customer_status = 'declined'
                 self.save()
+                reason = details.get('reason')
 
                 if hasattr(self, 'proposal_apiary') and self.proposal_apiary:
                     # Update apiary site status
@@ -5694,6 +5696,7 @@ class SectionQuestion(models.Model):
                  ('isRequired', 'isRequired'),
                  ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
                  ('isRepeatable', 'isRepeatable'),
+                 ('isTitleColumnForDashboard', 'isTitleColumnForDashboard'),
                 )
     section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
     question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)

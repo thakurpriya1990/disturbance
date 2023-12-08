@@ -222,6 +222,9 @@ export default {
             if (this.dasTemplateGroup) {
                 columnHeaders.push("Title");
             };
+            if (this.dasTemplateGroup) {
+                columnHeaders.push("Requirement");
+            };
             columnHeaders.push(approval_or_licence,
                 "Holder",
                 "Status",
@@ -268,6 +271,41 @@ export default {
                         data: "title",
                         name: "proposal__title",
                         //visible: false,
+                    });
+            };
+            if (this.dasTemplateGroup) {
+                columnList.push(
+                    {
+                        // 4. Requirement
+                        data: "requirement",
+                        //name: "proposal__title",
+                        //visible: false,
+                        'render': function (value, type) {
+                            var ellipsis = '...',
+                                truncated = _.truncate(value, {
+                                    length: 25,
+                                    omission: ellipsis,
+                                    separator: ' '
+                                }),
+                                result = '<span>' + truncated + '</span>',
+                                popTemplate = _.template('<a href="#" ' +
+                                    'role="button" ' +
+                                    'data-toggle="popover" ' +
+                                    'data-trigger="click" ' +
+                                    'data-placement="top auto"' +
+                                    'data-html="true" ' +
+                                    'data-content="<%= text %>" ' +
+                                    '>more</a>');
+                            if (_.endsWith(truncated, ellipsis)) {
+                                result += popTemplate({
+                                    text: value
+                                });
+                            }
+
+                            //return result;
+                            return type=='export' ? value : result;
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
                     });
             };
             columnList.push(
@@ -397,13 +435,15 @@ export default {
                     {
                         extend: 'excel',
                         exportOptions: {
-                            columns: ':not(.noexport)'
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
                         }
                     },
                     {
                         extend: 'csv',
                         exportOptions: {
-                            columns: ':not(.noexport)'
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
                         }
                     },
                 ],

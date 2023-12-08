@@ -2,7 +2,7 @@
 <div class="container" id="internalDash">
     <ProposalDashTable level="internal" :url="proposals_url"/>
     <ReferralDashTable :url="referrals_url"/>
-    <MapDashboard level="internal" :is_internal="true" />
+    <MapDashboard v-if="show_das_map" level="internal" :is_internal="true" />
 </div>
 </template>
 <script>
@@ -35,6 +35,13 @@ export default {
         MapDashboard,
     },
     computed: {
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+            }
     },
     methods: {},
     mounted: function () {

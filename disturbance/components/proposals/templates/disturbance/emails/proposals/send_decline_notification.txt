@@ -5,6 +5,16 @@
       
     
         Proposal {{proposal.lodgement_number}} has been declined.
+        Region: {{proposal.region}}
+                {% if proposal.district %}
+                        District: {{proposal.district}}
+                {% else %}
+                        District: -
+                {% endif %}
+                Title: {{proposal.title}}
+                Activity: {{proposal.activity}}
+                Declined Reason: {{ reason }}
+                Please contact the relevant DBCA district or regional manager for further information, if required.
 
    
 

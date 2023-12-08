@@ -53,13 +53,29 @@ export default {
                 },
                 order: [],
                 dom: 'lBfrtip',
+                // buttons:[
+                // 'excel', 'csv', ], //'copy'
                 buttons:[
-                'excel', 'csv', ], //'copy'
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                    },
+                ],
                 columns: [
                     {
                         data: "requirement",
                         //orderable: false,
-                        'render': function (value) {
+                        'render': function (value, type) {
                             var ellipsis = '...',
                                 truncated = _.truncate(value, {
                                     length: 25,
@@ -81,7 +97,8 @@ export default {
                                 });
                             }
 
-                            return result;
+                            //return result;
+                            return type=='export' ? value : result;
                         },
                         'createdCell': helpers.dtPopoverCellFn,
 

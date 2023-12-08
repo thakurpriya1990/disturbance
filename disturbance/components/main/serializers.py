@@ -4,7 +4,7 @@ from rest_framework.reverse import reverse_lazy
 import requests
 
 from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, \
-    ActivityMatrix, WaCoast, MapLayer, MapColumn, DASMapLayer
+    ActivityMatrix, WaCoast, MapLayer, MapColumn, DASMapLayer, GlobalSettings
 from ledger.accounts.models import EmailUser
 
 
@@ -226,3 +226,7 @@ class DASMapLayerSqsSerializer(DASMapLayerSerializer):
 #
 #        return False
 
+class GlobalSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GlobalSettings
+        fields = ('key', 'value')
