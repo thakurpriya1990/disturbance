@@ -280,7 +280,7 @@ export default {
                         data: "requirement",
                         //name: "proposal__title",
                         //visible: false,
-                        'render': function (value) {
+                        'render': function (value, type) {
                             var ellipsis = '...',
                                 truncated = _.truncate(value, {
                                     length: 25,
@@ -302,7 +302,8 @@ export default {
                                 });
                             }
 
-                            return result;
+                            //return result;
+                            return type=='export' ? value : result;
                         },
                         'createdCell': helpers.dtPopoverCellFn,
                     });
@@ -434,13 +435,15 @@ export default {
                     {
                         extend: 'excel',
                         exportOptions: {
-                            columns: ':not(.noexport)'
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
                         }
                     },
                     {
                         extend: 'csv',
                         exportOptions: {
-                            columns: ':not(.noexport)'
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
                         }
                     },
                 ],
