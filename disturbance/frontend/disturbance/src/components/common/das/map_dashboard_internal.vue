@@ -1315,7 +1315,7 @@
                         a_table = '<table class="table">' +
                               '<tbody>' +
                                 '<tr>' +
-                                  '<th scope="row">Applicant</th>' +
+                                  '<th scope="row">Proponent</th>' +
                                   '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
                                 '</tr>' +
                                 '<tr>' +
