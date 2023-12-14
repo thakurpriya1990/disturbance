@@ -905,6 +905,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         try:
             options = self.initial_data.get('options', None)
             for o in options:
+                o['label']=o['label'].strip()
                 #option_labels.append(o)
                 qo = QuestionOption.objects.filter(label=o['label'])
                 if qo.exists():
