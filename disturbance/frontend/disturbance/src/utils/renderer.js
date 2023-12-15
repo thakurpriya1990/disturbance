@@ -646,7 +646,7 @@ module.exports = {
                 var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
                 applicant_visibility = !applicant_visibility;
                 boxes.push(
-                    <AssessorText box_view={box_visibility} type="text" name={applicant_name} value={applicant_val} label={'Additional Info (proponent)'} help_text={c.help_text} readonly={readonly}/>
+                    <AssessorText box_view={box_visibility} type="text" name={applicant_name} value={applicant_val} label={'Additional Information (proponent)'} help_text={c.help_text} readonly={readonly}/>
                 )
             }
             else{
@@ -655,7 +655,7 @@ module.exports = {
                     var applicant_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? false : true;
                     applicant_visibility = !applicant_visibility;
                     boxes.push(
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={blank_val} label={'Additional Info (proponent)'} help_text={c.help_text} readonly={readonly}/>
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={blank_val} label={'Additional Information (proponent)'} help_text={c.help_text} readonly={readonly}/>
                     )                
             }
         if (boxes.length > 0){
@@ -704,7 +704,7 @@ module.exports = {
                     //     "box_class": "form-control deficiency"
                     // }
 
-                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility_always}/>
+                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Additional Information (assessor)'} help_text={c.help_text} readonly={assessor_visibility_always}/>
                 )
                 // Referral Data
                 var current_referral_present = false;
@@ -799,7 +799,7 @@ module.exports = {
                     //     "box_class": "form-control deficiency"
                     // }
 
-                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'History Additional Info (assessor)'} help_text={c.help_text} readonly={assessor_visibility_always}/>
+                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'History Additional Information (assessor)'} help_text={c.help_text} readonly={assessor_visibility_always}/>
                 )
                 // Referral Data
                 var current_referral_present = false;

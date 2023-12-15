@@ -26,10 +26,13 @@
                                 The shapefile can be made up of one multi-part polygon.
                             </li>
                             <li>
-                                The Shapefile must be in GDA94 or GDA202 latitude/longitude only.
+                                The Shapefile must be in GDA94 latitude/longitude only.
                             </li>
                             <li>
                                 Max file size is 10MB.
+                            </li>
+                            <li>
+                                Valid shapefile must include 4 files, in .dbf .prj .shp and .shx format.
                             </li>
                             <li>
                                 Further information <a :href="shapefile_info_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>

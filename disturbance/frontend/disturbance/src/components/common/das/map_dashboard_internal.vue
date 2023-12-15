@@ -187,6 +187,7 @@
     import View from 'ol/View';
     import Extent from 'ol/interaction/Extent';
     import WMTSCapabilities from 'ol/format/WMTSCapabilities';
+    import formatWKT  from 'ol/format/WKT';
     import TileLayer from 'ol/layer/Tile';
     import OSM from 'ol/source/OSM';
     import TileWMS from 'ol/source/TileWMS';
@@ -842,7 +843,6 @@
 
                 vm.proposalQuerySource = new VectorSource({ });                
 
-
                 let clusterSource = new Cluster({
                     distance: 50,
                     source: vm.proposalQuerySource,
@@ -866,6 +866,7 @@
                 })
 
                 let styleCache = {}
+                let sameFeature=false;
                 var zoomedInStyle = new Style({
                     stroke: new Stroke({
                         color: 'orange',
@@ -879,6 +880,7 @@
                         return originalFeature[0].getGeometry();
                     }
                     });
+                    styleCache[1]=zoomedInStyle;
                 vm.proposalClusterLayer = new VectorLayer({
                     title: 'Cluster Layer',
                     source: clusterSource,
@@ -887,7 +889,9 @@
                         let featuresInClusteredFeature = clusteredFeature.get('features')
                         let size = featuresInClusteredFeature.length
                         let style = styleCache[size]
-                        if(size == 1){
+                        //if(size == 1 || sameFeature){
+                        if(size == 1 ){
+                        //if(size <= 2){
                             // When size is 1, which means the cluster feature has only one site
                             // we want to display it as dedicated style
                             // let status = getStatusForColour(featuresInClusteredFeature[0])
@@ -1083,10 +1087,40 @@
                                 let proposal = features[0].getProperties().proposal;
                                 vm.showPopup(feature[0])
                             } else {
-                                let geometry = feature.getGeometry();
-                                let coordinates = geometry.getCoordinates();
-                                let currentZoomLevel = vm.map.getView().getZoom()
-                                zoomToCoordinates(vm.map, coordinates, currentZoomLevel + 1)
+                                console.log('feature length', features.length)
+
+                                //if proposal id is different but geometry is exactly same
+                                sameFeature = false;
+                                for(var i=0; i<features.length; i++ ){
+                                    let formatwkt = new formatWKT();
+                                    let feature1 = formatwkt.writeGeometry(features[0].getGeometry());
+                                    let feature2 = formatwkt.writeGeometry(features[i].getGeometry());
+                                    if(feature1==feature2){
+                                        sameFeature=true;
+                                    }
+                                    else{
+                                        sameFeature=false;
+                                        break;
+                                    }     
+                                }
+                                if(sameFeature){
+                                        //vm.proposalClusterLayer.setStyle(zoomedInStyle);
+                                        vm.showPopupforSameFeatures(features)
+                                        //vm.showPopup(features[0])
+                                }
+                                else{
+                                    //else keep zooming in
+                                    let geometry = feature.getGeometry();
+                                    let coordinates = geometry.getCoordinates();
+                                    let currentZoomLevel = vm.map.getView().getZoom()
+                                    zoomToCoordinates(vm.map, coordinates, currentZoomLevel + 1)
+                                }
+                                //end
+                                // //else keep zooming in
+                                // let geometry = feature.getGeometry();
+                                // let coordinates = geometry.getCoordinates();
+                                // let currentZoomLevel = vm.map.getView().getZoom()
+                                // zoomToCoordinates(vm.map, coordinates, currentZoomLevel + 1)
                             }
                         } else {
                             vm.closePopup()
@@ -1251,7 +1285,7 @@
                         a_table = '<table class="table">' +
                               '<tbody>' +
                                 '<tr>' +
-                                  '<th scope="row">Applicant</th>' +
+                                  '<th scope="row">Proponent</th>' +
                                   '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -1281,7 +1315,7 @@
                         a_table = '<table class="table">' +
                               '<tbody>' +
                                 '<tr>' +
-                                  '<th scope="row">Applicant</th>' +
+                                  '<th scope="row">Proponent</th>' +
                                   '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
                                 '</tr>' +
                                 '<tr>' +
@@ -1317,6 +1351,88 @@
                     this.content_element.innerHTML = content;
                     this.overlay.setPosition(coord);
                 }
+            },
+            showPopupforSameFeatures: function(features){
+                let unique_id = uuid()
+                // let proposal = feature.getProperties().proposal;
+                // console.log('selected proposal', proposal);
+                let proposal_rows='';
+                for (let feature of features){
+                    if (feature){
+                        let geometry = feature.getGeometry();
+                        let coord = geometry.getCoordinates();
+                        let proposal = feature.getProperties().proposal;
+                        let type = feature.getGeometry().getType();
+                        // if (type === 'Polygon') {
+                        //     coord= feature.getGeometry().getInteriorPoint();
+                        // } else if (type === 'LineString') {
+                        //     coord= feature.getGeometry().getCoordinateAt(0.5);
+                        // } else if (type === 'Point') {
+                        //     coord= feature.getGeometry();
+                        // } else if (type === 'MultiPolygon') {
+                        //     coord= new Point(getCenter(feature.getGeometry().getExtent()), 'XY');
+                        // }
+                        // coord=coord.getCoordinates();
+                        let processing_status_str = proposal.processing_status_display
+                        let customer_status_str = proposal.customer_status_display
+                        let region_str = proposal.region_name
+                        
+                        let proposal_type_str= proposal.proposal_type
+                        let lodgement_date_str= proposal.lodgement_date ? moment(proposal.lodgement_date).format('DD/MM/YYYY') : ''
+                        let submitter_str=proposal.submitter_full_name
+                        let applicant_name=proposal.applicant_name
+                        let proposal_row='<tr>' +
+                                  '<td>' +proposal.lodgement_number + '</td>' +
+                                //   '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
+                                  '<td>' + region_str + '</td>' +
+                                  '<td>' + proposal_type_str + '</td>' +
+                                  '<td>' + processing_status_str + '</td>' +
+                                  '<td>' + submitter_str + '</td>' +
+                                  '<td>'+ '<a href="/internal/proposal/' + proposal.id + '">View</a>'
+                                '</tr>'
+                        proposal_rows=proposal_rows + proposal_row; 
+                        
+                    }
+                }
+                let a_table = '';
+                if(features){
+
+               
+                        a_table = '<table class="table">' +
+                              '<tbody>' +
+                                '<tr>' +
+                                  '<th scope="row">Proposal</th>' +
+                                //   '<th scope="row">Applicant</th>' +
+                                  '<th scope="row">Region</th>' +
+                                  '<th scope="row">Proposal Type</th>' +
+                                  '<th scope="row">Status</th>' +
+                                  '<th scope="row">Submitter</th>' +
+                                  '<th scope="row">Link</th>' +
+                                '</tr>' +
+                                proposal_rows+
+                              '</tbody>' +
+                            '</table>'
+                        let geometry = features[0].getGeometry();
+                        let coord = geometry.getCoordinates();
+                        let type = features[0].getGeometry().getType();
+                        if (type === 'Polygon') {
+                            coord= features[0].getGeometry().getInteriorPoint();
+                        } else if (type === 'LineString') {
+                            coord= features[0].getGeometry().getCoordinateAt(0.5);
+                        } else if (type === 'Point') {
+                            coord= features[0].getGeometry();
+                        } else if (type === 'MultiPolygon') {
+                            coord= new Point(getCenter(features[0].getGeometry().getExtent()), 'XY');
+                        }
+                        coord=coord.getCoordinates();
+                        let content = '<div style="padding: 0.25em;">' +
+                                        '<div style="background: darkgray; color: white; text-align: center; padding: 0.5em;" class="align-middle">' +' Proposal: '+ '</div>' +
+                                        a_table +
+                                    '</div>'
+
+                        this.content_element.innerHTML = content;
+                        this.overlay.setPosition(coord);
+                 }
             },
             showPopupForLayersJson: function(geojson, coord, column_names, display_all_columns, target_layer){
                 let wrapper = $('<div>')  // Add wrapper element because html() used at the end exports only the contents of the jquery object
