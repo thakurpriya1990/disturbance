@@ -486,7 +486,6 @@ def send_approver_approve_email_notification(request, proposal):
         'DAS_sharepoint_page': get_das_sharepoint_url(),
         'assessment_reminder_days': get_assessment_reminder_days(),
     }
-
     msg = email.send(proposal.approver_recipients, context=context)
     #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_sender_user()

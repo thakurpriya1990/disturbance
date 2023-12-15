@@ -2095,7 +2095,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.proposed_decline_status = False
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
-                self.assigned_officer = None
+                #self.assigned_officer = None
 
                 apiary_sites = request.data.get('apiary_sites', None)
                 apiary_sites_list = []
