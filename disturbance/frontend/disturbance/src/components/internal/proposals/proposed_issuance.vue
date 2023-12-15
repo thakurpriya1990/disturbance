@@ -112,7 +112,7 @@
 
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else-if="approval && approval.confirmation" class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else-if="approval && approval.start_date && approval.confirmation" class="btn btn-default" @click="ok">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -124,6 +124,7 @@
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers, api_endpoints} from "@/utils/hooks.js"
+import moment from 'moment'
 export default {
     name:'Proposed-Approval',
     components:{
@@ -343,6 +344,7 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
+            let today= moment().format('DD/MM/YYYY')
             // Initialise Date Picker
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.due_date).on('dp.change', function(e){
@@ -366,8 +368,12 @@ export default {
             $(vm.$refs.start_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.start_date).on('dp.change', function(e){
                 if ($(vm.$refs.start_date).data('DateTimePicker').date()) {
-
-                    if (($(vm.$refs.due_date).data('DateTimePicker').date()!= null)&& ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date())){
+                    if (($(vm.$refs.start_date).data('DateTimePicker').date().format('DD/MM/YYYY') < today)&&(!vm.is_amendment)){
+                        vm.startDateError = true;
+                        vm.startDateErrorString = 'Please select Start date from today';
+                        vm.approval.start_date = ""
+                    }
+                    else if (($(vm.$refs.due_date).data('DateTimePicker').date()!= null)&& ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date())){
                         vm.startDateError = true;
                         vm.startDateErrorString = 'Please select Start date that is before Expiry date';
                         vm.approval.start_date = ""
