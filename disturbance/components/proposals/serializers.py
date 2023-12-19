@@ -1525,6 +1525,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()
     customer_status_display= serializers.SerializerMethodField()
     approval_lodgement_number= serializers.SerializerMethodField()
+    approval_issue_date= serializers.SerializerMethodField()
     approval_start_date= serializers.SerializerMethodField()
     approval_expiry_date= serializers.SerializerMethodField()
     approval_status= serializers.SerializerMethodField()
@@ -1533,6 +1534,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     applicant_name= serializers.CharField(source='applicant.name')
     application_type_name= serializers.CharField(source='application_type.name')
     region_name = serializers.CharField(source='region.name', read_only=True)
+    associated_proposals= serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -1555,6 +1557,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'lodgement_date',
                 'proposal_type',
                 'approval_lodgement_number',
+                'approval_issue_date',
                 'approval_start_date',
                 'approval_expiry_date',
                 'approval_status',
@@ -1562,6 +1565,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'applicant_name',
                 'shapefile_json',
                 'application_type_name',
+                'associated_proposals',
 
                 )
     
@@ -1585,6 +1589,10 @@ class DASMapFilterSerializer(BaseProposalSerializer):
         if obj.approval:
             return obj.approval.lodgement_number
         return None
+    def get_approval_issue_date(self,obj):
+        if obj.approval:
+            return obj.approval.issue_date
+        return None
     
     def get_approval_start_date(self,obj):
         if obj.approval:
@@ -1599,6 +1607,14 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     def get_approval_status(self,obj):
         if obj.approval:
             return obj.approval.status
+        return None
+    
+    def get_associated_proposals(self,obj):
+        if obj.approval:
+            qs=Proposal.objects.filter(approval__lodgement_number=obj.approval.lodgement_number).values_list('lodgement_number', flat=True)
+            if qs:
+                result= [proposal for proposal in qs]
+                return result
         return None
 
 
