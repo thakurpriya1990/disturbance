@@ -15,7 +15,7 @@
                                                 <select style="width:100%" class="form-control input-sm" ref="filterRegion" v-model="filterProposalRegion">
                                                     <template v-if="">
                                                         <option value="All">All</option>
-                                                        <option v-for="r in regions" :value="r">{{r}}</option>
+                                                        <option v-for="r in regions" :value="r.id">{{r.search_term}}</option>
                                                     </template>
                                                 </select>
                                             </template>
