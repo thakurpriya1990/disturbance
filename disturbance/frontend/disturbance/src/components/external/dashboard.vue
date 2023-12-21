@@ -10,10 +10,11 @@
             </div>
         </div>
     </div>
+    <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/>
     <ProposalDashTable level='external' :url='proposals_url'/>
     <ApprovalDashTable level='external' :url='approvals_url'/>
     <ComplianceDashTable level='external' :url='compliances_url'/>
-    <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/>
+    <!-- <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/> -->
 </div>
 </template>
 <script>

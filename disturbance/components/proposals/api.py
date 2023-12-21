@@ -5388,7 +5388,7 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             qs = self.get_queryset().exclude(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
-            region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            region_qs =  qs.filter(region__isnull=False).values_list('region_id', 'region__name').distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
             applicant_qs = qs.filter(applicant__isnull=False).distinct(
@@ -5398,8 +5398,9 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
         applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
+        regions = [dict(id=i[0], search_term='{}'.format(i[1])) for i in region_qs]
         data = dict(
-            regions=region_qs,
+            regions=regions,
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,

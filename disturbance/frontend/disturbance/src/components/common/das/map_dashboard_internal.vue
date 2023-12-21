@@ -15,7 +15,7 @@
                                                 <select style="width:100%" class="form-control input-sm" ref="filterRegion" v-model="filterProposalRegion">
                                                     <template v-if="">
                                                         <option value="All">All</option>
-                                                        <option v-for="r in regions" :value="r">{{r}}</option>
+                                                        <option v-for="r in regions" :value="r.id">{{r.search_term}}</option>
                                                     </template>
                                                 </select>
                                             </template>
@@ -457,7 +457,28 @@
             },
             geoJsonButtonClicked: function () {
                 let vm = this
-                let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
+                // let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
+                // vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
+                let features = vm.proposalQuerySource.getFeatures()
+                if(features.length>0){
+                        features.forEach(function (f){
+                            let proposal = f.getProperties().proposal;
+                            if(proposal){
+                                f.setProperties({
+                                    organisation : proposal.applicant_name,
+                                    approval_number: proposal.approval_lodgement_number,
+                                    proposal_title: proposal.title,
+                                    approval_issue_date: proposal.approval_issue_date,
+                                    approval_start_date: proposal.approval_start_date,
+                                    approval_expiry_date: proposal.approval_expiry_date,
+                                    proposal_type: proposal.proposal_type,
+                                    approval_status: proposal.approval_status,
+                                    associated_proposals: proposal.associated_proposals,
+                            }) 
+                            }
+                        });
+                    }
+                let json = new GeoJSON().writeFeatures(features, {})
                 vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
             },
             exportPNG: function () {
@@ -1087,7 +1108,6 @@
                                 let proposal = features[0].getProperties().proposal;
                                 vm.showPopup(feature[0])
                             } else {
-                                console.log('feature length', features.length)
 
                                 //if proposal id is different but geometry is exactly same
                                 sameFeature = false;
