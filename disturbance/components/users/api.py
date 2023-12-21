@@ -14,6 +14,8 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django_countries import countries
+from django.db.models.functions import Concat
+from django.db.models import F, Value, CharField
 from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route,renderer_classes
 from rest_framework.response import Response
@@ -91,8 +93,11 @@ class UserViewSet(viewsets.ModelViewSet):
             #        many=True
             #        )
             #return Response(serializer.data)
+            # data = EmailUser.objects.filter(is_staff=True). \
+            #     filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term)). \
+            #     values('email', 'first_name', 'last_name')[:10]
             data = EmailUser.objects.filter(is_staff=True). \
-                filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term)). \
+                annotate(full_name=Concat('first_name', Value(' '), 'last_name')).filter(Q(first_name__icontains=search_term) | Q(last_name__icontains=search_term)| Q(full_name__icontains=search_term)). \
                 values('email', 'first_name', 'last_name')[:10]
             data_transform = [{'id': person['email'], 'text': person['first_name'] + ' ' + person['last_name']} for person in data]
             return Response({"results": data_transform})
