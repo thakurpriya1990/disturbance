@@ -225,6 +225,9 @@ export default {
             if (this.dasTemplateGroup) {
                 columnHeaders.push("Requirement");
             };
+             if (this.dasTemplateGroup) {
+                columnHeaders.push("Proposal");
+            };
             columnHeaders.push(approval_or_licence,
                 "Holder",
                 "Status",
@@ -306,6 +309,15 @@ export default {
                             return type=='export' ? value : result;
                         },
                         'createdCell': helpers.dtPopoverCellFn,
+                    });
+            };
+            if (this.dasTemplateGroup) {
+                columnList.push(
+                    {
+                        // 4. Title
+                        data: "proposal_lodgement_number",
+                        name: "proposal__lodgement_number",
+                        //visible: false,
                     });
             };
             columnList.push(
