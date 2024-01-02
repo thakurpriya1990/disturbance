@@ -42,7 +42,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="">Applicant</label>
+                                        <label for="">Proponent</label>
                                         <select class="form-control" v-model="filterProposalApplicant">
                                             <option value="All">All</option>
                                             <option v-for="s in proposal_applicants" :value="s.id">{{s.search_term}}</option>
@@ -74,7 +74,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="">Application Type</label>
+                                        <label for="">Proponent Type</label>
                                         <select class="form-control" v-model="filterProposalApplicationType">
                                             <option value="All">All</option>
                                             <option v-for="a in application_types" :value="a">{{a}}</option>
