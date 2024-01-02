@@ -474,7 +474,8 @@
                                     proposal_type: proposal.proposal_type,
                                     approval_status: proposal.approval_status,
                                     associated_proposals: proposal.associated_proposals,
-                            }) 
+                                    proposal_url: proposal.proposal_url,
+                                })
                             }
                         });
                     }
