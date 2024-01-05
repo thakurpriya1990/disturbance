@@ -262,6 +262,10 @@ export default {
               "url": 'api/empty_list',
               "dataSrc": ''
           },*/
+          dom: 'Bfrtip',
+          buttons:[
+                'excel', 'csv', ],
+          
           data: vm.results,
           columns: [
               {data: "number"},
