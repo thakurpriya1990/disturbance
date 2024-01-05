@@ -33,7 +33,8 @@
                                 <div >
                                     <div class="form-group">
                                         <select v-model="selected_region" class="form-control" style="width:40%" @change="chainedSelectDistricts(selected_region)">
-                                            <option value="" selected disabled>Select region</option>
+                                            <!-- <option value="" selected disabled>Select region</option> -->
+                                            <option value="" selected>All</option>
                                             <option v-for="region in regions" :value="region.value">
                                                 {{ region.text }}
                                             </option>
@@ -47,7 +48,8 @@
                                 <div >
                                     <div class="form-group">
                                         <select  v-model="selected_district" class="form-control" style="width:40%">
-                                        <option value="" selected disabled>Select district</option>
+                                        <!-- <option value="" selected disabled>Select district</option> -->
+                                        <option value="" selected >All</option>
                                             <option v-for="district in districts" :value="district.value">
                                                 {{ district.text }}
                                             </option>
@@ -62,7 +64,8 @@
                                 <div >
                                   <div class="form-group">
                                     <select v-model="selected_activity" class="form-control" style="width:40%">
-                                      <option value="" selected disabled>Select activity</option>
+                                      <!-- <option value="" selected disabled>Select activity</option> -->
+                                      <option value="" selected>All</option>
                                       <option v-for="activity in activities" :value="activity.value">
                                         {{ activity.text }}
                                       </option>
