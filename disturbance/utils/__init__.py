@@ -594,6 +594,7 @@ def search_section(schema, section_label, question, data, answer):
                                             question_names.append({'name': ch['name'], 'label': ch['label']})
                                 else:
                                     question_names.append({'name': key['name'], 'label': key['label']})
+                    break
 
     data = flatten(data[0])
     for flat_key in data.items():

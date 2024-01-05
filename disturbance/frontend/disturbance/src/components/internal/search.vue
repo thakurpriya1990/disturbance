@@ -176,6 +176,7 @@
 </template>
 <script>
 import $ from 'jquery'
+import alert from '@vue-utils/alert.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
@@ -195,6 +196,7 @@ export default {
       rBody: 'rBody' + vm._uid,
       oBody: 'oBody' + vm._uid,
       kBody: 'kBody' + vm._uid,
+      uBody: 'uBody' + vm._uid,
       loading: [],
       filtered_url: api_endpoints.filtered_users + '?search=',
       searchKeywords: [],
@@ -264,6 +266,7 @@ export default {
     components: {
         datatable,
         searchSection,
+        alert,
     },
     beforeRouteEnter:function(to,from,next){
         utils.fetchOrganisations().then((response)=>{
