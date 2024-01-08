@@ -418,6 +418,7 @@ class GlobalSettings(models.Model):
         (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page'),
         (PROPOSAL_APPROVER_HELP_PAGE, 'DAS Proposal approver help page'),
         (SHAPEFILE_INFO, 'Shapefile further information'),
+        (PROPOSAL_TYPE_HELP, 'Proposal Type help url'),
         (REGION_HELP, 'Region help url'),
         (DISTRICT_HELP, 'District help url'),
         (ACTIVITY_TYPE_HELP, 'Activity type help url'),

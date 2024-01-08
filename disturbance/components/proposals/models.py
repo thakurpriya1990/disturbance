@@ -3349,13 +3349,14 @@ def search_reference(reference_number):
         raise ValidationError('Record with provided reference number does not exist')
 
 def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
+    print(application_type_name, section_label,question_id,option_label,is_internal, region)
     from disturbance.utils import search_section
     #print(application_type_name, section_label,question_label,option_label,is_internal)
     qs = []
     if is_internal:
         if(not application_type_name or not section_label or not question_id or not option_label):
             raise ValidationError('Some of the mandatory fields are missing')
-        proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        proposal_list = Proposal.objects.filter(application_type__name=application_type_name, data__isnull=False).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         question=MasterlistQuestion.objects.get(id=question_id)
         filter_conditions={}
         if region:
@@ -3384,7 +3385,9 @@ def search_sections(application_type_name, section_label,question_id,option_labe
                                 'text': results[0],
                                 }
                             qs.append(res)
-                    except:
+                    except Exception as e:
+                        import ipdb; ipdb.set_trace()
+                        print(e)
                         raise
 
 

@@ -29,11 +29,12 @@
                                 </div>
                             </div>
                             <div v-if="display_region_selectbox">
-                                <label for="" class="control-label" >Region  <a :href="region_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a> </label>
+                                <label for="" class="control-label" >Region  </label>
                                 <div >
                                     <div class="form-group">
                                         <select v-model="selected_region" class="form-control" style="width:40%" @change="chainedSelectDistricts(selected_region)">
-                                            <option value="" selected disabled>Select region</option>
+                                            <!-- <option value="" selected disabled>Select region</option> -->
+                                            <option value="" selected>All</option>
                                             <option v-for="region in regions" :value="region.value">
                                                 {{ region.text }}
                                             </option>
@@ -43,11 +44,12 @@
                             </div>
 
                             <div v-if="display_region_selectbox">
-                                <label for="" class="control-label">District <a :href="district_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
+                                <label for="" class="control-label">District </label>
                                 <div >
                                     <div class="form-group">
                                         <select  v-model="selected_district" class="form-control" style="width:40%">
-                                        <option value="" selected disabled>Select district</option>
+                                        <!-- <option value="" selected disabled>Select district</option> -->
+                                        <option value="" selected >All</option>
                                             <option v-for="district in districts" :value="district.value">
                                                 {{ district.text }}
                                             </option>
@@ -58,11 +60,12 @@
 
                             <div v-if="display_activity_matrix_selectbox">
                               <div v-if="activities.length > 0">
-                                <label for="" class="control-label" >Activity Type  <a :href="activity_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
+                                <label for="" class="control-label" >Activity Type </label>
                                 <div >
                                   <div class="form-group">
                                     <select v-model="selected_activity" class="form-control" style="width:40%">
-                                      <option value="" selected disabled>Select activity</option>
+                                      <!-- <option value="" selected disabled>Select activity</option> -->
+                                      <option value="" selected>All</option>
                                       <option v-for="activity in activities" :value="activity.value">
                                         {{ activity.text }}
                                       </option>
@@ -166,7 +169,11 @@
                     </div>
 
 
-                    <div class="row">
+                    <div id="loadingSpinner" style="display: none; text-align: center; padding: 20px;">
+                      <!-- You can replace this with your preferred loading spinner or element -->
+                      <i class='fa fa-4x fa-spinner fa-spin'></i>
+                      <p>Loading...</p>
+                  </div>
                     <div class="col-lg-12">
                         <datatable ref="proposal_datatable" :id="datatable_id" :dtOptions="proposal_options"  :dtHeaders="proposal_headers"/>
                     </div>
@@ -180,7 +187,7 @@
 </template>
 <script>
 import $ from 'jquery'
-import alert from '@vue-utils/alert.vue'
+//import alert from '@vue-utils/alert.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
@@ -258,6 +265,10 @@ export default {
               "url": 'api/empty_list',
               "dataSrc": ''
           },*/
+          dom: 'Bfrtip',
+          buttons:[
+                'excel', 'csv', ],
+          
           data: vm.results,
           columns: [
               {data: "number"},
@@ -292,7 +303,10 @@ export default {
                   }
               }
           ],
-          processing: true
+          processing: true,
+          initComplete: function() {
+                    $('#loadingSpinner').hide();
+          },
       }
     }
     
@@ -376,7 +390,8 @@ export default {
           vm.date_type=false;
           vm.select_type=false;
           vm.$refs.proposal_datatable.vmDataTable.clear()
-          vm.$refs.proposal_datatable.vmDataTable.draw();      
+          vm.$refs.proposal_datatable.vmDataTable.draw();   
+           $('#loadingSpinner').hide();   
         },
 
         search: function() {
@@ -397,6 +412,7 @@ export default {
           }
           else
           {
+            $('#loadingSpinner').show();
             vm.$http.post('/api/search_sections.json',{
               application_type_name: vm.selected_application_name,
               region: vm.selected_region,
@@ -411,9 +427,11 @@ export default {
               vm.$refs.proposal_datatable.vmDataTable.clear()
               vm.$refs.proposal_datatable.vmDataTable.rows.add(vm.results);
               vm.$refs.proposal_datatable.vmDataTable.draw();
+               $('#loadingSpinner').hide();
             },
             err => {
               console.log(err);
+               $('#loadingSpinner').hide();
             });
           }
 
@@ -559,7 +577,7 @@ export default {
               $(vm.$refs.question_date).datetimepicker(vm.datepickerOptions);
               //vm.eventListeners()
             }
-            else if (api_options.length > 0) {
+            else if (api_options&&api_options.length > 0) {
                 vm.select_type=true;
                 for (var i = 0; i < api_options.length; i++) {
                     this.options.push( {text: api_options[i].label, value: api_options[i].label} );

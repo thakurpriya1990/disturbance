@@ -565,13 +565,16 @@ def are_migrations_running():
 def search_section(schema, section_label, question, data, answer):
     question_names=[]
     found_fields=[]
+    section_label=section_label.replace(" ","")
+    question_label=question.question
+    question_type=question.answer_type
     for item in schema:
         children=[]
         # question_names=[]
         # found_fields=[]
-        section_label=section_label.replace(" ","")
-        question_label=question.question
-        question_type=question.answer_type
+        # section_label=section_label.replace(" ","")
+        # question_label=question.question
+        # question_type=question.answer_type
 
         # if item['type']=='section' and item['name']:
         #     item_name=item['name'].rstrip('0123456789')
@@ -594,23 +597,30 @@ def search_section(schema, section_label, question, data, answer):
                                             question_names.append({'name': ch['name'], 'label': ch['label']})
                                 else:
                                     question_names.append({'name': key['name'], 'label': key['label']})
+                break
 
     data = flatten(data[0])
     for flat_key in data.items():
+        key_name=flat_key[0]
+        #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
+        if len(key_name[len(key_name.rstrip('0123456789')):])==4:
+            key_name=key_name[:-5]
         for item in question_names:
-            key_name=flat_key[0]
-            #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
-            if len(key_name[len(key_name.rstrip('0123456789')):])==4:
-                key_name=key_name[:-5]
+            # key_name=flat_key[0]
+            # #if flat_key has numbers at the end e.g. ProposalSummary0.Section0-0.0000, usually for multiselect answers.
+            # if len(key_name[len(key_name.rstrip('0123456789')):])==4:
+            #     key_name=key_name[:-5]
 
             if key_name.endswith(item['name']):
                 if flat_key[1].strip():
                     if question_type=='checkbox':
                         if 'on' in flat_key[1]:
-                            found_fields.append( dict(key=item['label'], value=flat_key[1]) ) 
+                            found_fields.append( dict(key=item['label'], value=flat_key[1]) )
+                            break 
                     else: 
                         if answer.replace(" ","").lower() in flat_key[1].lower():
                             found_fields.append( dict(key=item['label'], value=flat_key[1]) )
+                            break
     return found_fields
 
 

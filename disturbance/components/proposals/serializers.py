@@ -34,6 +34,7 @@ from disturbance.components.proposals.serializers_apiary import ProposalApiarySe
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
     ProposalDeclinedDetailsSerializer, EmailUserSerializer, EmailSerializer
 from drf_writable_nested import UniqueFieldsMixin , WritableNestedModelSerializer
+from django.core.urlresolvers import reverse
 
 
 logger = logging.getLogger(__name__)
@@ -1535,6 +1536,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     application_type_name= serializers.CharField(source='application_type.name')
     region_name = serializers.CharField(source='region.name', read_only=True)
     associated_proposals= serializers.SerializerMethodField()
+    proposal_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -1566,6 +1568,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'shapefile_json',
                 'application_type_name',
                 'associated_proposals',
+                'proposal_url',
 
                 )
     
@@ -1616,6 +1619,16 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 result= [proposal for proposal in qs]
                 return result
         return None
+    
+    def get_proposal_url(self,obj):
+        request=self.context['request']
+        url=''
+        from disturbance.helpers import is_internal
+        if is_internal(request):
+            url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': obj.id}))
+        else:
+            url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': obj.id}))
+        return url
 
 
 

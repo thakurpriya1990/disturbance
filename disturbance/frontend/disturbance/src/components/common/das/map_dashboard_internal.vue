@@ -42,7 +42,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="">Applicant</label>
+                                        <label for="">Proponent</label>
                                         <select class="form-control" v-model="filterProposalApplicant">
                                             <option value="All">All</option>
                                             <option v-for="s in proposal_applicants" :value="s.id">{{s.search_term}}</option>
@@ -74,7 +74,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="">Application Type</label>
+                                        <label for="">Proponent Type</label>
                                         <select class="form-control" v-model="filterProposalApplicationType">
                                             <option value="All">All</option>
                                             <option v-for="a in application_types" :value="a">{{a}}</option>
@@ -88,11 +88,11 @@
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
                                     Get Spatial File</button>
                                 </div>
-                                <div class="col-md-3">
+                                <!-- <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
                                         Download Image</button>
                                     <a id="image-download" download="map.png"></a>
-                                </div>
+                                </div> -->
                                 
                             </div>
                         </template>
@@ -474,7 +474,8 @@
                                     proposal_type: proposal.proposal_type,
                                     approval_status: proposal.approval_status,
                                     associated_proposals: proposal.associated_proposals,
-                            }) 
+                                    proposal_url: proposal.proposal_url,
+                                })
                             }
                         });
                     }
