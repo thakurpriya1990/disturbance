@@ -268,6 +268,9 @@ export default {
             if (!this.is_external){
                 columnList.push("Assigned Officer");
             }
+            if (this.dasTemplateGroup&&(!this.is_external)){
+                columnList.push("Approval");
+            }
             if (this.apiaryTemplateGroup){
                 columnList.push("Invoice");
             }
@@ -370,6 +373,15 @@ export default {
                     data: "assigned_officer",
                     //visible: false,
                     name: "assigned_officer__first_name, assigned_officer__last_name, assigned_officer__email",
+                    searchable: true,
+                });
+            };
+            if (this.dasTemplateGroup&&(!vm.is_external)){
+                columnList.push({
+                    // 8. Assigned Officer
+                    data: "approval",
+                    //visible: false,
+                    name: "approval__lodgement_number",
                     searchable: true,
                 });
             };

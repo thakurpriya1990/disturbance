@@ -117,6 +117,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     template_group = serializers.SerializerMethodField(read_only=True)
 
     fee_invoice_references = serializers.SerializerMethodField()
+    approval = serializers.CharField(source='approval.lodgement_number')
 
     class Meta:
         model = Proposal
@@ -157,6 +158,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
+                'approval',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -186,6 +188,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
+                'approval',
                 )
 
     def get_fee_invoice_references(self, obj):
