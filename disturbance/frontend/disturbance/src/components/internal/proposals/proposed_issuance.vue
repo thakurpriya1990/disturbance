@@ -318,7 +318,7 @@ export default {
                 rules: {
                     start_date:"required",
                     due_date:"required",
-                    approval_details:"required",
+                    //approval_details:"required",
                 },
                 messages: {
                 },
