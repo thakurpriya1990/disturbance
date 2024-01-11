@@ -10,6 +10,7 @@ import pytz
 import requests
 import re
 import traceback
+import os
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
@@ -1497,34 +1498,59 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         import geopandas as gpd
         try:
             shp_file_qs=self.map_documents.filter(name__endswith='.shp')
+            MAX_NO_POLYGONS=15
+            try:
+                from disturbance.components.main.models import GlobalSettings
+                gs_key=GlobalSettings.objects.get(key=GlobalSettings.MAX_NO_POLYGONS)
+                if gs_key and gs_key.value.isdigit():
+                   MAX_NO_POLYGONS=int(gs_key.value) 
+            except:
+                MAX_NO_POLYGONS=15
             #TODO : validate shapefile and all the other related filese are present
             if shp_file_qs:
                 shp_file_obj= shp_file_qs[0]
-                #shp_file=shp_file_obj._file
-                #shp= gpd.read_file(shp_file_obj.path)
-                #shp_transform=shp.to_crs(crs=4326)
-                #shp_json=shp_transform.to_json()
+                # shp_file=shp_file_obj._file
+                # shp= gpd.read_file(shp_file_obj.path)
+                # shp_transform=shp.to_crs(crs=4326)
+                # shp_json=shp_transform.to_json()
 
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 shp_json = json.loads(result.stdout)
-
+                shapefile_json=None
                 if type(shp_json)==str:
-                    self.shapefile_json=json.loads(shp_json)
+                    shapefile_json=json.loads(shp_json)
                 else:
-                    self.shapefile_json=shp_json
+                    shapefile_json=shp_json
                 #The features id has to be unique for each shapefile_json
-                if 'features' in self.shapefile_json:
-                    if len(self.shapefile_json['features']) >0:
-                        if 'id' in self.shapefile_json['features'][0]:
-                            self.shapefile_json['features'][0]['id']=self.id
+                if shapefile_json and 'features' in shapefile_json:
+                    if len(shapefile_json['features']) < MAX_NO_POLYGONS:
+                        if 'id' in shapefile_json['features'][0]:
+                            shapefile_json['features'][0]['id']=self.id
+                        self.shapefile_json=shapefile_json
+                    else:
+                        raise ValidationError('Cannot upload a Shapefile - too many features (max 15)')
+                else:
+                    raise ValidationError('Please upload a valid shapefile')
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
                 #     raise ValidationError('Please upload a valid shapefile')
             else:
                 raise ValidationError('Please upload a valid shapefile') 
         except Exception as e:
-            raise ValidationError(f'Please upload a valid shapefile\n{e}')
+            #Delete the uploaded shapefile as it is invalid
+            map_docs=self.map_documents.all()
+            if map_docs:
+                for document in map_docs:
+                    if document._file and os.path.isfile(document._file.path) and document.can_delete:
+                        os.remove(document._file.path)
+                        document.delete()
+                    else:
+                        document.hidden=True
+                        document.save()
+            self.shapefile_json=None
+            self.save(version_comment='Shapefile json cleared as invalid shapefile uploaded.')
+            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
 
     def get_lonlat(self):
        ''' Get longitude and latitude from centroid of polygon

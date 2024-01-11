@@ -409,6 +409,7 @@ class GlobalSettings(models.Model):
     SUB_ACTIVITY_1_HELP='sub_activity_1_help_url'
     SUB_ACTIVITY_2_HELP='sub_activity_2_help_url'
     CATEGORY_HELP='category_help_url'
+    MAX_NO_POLYGONS='max_no_polygon'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
@@ -425,6 +426,7 @@ class GlobalSettings(models.Model):
         (SUB_ACTIVITY_1_HELP, 'Sub activity 1 help url'),
         (SUB_ACTIVITY_2_HELP, 'Sub activity 2 help url'),
         (CATEGORY_HELP, 'Category help url'),
+        (MAX_NO_POLYGONS, 'Maximum number of polygons allowed in the Shapefile'),
         
     )
     default_values = (
