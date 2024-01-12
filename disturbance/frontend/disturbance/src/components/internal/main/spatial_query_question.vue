@@ -583,6 +583,33 @@ export default {
                       //delete data.search.regex;
                     }
                 },
+                dom: 'lBfrtip',
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                        /*
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                        */
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                        /*
+                        exportOptions: {
+                            columns: ':visible'
+                        }
+                        */
+                    },
+                ],
                 columnDefs: [
                     //{ visible: false, targets: [ 3, 5, 6] } 
                     //{ visible: false, targets: [ 3, 6] } 
@@ -592,6 +619,7 @@ export default {
                     { 
                         data: "id",
                         visible: false,
+                        className: "noexport",
                         //searchable: true,
                     },
                     { 
@@ -671,6 +699,7 @@ export default {
                     { 
                         data: "no_polygons_proponent",
                         visible: false,
+                        className: "noexport",
                     },
                     { 
                         data: "answer",
@@ -683,6 +712,7 @@ export default {
                     { 
                         data: "no_polygons_assessor",
                         visible: false,
+                        className: "noexport",
                     },
                     { 
                         data: "assessor_info",
@@ -691,10 +721,12 @@ export default {
                     { 
                         data: "regions",
                         visible: false,
+                        className: "noexport",
                     },
 
                     { 
                         data: "id",
+                        className: "noexport",
                         width: "10%",
                         mRender:function (data,type,full) {
                             var column;
