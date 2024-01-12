@@ -36,8 +36,7 @@ def search(dictionary, search_list):
     for k, v in flat_dict.items():
         if any(x.lower()==v.lower() for x in search_list):
             result.append( {k: v} )
-
-    return 
+    return result
 
 def search2(dictionary, search_list):
     """
@@ -66,12 +65,13 @@ def search_approval(approval, searchWords):
         try:
             results = search(a.surrender_details, searchWords)
             if results:
+                result_str= ' '.join([value for d in results for value in d.values()])
                 res = {
                     'number': a.lodgement_number,
                     'id': a.id,
                     'type': 'Approval',
                     'applicant': a.applicant.name,
-                    'text': results,
+                    'text': result_str,
                     }
                 qs.append(res)
         except:
@@ -80,12 +80,13 @@ def search_approval(approval, searchWords):
         try:
             results = search(a.suspension_details, searchWords)
             if results:
+                result_str= ' '.join([value for d in results for value in d.values()])
                 res = {
                     'number': a.lodgement_number,
                     'id': a.id,
                     'type': 'Approval',
                     'applicant': a.applicant.name,
-                    'text': results,
+                    'text': result_str,
                     }
                 qs.append(res)
         except:
