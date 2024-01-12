@@ -792,6 +792,9 @@ class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
 
+class SearchGeoJsonSerializer(serializers.Serializer):
+    search_geojson = serializers.JSONField(required=False)
+
 class QuestionOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestionOption

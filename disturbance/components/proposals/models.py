@@ -69,6 +69,7 @@ import copy
 import subprocess
 from multiselectfield import MultiSelectField
 from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField, GroupedForeignKey
+from django.core.urlresolvers import reverse
 
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
@@ -3375,7 +3376,6 @@ def search_reference(reference_number):
         raise ValidationError('Record with provided reference number does not exist')
 
 def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
-    print(application_type_name, section_label,question_id,option_label,is_internal, region)
     from disturbance.utils import search_section
     #print(application_type_name, section_label,question_label,option_label,is_internal)
     qs = []
@@ -3412,12 +3412,74 @@ def search_sections(application_type_name, section_label,question_id,option_labe
                                 }
                             qs.append(res)
                     except Exception as e:
-                        import ipdb; ipdb.set_trace()
                         print(e)
                         raise
 
 
     return qs
+
+def add_properties_to_feature(features, proposal, request):
+    new_properties={}
+    new_properties['proposal_number']=proposal.lodgement_number
+    new_properties['organisation'] = proposal.applicant.name
+    new_properties['proposal_title']= proposal.title
+    new_properties['proposal_type']=proposal.proposal_type
+    new_properties['proposal_url'] = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    
+
+    if proposal.approval:
+        qs=Proposal.objects.filter(approval__lodgement_number=proposal.approval.lodgement_number).values_list('lodgement_number', flat=True)
+        if qs:
+            new_properties['associated_proposals']= [proposal for proposal in qs]
+        new_properties['approval_number']=proposal.approval.lodgement_number
+        new_properties['approval_issue_date']=proposal.approval.issue_date
+        new_properties['approval_start_date']=proposal.approval.start_date
+        new_properties['approval_expiry_date']=proposal.approval.expiry_date
+        new_properties['approval_status']=proposal.approval.status
+
+    if features:
+        for feature in features:
+            if 'properties' in feature:
+                feature['properties'].update(new_properties)
+            else:
+                feature['properties']=new_properties
+    return features
+
+def get_search_geojson(proposal_lodgement_numbers,request):
+    combined_geojson=None
+    try:
+        import geopandas as gpd
+        import requests
+
+        qs=Proposal.objects.filter(lodgement_number__in=proposal_lodgement_numbers, shapefile_json__isnull=False)
+        combined_features=[]
+        if qs:
+            for proposal in qs:
+                if proposal.shapefile_json:
+                    gpd_shp=gpd.read_file(json.dumps(proposal.shapefile_json))
+                    shp_transform=gpd_shp.to_crs(crs=4326)
+                    shp_json=shp_transform.to_json()
+                    if type(shp_json)==str:
+                        shp_json=json.loads(shp_json)
+                    else:
+                        shp_json=shp_json
+                    #import ipdb; ipdb.set_trace()
+                    features=shp_json.get('features',[])
+                    updated_features=add_properties_to_feature(features, proposal, request)
+                    combined_features.extend(updated_features)
+            combined_geojson={
+                'type': 'FeatureCollection',
+                'crs': {
+                    'type': 'name',
+                    'properties': {
+                        'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'
+                    }
+                },
+                'features': combined_features
+            }
+        return combined_geojson
+    except:
+        raise
 
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):
