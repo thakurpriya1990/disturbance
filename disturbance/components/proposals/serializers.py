@@ -1,4 +1,5 @@
 import logging
+from django.utils import timezone
 from django.http import JsonResponse
 from rest_framework import serializers, status
 
@@ -34,6 +35,7 @@ from disturbance.components.proposals.serializers_apiary import ProposalApiarySe
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
     ProposalDeclinedDetailsSerializer, EmailUserSerializer, EmailSerializer
 from drf_writable_nested import UniqueFieldsMixin , WritableNestedModelSerializer
+from datetime import datetime
 
 
 logger = logging.getLogger(__name__)
@@ -1349,6 +1351,8 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
     group = CddpQuestionGroupSerializer()
     layer = DASMapLayerSqsSerializer()
     masterlist_question = serializers.SerializerMethodField(read_only=True)
+    #modified_date = serializers.SerializerMethodField(read_only=True)
+    modified_date = serializers.DateTimeField(required=False)
     #layer_name = serializers.SerializerMethodField()
     #layer_url = serializers.SerializerMethodField()
 
@@ -1357,6 +1361,7 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
         #fields = '__all__'
         fields = (
           'id',
+          'modified_date',
           'masterlist_question',
           'question',
           'answer_mlq',
@@ -1375,6 +1380,7 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
           'prefix_info',
           'no_polygons_assessor',
           'assessor_info',
+          'show_add_info_section_prop',
           'proponent_items',
           'assessor_items',
           'regions',
@@ -1382,6 +1388,10 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
           'group',
         )
         datatables_always_serialize = fields
+
+#    def _get_modified_date(self, obj):
+#        dt = timezone.make_aware(datetime.now(),timezone.get_default_timezone())
+#        return datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
 
     def create(self, validated_data):
         data = self.context['request'].data

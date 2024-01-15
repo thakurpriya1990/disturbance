@@ -165,38 +165,4 @@ class LayersUsedCsvView(TemplateView):
         return response
 
 
-#class LayerJsonView(TemplateView):
-#    template_name = 'disturbance/layer_json.html'
-#
-#    def get(self, request, *args, **kwargs):
-#        '''
-#            http://localhost:8003/internal/layer_json/CPT_DBCA_REGIONS/
-#            http://localhost:8003/internal/layer_json/CPT_DBCA_REGIONS/?clear_cache
-#        '''
-#        from disturbance.components.proposals.api import get_sqs_url 
-#        layer_name = kwargs['layer_name']
-#
-#        # check and get from cache to avoid rapid repeated API Calls to SQS
-#        cache_key = f'sqs_layer_geojson_{layer_name}'
-#        if 'clear_cache' in request.GET:
-#            cache.delete(cache_key)
-#
-#        data = cache.get(cache_key)
-#        if not data:
-#            url = get_sqs_url(f'layers/{layer_name}/geojson')
-#            # url = http://localhost:8002/api/v1/layers/CPT_DBCA_REGIONS/geojson.json
-#            resp = requests.get(url=url, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-#            data = resp.json()
-#            cache.set(cache_key, json.dumps(data), settings.SQS_LAYER_EXISTS_CACHE_TIMEOUT)
-#            #return render(request, self.template_name, context={'raw_json': data})
-#            return JsonResponse(data)
-#
-#
-#        data = json.loads(data)
-#        #return render(request, self.template_name, context={'raw_json': data})
-#        return JsonResponse(data)
-
-
-
-
 

@@ -1488,7 +1488,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
-    def log_metrics(self, when, sqs_response, time_taken, response_cached):
+    def log_metrics(self, when, sqs_response, time_taken, response_cached=False):
         system = sqs_response['system'] if sqs_response and 'system' in sqs_response else 'Unknown'
         request_type = sqs_response['request_type'] if sqs_response and 'request_type' in sqs_response else 'Unknown'
         return SpatialQueryMetrics.objects.create(proposal=self, when=when, system=system, request_type=request_type, sqs_response=sqs_response, time_taken=time_taken, response_cached=response_cached)
@@ -1518,6 +1518,11 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     if len(self.shapefile_json['features']) >0:
                         if 'id' in self.shapefile_json['features'][0]:
                             self.shapefile_json['features'][0]['id']=self.id
+                            
+                # Add tz-aware timestamp to shapefile_json
+                dt = timezone.make_aware(datetime.datetime.now(),timezone.get_default_timezone())
+                self.shapefile_json['created'] = datetime.datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
+
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
                 #     raise ValidationError('Please upload a valid shapefile')
@@ -5843,7 +5848,8 @@ class CurrentSpatialQueryQuestionManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
 
-class SpatialQueryQuestion(models.Model):
+#class SpatialQueryQuestion(models.Model):
+class SpatialQueryQuestion(RevisionedMixin):
     OVERLAPPING = 'Overlapping'
     OUTSIDE = 'Outside'
     HOW_CHOICES=(
@@ -5918,6 +5924,7 @@ class SpatialQueryQuestion(models.Model):
     no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
     assessor_info = models.TextField(blank=True, null=True)
 
+    show_add_info_section_prop = models.BooleanField('Show additional info section (Proponent)', default=False)
     proponent_items = JSONField('Proponent response set', default=[{}])
     assessor_items = JSONField('Assessor response set', default=[{}])
 
@@ -6017,6 +6024,8 @@ class SpatialQueryMetrics(models.Model):
 
         except Exception as e:
             logger.error(f'Total Query Time not found in sqs_response: {e}')
+
+
 
 import reversion
 reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])

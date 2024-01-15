@@ -64,7 +64,7 @@ from disturbance.components.main.utils import (
 
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
-from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer
+from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer, TaskMonitor
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
@@ -1571,6 +1571,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            requester = request.user.email,
             request_type=self.FULL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
@@ -1671,6 +1672,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            requester = request.user.email,
             request_type=self.PARTIAL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = question_group_list,
@@ -1733,6 +1735,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 data=proposal.data,
 
             ),
+            requester = request.user.email,
             request_type=self.PARTIAL,
             system=settings.SYSTEM_NAME_SHORT,
             masterlist_questions = masterlist_question,
@@ -2401,6 +2404,85 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def prefill_proposal(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.apiary_group_application_type:
+                pass
+            else:
+                if instance.shapefile_json:
+                    start_time = time.time()
+
+                    proposal = instance
+                    # current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
+                    if proposal.prefill_timestamp:
+                        current_ts= proposal.prefill_timestamp.strftime('%Y-%m-%dT%H:%M:%S')
+                    else:
+                        current_ts = proposal.prefill_timestamp
+                    geojson=proposal.shapefile_json
+
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
+                    masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+                    rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+                    masterlist_questions = json.loads(rendered)
+
+                    # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
+                    schema_questions = get_schema_questions(proposal.schema) 
+                    questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
+                    #questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions and '1.2 In which' in i['question']]
+                    unique_questions = list(set(questions))
+
+                    # group by question
+                    question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+                    for question_dict in question_group_list:
+                        for sqq_record in masterlist_questions:
+                            #print(j['layer_name'])
+                            if question_dict['question_group'] in sqq_record.values():
+                                question_dict['questions'].append(sqq_record)
+
+                    data = dict(
+                        proposal=dict(
+                            id=proposal.id,
+                            current_ts=current_ts,
+                            schema=proposal.schema,
+                            data=proposal.data,
+                        ),
+                        requester = request.user.email,
+                        request_type=self.FULL,
+                        system=settings.SYSTEM_NAME_SHORT,
+                        masterlist_questions = question_group_list,
+                        geojson = geojson,
+                    )
+
+
+                    #url = get_sqs_url('das/spatial_query/')
+                    url = get_sqs_url('das/task_queue')
+                    #url = get_sqs_url('das_queue/')
+                    resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    resp_data = resp.json()
+                    
+                    task, created = TaskMonitor.objects.get_or_create(
+                            task_id=resp_data['data']['task_id'], 
+                            defaults={
+                                'proposal': proposal,
+                                'requester': request.user,
+                            }
+                        )
+                    if not created and task.requester.email != request.user.email:
+                        # another user may attempt to Prefill, whilst job is still queued
+                        task.requester = request.user
+
+                    return Response(resp_data, status=resp.status_code)
+                else:
+                    raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def __prefill_proposal(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
             if instance.apiary_group_application_type:
