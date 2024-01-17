@@ -47,7 +47,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, search_sections
+    SupportingApplicationDocument, search_sections, get_search_geojson
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure, search_label, get_schema_questions
@@ -126,6 +126,7 @@ from disturbance.components.proposals.serializers import (
     CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
     DASMapFilterSerializer,
+    SearchGeoJsonSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -3635,6 +3636,17 @@ class SearchSectionsView(views.APIView):
         qs= search_sections(application_type_name, section_label,question_id,option_label,is_internal, region,district,activity)
         #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
+        return Response(serializer.data)
+
+class GetSearchGeoJsonView(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def post(self,request, format=None):
+        proposal_lodgement_numbers= request.data.get('proposal_lodgement_numbers')
+        
+        search_geojson= get_search_geojson(proposal_lodgement_numbers, request)
+        #queryset = list(set(qs))
+        #import ipdb; ipdb.set_trace()
+        serializer = SearchGeoJsonSerializer({'search_geojson':search_geojson})
         return Response(serializer.data)
 
 #Schema api's

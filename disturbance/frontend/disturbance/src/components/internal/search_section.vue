@@ -163,7 +163,7 @@
                         <div >
                           <input type="button" @click.prevent="search" class="btn btn-primary" style="margin-bottom: 5px"value="Search"/>
                           <input type="reset" @click.prevent="reset" class="btn btn-primary" style="margin-bottom: 5px"value="Clear"/>
-
+                          <input type="geoJsonButtonClicked" @click.prevent="geoJsonButtonClicked" class="btn btn-primary" style="margin-bottom: 5px"value="Get Spatial File"/>
                         </div>
                       </div> 
                     </div>
@@ -696,6 +696,46 @@ export default {
                 }
              });
        },
+       download_content: function (content, fileName, contentType) {
+                var a = document.createElement("a");
+                var file = new Blob([content], { type: contentType });
+                a.href = URL.createObjectURL(file);
+                a.download = fileName;
+                a.click();
+        },
+       geoJsonButtonClicked: function () {
+                let vm = this
+                //let proposal_lodgement_numbers=[];
+                let proposal_lodgement_numbers=vm.$refs.proposal_datatable.vmDataTable.columns(0).data().toArray()
+                if(proposal_lodgement_numbers[0].length>0){
+                    vm.$http.post('/api/get_search_geojson.json',{
+                    proposal_lodgement_numbers: proposal_lodgement_numbers[0],
+                    
+                  }).then(res => {
+                    if(res.body && res.body.search_geojson)
+                    {
+                      var geojsonContent = JSON.stringify(res.body.search_geojson);
+                      vm.download_content(geojsonContent, 'DAS_layers.geojson', 'text/plain');
+                    }
+                    //vm.download_content(res.body.search_geojson, 'DAS_layers.geojson', 'text/plain');
+                    vm.errors = false; 
+                    vm.errorString = '';
+                    },
+                  error => {
+                    console.log(error);
+                    vm.errors = true;
+                    vm.errorString = helpers.apiVueResourceError(error);
+                  });
+                }
+                else{
+                    swal(
+                      'Missing records',
+                      'No search results to include in the Spatial file',
+                      'error'
+                  );
+                }
+                
+            },
 
     },
     mounted: function () {
