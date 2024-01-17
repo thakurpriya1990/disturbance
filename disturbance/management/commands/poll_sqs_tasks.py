@@ -90,6 +90,10 @@ class Command(BaseCommand):
                             task.save()
                             send_proposal_prefill_error_email_notification(task.proposal, task.id)
 
+                        elif sqs_task['status'] == TaskMonitor.STATUS_CREATED:
+                            msg = f'task_id {task_id} still queued on SQS'
+                            logger.info(msg)
+
                         else:
                             msg = f'Unable to process task_id {task_id}'
                             logger.warn(msg)
