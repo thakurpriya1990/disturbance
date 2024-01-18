@@ -70,6 +70,7 @@ class TaskMonitorAdmin(admin.ModelAdmin):
         'requester',
         'created',
     ]
+    list_filter = ["status"]
     readonly_fields = ['info',]
     search_fields = ['task_id', 'status', 'proposal__lodgement_number', 'requester__email']
 

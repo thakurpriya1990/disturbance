@@ -5076,7 +5076,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         '''
         EXTERNAL SQS API CALL
 
-        Get Layer GeoJSON from SQS
+        Get Layer GeoJSON from SQS - By default returns a truncated number of features
         To test (from DAS shell): 
             http://localhost:8002/api/v1/layers/geojson
             requests.get('http://localhost:8003/api/spatial_query/CPT_LOCAL_GOVT_AREAS/geojson.json')
