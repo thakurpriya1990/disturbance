@@ -1,8 +1,9 @@
 <template>
 <div class="container" id="internalDash">
+    <MapDashboard v-if="show_das_map" level="internal" :is_internal="true" />
     <ProposalDashTable level="internal" :url="proposals_url"/>
     <ReferralDashTable :url="referrals_url"/>
-    <MapDashboard v-if="show_das_map" level="internal" :is_internal="true" />
+    <!-- <MapDashboard v-if="show_das_map" level="internal" :is_internal="true" /> -->
 </div>
 </template>
 <script>

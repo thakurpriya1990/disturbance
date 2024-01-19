@@ -36,6 +36,7 @@ from disturbance.components.proposals.serializers_base import BaseProposalSerial
     ProposalDeclinedDetailsSerializer, EmailUserSerializer, EmailSerializer
 from drf_writable_nested import UniqueFieldsMixin , WritableNestedModelSerializer
 from datetime import datetime
+from django.core.urlresolvers import reverse
 
 
 logger = logging.getLogger(__name__)
@@ -118,6 +119,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     template_group = serializers.SerializerMethodField(read_only=True)
 
     fee_invoice_references = serializers.SerializerMethodField()
+    approval = serializers.CharField(source='approval.lodgement_number')
 
     class Meta:
         model = Proposal
@@ -158,6 +160,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
+                'approval',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -187,6 +190,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
+                'approval',
                 )
 
     def get_fee_invoice_references(self, obj):
@@ -705,7 +709,7 @@ class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
 class ProposedApprovalSerializer(serializers.Serializer):
     expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
     start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
-    details = serializers.CharField()
+    details = serializers.CharField(required=False, allow_blank=True)
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
     confirmation = serializers.BooleanField(required=False,default=False)
 
@@ -789,6 +793,9 @@ class SearchKeywordSerializer(serializers.Serializer):
 class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
+
+class SearchGeoJsonSerializer(serializers.Serializer):
+    search_geojson = serializers.JSONField(required=False)
 
 class QuestionOptionSerializer(serializers.ModelSerializer):
     class Meta:
@@ -907,6 +914,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         try:
             options = self.initial_data.get('options', None)
             for o in options:
+                o['label']=o['label'].strip()
                 #option_labels.append(o)
                 qo = QuestionOption.objects.filter(label=o['label'])
                 if qo.exists():
@@ -1534,6 +1542,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     processing_status_display= serializers.SerializerMethodField()
     customer_status_display= serializers.SerializerMethodField()
     approval_lodgement_number= serializers.SerializerMethodField()
+    approval_issue_date= serializers.SerializerMethodField()
     approval_start_date= serializers.SerializerMethodField()
     approval_expiry_date= serializers.SerializerMethodField()
     approval_status= serializers.SerializerMethodField()
@@ -1542,6 +1551,8 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     applicant_name= serializers.CharField(source='applicant.name')
     application_type_name= serializers.CharField(source='application_type.name')
     region_name = serializers.CharField(source='region.name', read_only=True)
+    associated_proposals= serializers.SerializerMethodField()
+    proposal_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Proposal
@@ -1564,6 +1575,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'lodgement_date',
                 'proposal_type',
                 'approval_lodgement_number',
+                'approval_issue_date',
                 'approval_start_date',
                 'approval_expiry_date',
                 'approval_status',
@@ -1571,6 +1583,8 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'applicant_name',
                 'shapefile_json',
                 'application_type_name',
+                'associated_proposals',
+                'proposal_url',
 
                 )
     
@@ -1594,6 +1608,10 @@ class DASMapFilterSerializer(BaseProposalSerializer):
         if obj.approval:
             return obj.approval.lodgement_number
         return None
+    def get_approval_issue_date(self,obj):
+        if obj.approval:
+            return obj.approval.issue_date
+        return None
     
     def get_approval_start_date(self,obj):
         if obj.approval:
@@ -1609,6 +1627,24 @@ class DASMapFilterSerializer(BaseProposalSerializer):
         if obj.approval:
             return obj.approval.status
         return None
+    
+    def get_associated_proposals(self,obj):
+        if obj.approval:
+            qs=Proposal.objects.filter(approval__lodgement_number=obj.approval.lodgement_number).values_list('lodgement_number', flat=True)
+            if qs:
+                result= [proposal for proposal in qs]
+                return result
+        return None
+    
+    def get_proposal_url(self,obj):
+        request=self.context['request']
+        url=''
+        from disturbance.helpers import is_internal
+        if is_internal(request):
+            url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': obj.id}))
+        else:
+            url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': obj.id}))
+        return url
 
 
 

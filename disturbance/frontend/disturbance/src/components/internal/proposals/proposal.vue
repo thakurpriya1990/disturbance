@@ -882,6 +882,31 @@ export default {
             });
             return field.type;
         },
+        checkAssignedOfficer: function() {
+            if (this.proposal.processing_status == 'With Approver'){
+                if(this.proposal && this.proposal.assigned_approver==null){
+                    swal(
+                        'Error',
+                        'Please assign this proposal to yourself or an officer before proceeding',
+                        'error'
+                    )
+                    return false;
+                }
+                return true;
+            }
+            else{
+                if(this.proposal && this.proposal.assigned_officer==null){
+                    swal(
+                        'Error',
+                        'Please assign this proposal to yourself or an officer before proceeding',
+                        'error'
+                    )
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        },
         checkAssessorData: function(){
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
 
@@ -916,29 +941,34 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: function(){
-            this.save_wo();
-            this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
-            this.$refs.proposed_decline.isModalOpen = true;
+            if(this.checkAssignedOfficer()){
+                this.save_wo();
+                this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
+                this.$refs.proposed_decline.isModalOpen = true;
+            }
         },
         proposedApproval: function(){
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            if(this.proposal.proposed_issuance_approval == null){
-                var test_approval={
-                'cc_email': this.proposal.referral_email_list
-            };
-            this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
-                // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
+            if(this.checkAssignedOfficer()){
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                if(this.proposal.proposed_issuance_approval == null){
+                    var test_approval={
+                    'cc_email': this.proposal.referral_email_list
+                };
+                this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
+                    // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
+                }
+                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+                // if(this.proposal.applicant.email){
+                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+                // }
+                this.$refs.proposed_approval.isModalOpen = true;
             }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
         },
         issueProposal:function(){
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
 
             //save approval level comment before opening 'issue approval' modal
+            if(this.checkAssignedOfficer()){
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
                 if (this.proposal.approval_level_comment!='')
                 {
@@ -985,22 +1015,27 @@ export default {
             // }
             this.$refs.proposed_approval.isModalOpen = true;
             }
+            }
 
         },
         declineProposal:function(){
-            this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
-            this.$refs.proposed_decline.isModalOpen = true;
+            if(this.checkAssignedOfficer()){
+                this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
+                this.$refs.proposed_decline.isModalOpen = true;
+            }
         },
         amendmentRequest: function(){
-            this.save_wo();
-            let values = '';
-            $('.deficiency').each((i,d) => {
-                values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
-            });
-            //this.deficientFields();
-            this.$refs.amendment_request.amendment.text = values;
+            if(this.checkAssignedOfficer()){
+                this.save_wo();
+                let values = '';
+                $('.deficiency').each((i,d) => {
+                    values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
+                });
+                //this.deficientFields();
+                this.$refs.amendment_request.amendment.text = values;
 
-            this.$refs.amendment_request.isModalOpen = true;
+                this.$refs.amendment_request.isModalOpen = true;
+            }
         },
         highlight_deficient_fields: function(deficient_fields){
             let vm = this;
@@ -1102,7 +1137,7 @@ export default {
             let vm = this;
             let unassign = true;
             let data = {};
-            if (vm.processing_status == 'With Approver'){
+            if (vm.proposal.processing_status == 'With Approver'){
                 unassign = vm.proposal.assigned_approver != null && vm.proposal.assigned_approver != 'undefined' ? false: true;
                 data = {'assessor_id': vm.proposal.assigned_approver};
             }
@@ -1114,6 +1149,7 @@ export default {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assign_to')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
+                    console.log('data', data);
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
                     vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
@@ -1152,6 +1188,7 @@ export default {
             let vm = this;
             //vm.save_wo();
             //let vm = this;
+            if(vm.checkAssignedOfficer()){
             if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
             vm.checkAssessorData();
             let formData = new FormData(vm.form);
@@ -1238,6 +1275,7 @@ export default {
                     'error'
                 )
             });
+            }
             }
         },
         /*

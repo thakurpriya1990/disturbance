@@ -22,6 +22,7 @@ from disturbance.components.proposals.serializers_apiary import (
     ApplicantAddressSerializer,
     ApiaryProposalRequirementSerializer,
 )
+from disturbance.components.proposals.models import Proposal
 
 
 class EmailUserSerializer(serializers.ModelSerializer):
@@ -565,6 +566,7 @@ class DTApprovalSerializer(serializers.ModelSerializer):
     activity = serializers.SerializerMethodField(read_only=True)
     title = serializers.CharField(source='current_proposal.title')
     renewal_document = serializers.SerializerMethodField(read_only=True)
+    associated_proposals= serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Approval
@@ -598,10 +600,20 @@ class DTApprovalSerializer(serializers.ModelSerializer):
             'apiary_approval',
             'latest_apiary_licence_document',
             'template_group',
+            'associated_proposals',
             )
 
     def get_allowed_assessors(self, obj):
         return EmailUserSerializer(obj.current_proposal.compliance_assessors, many=True).data
+    
+    def get_associated_proposals(self,obj):
+        
+        if obj.current_proposal:
+            qs=Proposal.objects.filter(approval__lodgement_number=obj.lodgement_number).values_list('lodgement_number', flat=True)
+            if qs:
+                result= [proposal for proposal in qs]
+                return result
+        return None
 
     def get_template_group(self, obj):
         return self.context.get('template_group')

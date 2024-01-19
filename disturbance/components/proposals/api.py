@@ -47,7 +47,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, search_sections
+    SupportingApplicationDocument, search_sections, get_search_geojson
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure, search_label, get_schema_questions
@@ -126,6 +126,7 @@ from disturbance.components.proposals.serializers import (
     CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
     DASMapFilterSerializer,
+    SearchGeoJsonSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -3719,6 +3720,17 @@ class SearchSectionsView(views.APIView):
         serializer = SearchKeywordSerializer(qs, many=True)
         return Response(serializer.data)
 
+class GetSearchGeoJsonView(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def post(self,request, format=None):
+        proposal_lodgement_numbers= request.data.get('proposal_lodgement_numbers')
+        
+        search_geojson= get_search_geojson(proposal_lodgement_numbers, request)
+        #queryset = list(set(qs))
+        #import ipdb; ipdb.set_trace()
+        serializer = SearchGeoJsonSerializer({'search_geojson':search_geojson})
+        return Response(serializer.data)
+
 #Schema api's
 class SchemaMasterlistFilterBackend(DatatablesFilterBackend):
     """
@@ -5470,7 +5482,7 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         else:
             qs = self.get_queryset().exclude(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
-            region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            region_qs =  qs.filter(region__isnull=False).values_list('region_id', 'region__name').distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
             applicant_qs = qs.filter(applicant__isnull=False).distinct(
@@ -5480,8 +5492,9 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
         applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
+        regions = [dict(id=i[0], search_term='{}'.format(i[1])) for i in region_qs]
         data = dict(
-            regions=region_qs,
+            regions=regions,
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,

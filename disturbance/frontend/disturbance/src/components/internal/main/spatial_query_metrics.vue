@@ -125,6 +125,24 @@ export default {
                     //    d.group_id = vm.filterTableGroup;
                     //}
                 },
+                dom: 'lBfrtip',
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                    },
+                ],
+              
                 //columnDefs: [
                 //    { visible: false, targets: [ 0, 1, 2, ] } 
                 //],
@@ -245,6 +263,37 @@ export default {
 //
 //		    );
 //		  },
+                dom: 'lBfrtip',
+                buttons:[
+                    {
+                        extend: 'excel',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                        /*
+                        exportOptions: {
+                            columns: ':visible'
+                            //columns: vm.dt_headers
+                        }
+                        */
+                    },
+                    {
+                        extend: 'csv',
+                        exportOptions: {
+                            columns: ':not(.noexport)',
+                            orthogonal:'export'
+                        }
+                        /*
+                        exportOptions: {
+                            columns: ':visible'
+                            //columns: vm.dt_headers
+                            //columns: 'lodgement_number'
+                        }
+                        */
+                    },
+                ],
+
 
                 columnDefs: [
                     { visible: true } 

@@ -1740,11 +1740,15 @@ def generate_schema(proposal_type, request):
     help_site_url='site_url:/help/{}/user'.format(proposal_type.name)
     help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
     for section in section_list:
+        section_name=section.section_label.replace(" ","")
+        section_name=section_name.replace(".","")
+        section_name=section_name.replace(",","")
         section_dict={
-            'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
+            # 'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
+            'name': '{}{}'.format(section_name, section_count),
             'type': 'section',
             'label': section.section_label,
-        }
+        } 
         section_children=[]
         section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True).order_by('order')
         if section_questions:

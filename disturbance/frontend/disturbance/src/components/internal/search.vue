@@ -133,7 +133,11 @@
                         </div>
                       </div> 
                     </div>
-
+                    <div id="loadingSpinner" style="display: none; text-align: center; padding: 20px;">
+                      <!-- You can replace this with your preferred loading spinner or element -->
+                      <i class='fa fa-4x fa-spinner fa-spin'></i>
+                      <p>Loading...</p>
+                  </div>
 
                     <div class="row">
                     <div class="col-lg-12">
@@ -176,6 +180,7 @@
 </template>
 <script>
 import $ from 'jquery'
+import alert from '@vue-utils/alert.vue'
 import datatable from '@/utils/vue/datatable.vue'
 import {
   api_endpoints,
@@ -195,6 +200,7 @@ export default {
       rBody: 'rBody' + vm._uid,
       oBody: 'oBody' + vm._uid,
       kBody: 'kBody' + vm._uid,
+      uBody: 'uBody' + vm._uid,
       loading: [],
       filtered_url: api_endpoints.filtered_users + '?search=',
       searchKeywords: [],
@@ -226,15 +232,44 @@ export default {
               {data: "applicant"},
               {//data: "text.value"
                 data: "text",
-                mRender: function (data,type,full) {
-                  if(data.value){
-                    return data.value;
-                  }
-                  else
-                  {
-                    return data;
-                  }
-                }
+                // mRender: function (data,type,full) {
+                //   if(data.value){
+                //     return data.value;
+                //   }
+                //   else
+                //   {
+                //     return data;
+                //   }
+                // }
+                'render': function (value, type) {
+                            value= value.value? value.vale : value;
+                            var ellipsis = '...',
+                                truncated = _.truncate(value, {
+                                    length: 25,
+                                    omission: ellipsis,
+                                    separator: ' '
+                                }),
+                                result = '<span>' + truncated + '</span>',
+                                popTemplate = _.template('<a href="#" ' +
+                                    'role="button" ' +
+                                    'data-toggle="popover" ' +
+                                    'data-trigger="click" ' +
+                                    'data-placement="top auto"' +
+                                    'data-html="true" ' +
+                                    'data-content="<%= text %>" ' +
+                                    '>more</a>');
+                            if (_.endsWith(truncated, ellipsis)) {
+                                result += popTemplate({
+                                    text: value
+                                });
+                            }
+
+                            //return result;
+                            return type=='export' ? value : result;
+                        },
+                        'createdCell': helpers.dtPopoverCellFn,
+
+
               },
               {
                 data: "id",
@@ -253,7 +288,10 @@ export default {
                   }
               }
           ],
-          processing: true
+          processing: true,
+          initComplete: function() {
+                    $('#loadingSpinner').hide();
+          },
       }
     }
     
@@ -264,6 +302,7 @@ export default {
     components: {
         datatable,
         searchSection,
+        alert,
     },
     beforeRouteEnter:function(to,from,next){
         utils.fetchOrganisations().then((response)=>{
@@ -349,13 +388,15 @@ export default {
           vm.keyWord = null; 
           vm.results = [];
           vm.$refs.proposal_datatable.vmDataTable.clear()
-          vm.$refs.proposal_datatable.vmDataTable.draw();      
+          vm.$refs.proposal_datatable.vmDataTable.draw(); 
+          $('#loadingSpinner').hide();      
         },
 
         search: function() {
           let vm = this;
           if(this.searchKeywords.length > 0)
           {
+            $('#loadingSpinner').show();
             vm.$http.post('/api/search_keywords.json',{
               searchKeywords: vm.searchKeywords,
               searchProposal: vm.searchProposal,
@@ -367,9 +408,11 @@ export default {
               vm.$refs.proposal_datatable.vmDataTable.clear()
               vm.$refs.proposal_datatable.vmDataTable.rows.add(vm.results);
               vm.$refs.proposal_datatable.vmDataTable.draw();
+              $('#loadingSpinner').hide();
             },
             err => {
               console.log(err);
+              $('#loadingSpinner').hide();
             });
           }
 

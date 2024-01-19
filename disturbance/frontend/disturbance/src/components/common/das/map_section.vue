@@ -1,5 +1,5 @@
 <template lang="html">
-    <div class="">
+    <div class="row">
         <div class="col-md-3">
         </div>
         <div :class="das_sections_classname">
@@ -17,7 +17,15 @@
                     />
                 </div>
                 <div>  
-                     <File :name="map_doc_name" label="Upload Shapefile" :id="map_doc_id"  :isRepeatable="true" :readonly="proposal.readonly"   :proposal_id="proposal.id" :isRequired="true"></File>
+                     <File 
+                        :name="map_doc_name" 
+                        label="Upload Shapefile" :id="map_doc_id"  
+                        :isRepeatable="true" 
+                        :readonly="proposal.readonly"   
+                        :proposal_id="proposal.id" 
+                        :isRequired="true"
+                        :key="fileKey">
+                    </File>
                     <ul>
                             <li>
                                 Upload a shapefile identifying the maximum area affected by the proposal, including all associated activities.
@@ -26,10 +34,13 @@
                                 The shapefile can be made up of one multi-part polygon.
                             </li>
                             <li>
-                                The Shapefile must be in GDA94 or GDA202 latitude/longitude only.
+                                The Shapefile must be in GDA94 latitude/longitude only.
                             </li>
                             <li>
                                 Max file size is 10MB.
+                            </li>
+                            <li>
+                                Valid shapefile must include 4 files, in .dbf .prj .shp and .shx format.
                             </li>
                             <li>
                                 Further information <a :href="shapefile_info_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
@@ -125,6 +136,7 @@
                 values:null,
                 pBody: 'pBody'+vm._uid,
                 componentMapKey: 0,
+                fileKey: 0,
                 showError:false,
                 errorString:'',
                 isValidating:false,
@@ -201,6 +213,9 @@
              incrementComponentMapKey: function() {
                 this.componentMapKey++;
             },
+            incrementFileKey: function() {
+                this.fileKey++;
+            },
             validate_map_docs: async function(){
                 let vm = this;
                 vm.showError=false;
@@ -212,9 +227,13 @@
                     //vm.isValidating=false;
                     vm.$emit('refreshFromResponse',res);
                     },err=>{
-                    console.log(err);
-                    vm.showError=true;
-                    vm.errorString=helpers.apiVueResourceError(err);
+                        //console.log(err);
+                        vm.showError=true;
+                        vm.errorString=helpers.apiVueResourceError(err);
+                        vm.proposal.shapefile_json=null;
+                        vm.incrementFileKey();
+                        vm.incrementComponentMapKey();
+                        // vm.proposal.shapefile_json=null;
                     });
                     //vm.isValidating=false;
                 vm.$refs.component_map.updateShape();

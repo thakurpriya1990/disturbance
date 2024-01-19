@@ -410,6 +410,7 @@ class GlobalSettings(models.Model):
     SUB_ACTIVITY_1_HELP='sub_activity_1_help_url'
     SUB_ACTIVITY_2_HELP='sub_activity_2_help_url'
     CATEGORY_HELP='category_help_url'
+    MAX_NO_POLYGONS='max_no_polygon'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
@@ -419,12 +420,14 @@ class GlobalSettings(models.Model):
         (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page'),
         (PROPOSAL_APPROVER_HELP_PAGE, 'DAS Proposal approver help page'),
         (SHAPEFILE_INFO, 'Shapefile further information'),
+        (PROPOSAL_TYPE_HELP, 'Proposal Type help url'),
         (REGION_HELP, 'Region help url'),
         (DISTRICT_HELP, 'District help url'),
         (ACTIVITY_TYPE_HELP, 'Activity type help url'),
         (SUB_ACTIVITY_1_HELP, 'Sub activity 1 help url'),
         (SUB_ACTIVITY_2_HELP, 'Sub activity 2 help url'),
         (CATEGORY_HELP, 'Category help url'),
+        (MAX_NO_POLYGONS, 'Maximum number of polygons allowed in the Shapefile'),
         
     )
     default_values = (

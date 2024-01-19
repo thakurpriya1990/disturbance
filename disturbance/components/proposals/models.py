@@ -10,6 +10,7 @@ import pytz
 import requests
 import re
 import traceback
+import os
 
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField
@@ -68,6 +69,7 @@ import copy
 import subprocess
 from multiselectfield import MultiSelectField
 from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField, GroupedForeignKey
+from django.core.urlresolvers import reverse
 
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
@@ -1497,31 +1499,43 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         import geopandas as gpd
         try:
             shp_file_qs=self.map_documents.filter(name__endswith='.shp')
+            MAX_NO_POLYGONS=15
+            try:
+                from disturbance.components.main.models import GlobalSettings
+                gs_key=GlobalSettings.objects.get(key=GlobalSettings.MAX_NO_POLYGONS)
+                if gs_key and gs_key.value.isdigit():
+                   MAX_NO_POLYGONS=int(gs_key.value) 
+            except:
+                MAX_NO_POLYGONS=15
             #TODO : validate shapefile and all the other related filese are present
             if shp_file_qs:
                 shp_file_obj= shp_file_qs[0]
-                #shp_file=shp_file_obj._file
-                #shp= gpd.read_file(shp_file_obj.path)
-                #shp_transform=shp.to_crs(crs=4326)
-                #shp_json=shp_transform.to_json()
+                # shp_file=shp_file_obj._file
+                # shp= gpd.read_file(shp_file_obj.path)
+                # shp_transform=shp.to_crs(crs=4326)
+                # shp_json=shp_transform.to_json()
 
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 shp_json = json.loads(result.stdout)
-
+                shapefile_json=None
                 if type(shp_json)==str:
-                    self.shapefile_json=json.loads(shp_json)
+                    shapefile_json=json.loads(shp_json)
                 else:
-                    self.shapefile_json=shp_json
+                    shapefile_json=shp_json
+
                 #The features id has to be unique for each shapefile_json
-                if 'features' in self.shapefile_json:
-                    if len(self.shapefile_json['features']) >0:
-                        if 'id' in self.shapefile_json['features'][0]:
-                            self.shapefile_json['features'][0]['id']=self.id
-                            
-                # Add tz-aware timestamp to shapefile_json
-                dt = timezone.make_aware(datetime.datetime.now(),timezone.get_default_timezone())
-                self.shapefile_json['created'] = datetime.datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
+                if shapefile_json and 'features' in shapefile_json:
+                    num_features = len(shapefile_json['features'])
+                    if num_features > 0 and num_features <= MAX_NO_POLYGONS:
+                        if 'id' in shapefile_json['features'][0]:
+                            shapefile_json['features'][0]['id']=self.id
+                        self.shapefile_json=shapefile_json
+                    else:
+                        msg = 'no features found in shapefile' if num_features == 0 else f'too many features: {num_features} (max {MAX_NO_POLYGONS})' 
+                        raise ValidationError(f'Cannot upload a Shapefile - {msg}')
+                else:
+                    raise ValidationError('Please upload a valid shapefile')
 
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
@@ -1529,7 +1543,19 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             else:
                 raise ValidationError('Please upload a valid shapefile') 
         except Exception as e:
-            raise ValidationError(f'Please upload a valid shapefile\n{e}')
+            #Delete the uploaded shapefile as it is invalid
+            map_docs=self.map_documents.all()
+            if map_docs:
+                for document in map_docs:
+                    if document._file and os.path.isfile(document._file.path) and document.can_delete:
+                        os.remove(document._file.path)
+                        document.delete()
+                    else:
+                        document.hidden=True
+                        document.save()
+            self.shapefile_json=None
+            self.save(version_comment='Shapefile json cleared as invalid shapefile uploaded.')
+            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
 
     def get_lonlat(self):
        ''' Get longitude and latitude from centroid of polygon
@@ -2103,7 +2129,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.proposed_decline_status = False
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
-                self.assigned_officer = None
+                #self.assigned_officer = None
 
                 apiary_sites = request.data.get('apiary_sites', None)
                 apiary_sites_list = []
@@ -3360,7 +3386,7 @@ def search_sections(application_type_name, section_label,question_id,option_labe
     if is_internal:
         if(not application_type_name or not section_label or not question_id or not option_label):
             raise ValidationError('Some of the mandatory fields are missing')
-        proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        proposal_list = Proposal.objects.filter(application_type__name=application_type_name, data__isnull=False).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         question=MasterlistQuestion.objects.get(id=question_id)
         filter_conditions={}
         if region:
@@ -3389,11 +3415,75 @@ def search_sections(application_type_name, section_label,question_id,option_labe
                                 'text': results[0],
                                 }
                             qs.append(res)
-                    except:
+                    except Exception as e:
+                        print(e)
                         raise
 
 
     return qs
+
+def add_properties_to_feature(features, proposal, request):
+    new_properties={}
+    new_properties['proposal_number']=proposal.lodgement_number
+    new_properties['organisation'] = proposal.applicant.name
+    new_properties['proposal_title']= proposal.title
+    new_properties['proposal_type']=proposal.proposal_type
+    new_properties['proposal_url'] = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    
+
+    if proposal.approval:
+        qs=Proposal.objects.filter(approval__lodgement_number=proposal.approval.lodgement_number).values_list('lodgement_number', flat=True)
+        if qs:
+            new_properties['associated_proposals']= [proposal for proposal in qs]
+        new_properties['approval_number']=proposal.approval.lodgement_number
+        new_properties['approval_issue_date']=proposal.approval.issue_date
+        new_properties['approval_start_date']=proposal.approval.start_date
+        new_properties['approval_expiry_date']=proposal.approval.expiry_date
+        new_properties['approval_status']=proposal.approval.status
+
+    if features:
+        for feature in features:
+            if 'properties' in feature:
+                feature['properties'].update(new_properties)
+            else:
+                feature['properties']=new_properties
+    return features
+
+def get_search_geojson(proposal_lodgement_numbers,request):
+    combined_geojson=None
+    try:
+        import geopandas as gpd
+        import requests
+
+        qs=Proposal.objects.filter(lodgement_number__in=proposal_lodgement_numbers, shapefile_json__isnull=False)
+        combined_features=[]
+        if qs:
+            for proposal in qs:
+                if proposal.shapefile_json:
+                    gpd_shp=gpd.read_file(json.dumps(proposal.shapefile_json))
+                    shp_transform=gpd_shp.to_crs(crs=4326)
+                    shp_json=shp_transform.to_json()
+                    if type(shp_json)==str:
+                        shp_json=json.loads(shp_json)
+                    else:
+                        shp_json=shp_json
+                    #import ipdb; ipdb.set_trace()
+                    features=shp_json.get('features',[])
+                    updated_features=add_properties_to_feature(features, proposal, request)
+                    combined_features.extend(updated_features)
+            combined_geojson={
+                'type': 'FeatureCollection',
+                'crs': {
+                    'type': 'name',
+                    'properties': {
+                        'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'
+                    }
+                },
+                'features': combined_features
+            }
+        return combined_geojson
+    except:
+        raise
 
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):

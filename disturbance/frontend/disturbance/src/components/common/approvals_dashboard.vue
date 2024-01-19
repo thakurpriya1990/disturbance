@@ -242,7 +242,10 @@ export default {
             if (this.dasTemplateGroup) {
                 columnHeaders.push("Region",
                 "Activity",
-                "Title");
+                "Title",);
+                if(!this.is_external){
+                    columnHeaders.push("Associated Proposals");
+                }
             }
             columnHeaders.push("Holder",
                 "Status",
@@ -341,7 +344,14 @@ export default {
                     name: "current_proposal__title",
                     //visible: false,
                     searchable: true,
+                },
+                {
+                    data: "associated_proposals",
+                    //name: "current_proposal__activity",
+                    //visible: false,
+                    searchable: false,
                 });
+                
             };
             columnList.push({
                     data: "applicant",
