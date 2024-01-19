@@ -74,6 +74,7 @@ INSTALLED_APPS += [
     # 'corsheaders',
     'smart_selects',
     'crispy_forms',
+    'appmonitor_client',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -206,6 +207,9 @@ VERSION_NO="1.0.1"
 
 BASE_URL=env('BASE_URL')
 
+CRON_CLASSES = [
+    'appmonitor_client.cron.CronJobAppMonitorClient',
+]
 
 
 CKEDITOR_CONFIGS = {

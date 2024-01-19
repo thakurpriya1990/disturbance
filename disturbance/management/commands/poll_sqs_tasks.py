@@ -73,26 +73,30 @@ class Command(BaseCommand):
                     task = TaskMonitor.queued_jobs.get(task_id=task_id)
                     sqs_task = get_sqs_task(task_id)
                     if sqs_task:
-                        if sqs_task['status'] == TaskMonitor.STATUS_COMPLETED and sqs_task['request_log'] is not None:
-                            proposal = self.update_proposal(sqs_task)
-
-                            if proposal:
-                                task.status = TaskMonitor.STATUS_COMPLETED
-                                task.save()
-                                user = send_proposal_prefill_completed_email_notification(proposal)
-                            else:
-                                msg = f'Unable to update proposal, task_id {task_id}'
+                        if sqs_task['status'] == TaskMonitor.STATUS_COMPLETED:
+                            if sqs_task['request_log'] is None:
+                                msg = f'Unable to process task_id {task_id}. Request Log is not available'
+                                logger.warn(msg)
                                 update_retries(msg)
+                            else:
+                                proposal = self.update_proposal(sqs_task)
+                                if proposal:
+                                    task.status = TaskMonitor.STATUS_COMPLETED
+                                    task.save()
+                                    user = send_proposal_prefill_completed_email_notification(proposal)
+                                else:
+                                    msg = f'Unable to update proposal, task_id {task_id}'
+                                    update_retries(msg)
+
+                        elif sqs_task['status'] in [TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]:
+                            msg = f'task_id {task_id} - current status \'{sqs_task["status"]}\' on SQS'
+                            logger.info(msg)
 
                         elif sqs_task['status'] != TaskMonitor.STATUS_CREATED:
                             # this task on SQS may have status ERROR/FAILED - update local TaskMonitor with the same
                             task.status = sqs_task['status']
                             task.save()
                             send_proposal_prefill_error_email_notification(task.proposal, task.id)
-
-                        elif sqs_task['status'] == TaskMonitor.STATUS_CREATED:
-                            msg = f'task_id {task_id} still queued on SQS'
-                            logger.info(msg)
 
                         else:
                             msg = f'Unable to process task_id {task_id}'
