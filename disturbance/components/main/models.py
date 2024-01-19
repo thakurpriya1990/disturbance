@@ -227,7 +227,7 @@ class ActivityMatrix(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('name', 'version')
-        verbose_name_plural = "Activity matrix"
+        verbose_name_plural = "Approval matrix"
 
     def __str__(self):
         return '{} - v{}'.format(self.name, self.version)
