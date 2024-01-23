@@ -72,6 +72,11 @@
                                             <input type="text" class="form-control" name="approval_cc" style="width:70%;" ref="bcc_email" v-model="approval.cc_email">
                                     </div>
                                 </div>
+                                <div class="row" v-show="showApprovalCCError">
+                                    <alert  class="col-sm-12" type="danger"><strong>{{approvalCCErrorString}}</strong></alert>
+                    
+                                </div>
+
                             </div>
                             <div class="form-group">
                                 <div class="row">
@@ -155,6 +160,8 @@ export default {
             startDateErrorString:'',
             successString: '',
             success:false,
+            approvalCCError: false,
+            approvalCCErrorString: '',
             datepickerOptions:{
                 format: 'DD/MM/YYYY',
                 showClear:true,
@@ -178,6 +185,10 @@ export default {
         showstartDateError: function() {
             var vm = this;
             return vm.startDateError;
+        },
+        showApprovalCCError: function() {
+            var vm = this;
+            return vm.approvalCCError;
         },
         title: function(){
             return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
@@ -225,7 +236,7 @@ export default {
         },
         ok:function () {
             let vm =this;
-            if($(vm.form).valid()){
+            if(vm.validateApprovalCC() && $(vm.form).valid()){
                 vm.sendData();
                 //vm.$router.push({ path: '/internal' });
             }
@@ -287,6 +298,20 @@ export default {
                     });
             }
            
+        },
+        validateApprovalCC: function() {
+            let vm = this;
+            const ccRegex = new RegExp(/^(([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5}){1,25})+([,.](([a-zA-Z0-9_\-\.]+)@([a-zA-Z0-9_\-\.]+)\.([a-zA-Z]{2,5}){1,25})+)*$/)
+            if (!vm.approval.cc_email || ccRegex.test(vm.approval.cc_email)) {
+                vm.approvalCCError = false;
+                vm.approvalCCErrorString = '';
+                return true;
+            }
+            else {
+                vm.approvalCCError = true;
+                vm.approvalCCErrorString = 'Please ensure each BCC email is valid and separated with a ,';
+                return false;
+            }
         },
         addFormValidations: function() {
             let vm = this;
