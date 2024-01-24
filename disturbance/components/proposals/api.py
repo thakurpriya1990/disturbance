@@ -483,15 +483,12 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = OnSiteInformation.objects.all()
-        qs = qs.filter(datetime_deleted=None)
-
-        #if is_internal(self.request):  # user.is_authenticated():
-        #    qs = OnSiteInformation.objects.none()
-        #else:
-        #    logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
-        #    qs = OnSiteInformation.objects.none()
-        return qs
+        if is_internal(self.request):
+            return OnSiteInformation.objects.filter(datetime_deleted=None)
+        elif is_customer(self.request):
+            qs = OnSiteInformation.objects.filter(datetime_deleted=None).filter(Q(apiary_site_on_approval_id__approval_id__current_proposal_id__submitter_id=user.id))
+            return qs
+        return OnSiteInformation.objects.none()
 
     @staticmethod
     def sanitize_date(data_dict, property_name):
@@ -889,7 +886,13 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def get_queryset(self):
-        return ProposalApiary.objects.all()
+        user = self.request.user
+        if is_internal(self.request):
+            return ProposalApiary.objects.all()
+        elif is_customer(self.request):
+            qs = ProposalApiary.objects.filter(Q(proposal_id__submitter_id=user.id))
+            return qs
+        return ProposalApiary.objects.none()
 
     @basic_exception_handler
     def internal_apiary_serializer_class(self):
@@ -2782,8 +2785,13 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     serializer_class = ProposalRequirementSerializer
 
     def get_queryset(self):
-        qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        return qs
+        user = self.request.user
+        if is_internal(self.request):
+            return ProposalRequirement.objects.exclude(is_deleted=True)
+        elif is_customer(self.request):
+            qs = ProposalRequirement.objects.exclude(is_deleted=True).filter(Q(proposal_id__submitter_id=user.id))
+            return qs
+        return ProposalRequirement.objects.none()
 
     @detail_route(methods=['GET',])
     def move_up(self, request, *args, **kwargs):
@@ -2878,8 +2886,17 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
-    queryset = AmendmentRequest.objects.all()
+    queryset = AmendmentRequest.objects.none()
     serializer_class = AmendmentRequestSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return AmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            qs = AmendmentRequest.objects.filter(Q(proposal_id__submitter_id=user.id))
+            return qs
+        return AmendmentRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
         try:
