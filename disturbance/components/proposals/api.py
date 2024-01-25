@@ -486,7 +486,8 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return OnSiteInformation.objects.filter(datetime_deleted=None)
         elif is_customer(self.request):
-            qs = OnSiteInformation.objects.filter(datetime_deleted=None).filter(Q(apiary_site_on_approval_id__approval_id__current_proposal_id__submitter_id=user.id))
+            user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
+            qs = OnSiteInformation.objects.filter(datetime_deleted=None).filter(Q(apiary_site_on_approval_id__approval_id__applicant_id__in=user_orgs)|Q(apiary_site_on_approval_id__approval_id__current_proposal_id__submitter_id=user.id))
             return qs
         return OnSiteInformation.objects.none()
 
@@ -575,7 +576,7 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
 
 class ApiarySiteViewSet(viewsets.ModelViewSet):
-    queryset = ApiarySite.objects.all()
+    queryset = ApiarySite.objects.none()
     serializer_class = ApiarySiteSerializer
 
     def is_internal_system(self, request):
@@ -887,7 +888,8 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return ProposalApiary.objects.all()
         elif is_customer(self.request):
-            qs = ProposalApiary.objects.filter(Q(proposal_id__submitter_id=user.id))
+            user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
+            qs = ProposalApiary.objects.filter(Q(proposal_id__applicant_id__in=user_orgs)|Q(proposal_id__submitter_id=user.id))
             return qs
         return ProposalApiary.objects.none()
 
@@ -2786,7 +2788,8 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return ProposalRequirement.objects.exclude(is_deleted=True)
         elif is_customer(self.request):
-            qs = ProposalRequirement.objects.exclude(is_deleted=True).filter(Q(proposal_id__submitter_id=user.id))
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            qs = ProposalRequirement.objects.exclude(is_deleted=True).filter(Q(proposal_id__applicant_id__in=user_orgs)|Q(proposal_id__submitter_id=user.id))
             return qs
         return ProposalRequirement.objects.none()
 
@@ -2897,7 +2900,8 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return AmendmentRequest.objects.all()
         elif is_customer(self.request):
-            qs = AmendmentRequest.objects.filter(Q(proposal_id__submitter_id=user.id))
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            qs = AmendmentRequest.objects.filter(Q(proposal_id__applicant_id__in=user_orgs)|Q(proposal_id__submitter_id=user.id))
             return qs
         return AmendmentRequest.objects.none()
 

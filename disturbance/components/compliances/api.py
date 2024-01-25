@@ -545,7 +545,8 @@ class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
         if is_internal(self.request):
             return ComplianceAmendmentRequest.objects.all()
         elif is_customer(self.request):
-            qs = ComplianceAmendmentRequest.objects.filter(Q(compliance_id__proposal_id__submitter_id=user.id))
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            qs = ComplianceAmendmentRequest.objects.filter(Q(compliance_id__proposal_id__applicant_id__in=user_orgs)|Q(compliance_id__proposal_id__submitter_id=user.id))
             return qs
         return ComplianceAmendmentRequest.objects.none()
 
