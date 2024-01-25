@@ -318,12 +318,12 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if is_internal(self.request): #user.is_authenticated():
             #return Proposal.objects.all().order_by('-id')
-            return Proposal.objects.all().exclude(processing_status='hidden')
+            return Proposal.objects.exclude(processing_status='hidden')
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
             #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
-            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user)).exclude(processing_status='hidden')
+            qs = Proposal.objects.exclude(processing_status='hidden').filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user))
             return qs
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
@@ -595,20 +595,17 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = ApiarySite.objects.all()
 
         # Only internal user is supposed to access here
         if is_internal(self.request):  # user.is_authenticated():
-            pass
-        elif is_customer(self.request):
+            return ApiarySite.objects.all()
+        #elif is_customer(self.request):
             # qs = qs.exclude(status=ApiarySite.STATUS_DRAFT)
-            pass
+            #pass
         else:
-            logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
-            qs = OnSiteInformation.objects.none()
-
-        return qs
-
+            #logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
+            return ApiarySite.objects.none()
+        
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def contact_licence_holder(self, request, *args, **kwargs):
@@ -2849,8 +2846,14 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ProposalStandardRequirement.objects.all()
+    queryset = ProposalStandardRequirement.objects.none()
     serializer_class = ProposalStandardRequirementSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated():
+            return ProposalStandardRequirement.objects.all()
+        return ProposalStandardRequirement.objects.none()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -3106,7 +3109,7 @@ class SchemaMasterlistRenderer(DatatablesRenderer):
 class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SchemaMasterlistFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (SchemaMasterlistRenderer,)
+    #renderer_classes = (SchemaMasterlistRenderer,)
     queryset = MasterlistQuestion.objects.none()
     serializer_class = DTSchemaMasterlistSerializer
     page_size = 10
@@ -3408,11 +3411,14 @@ class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaQuestionViewSet(viewsets.ModelViewSet):
-    queryset = SectionQuestion.objects.all()
+    queryset = SectionQuestion.objects.none()
     serializer_class = SchemaQuestionSerializer
 
     def get_queryset(self):
-        return self.queryset
+        user = self.request.user
+        if user.is_authenticated():
+            return SectionQuestion.objects.all()
+        return SectionQuestion.objects.none()
 
     @detail_route(methods=['GET', ])
     def get_question_parents(self, request, *args, **kwargs):
