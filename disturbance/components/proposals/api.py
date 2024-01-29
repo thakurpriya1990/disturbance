@@ -1361,7 +1361,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-
         if is_internal(self.request):
             return Proposal.objects.filter(
                 Q(region__isnull=False) |
@@ -1375,7 +1374,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             ).exclude(processing_status='')
             return queryset
 
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        #logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
     def get_object(self):
@@ -1388,6 +1387,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
             obj_id = self.kwargs['id'] if 'id' in self.kwargs else self.kwargs['pk']
             obj = get_object_or_404(Proposal, id=obj_id)
+            raise #if we do not raise here it will return a record regardless of auth
         return obj
 
     def get_serializer_class(self):
@@ -3120,8 +3120,10 @@ class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        # user = self.request.user
-        return MasterlistQuestion.objects.all()
+        user = self.request.user
+        if user.is_authenticated():
+            return MasterlistQuestion.objects.all()
+        return MasterlistQuestion.objects.none()
 
     @list_route(methods=['GET', ])
     def schema_masterlist_datatable_list(self, request, *args, **kwargs):
@@ -3140,11 +3142,14 @@ class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaMasterlistViewSet(viewsets.ModelViewSet):
-    queryset = MasterlistQuestion.objects.all()
+    queryset = MasterlistQuestion.objects.none()
     serializer_class = SchemaMasterlistSerializer
 
     def get_queryset(self):
-        return self.queryset
+        user = self.request.user
+        if user.is_authenticated():
+            return MasterlistQuestion.objects.all()
+        return MasterlistQuestion.objects.none()
 
     @detail_route(methods=['GET', ])
     def get_masterlist_selects(self, request, *args, **kwargs):
@@ -3395,8 +3400,10 @@ class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        # user = self.request.user
-        return SectionQuestion.objects.all()
+        user = self.request.user
+        if user.is_authenticated():
+            return SectionQuestion.objects.all()
+        return SectionQuestion.objects.none()
 
     @list_route(methods=['GET', ])
     def schema_question_datatable_list(self, request, *args, **kwargs):
@@ -3761,8 +3768,10 @@ class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
     page_size = 10
 
     def get_queryset(self):
-        # user = self.request.user
-        return ProposalTypeSection.objects.all()
+        user = self.request.user
+        if user.is_authenticated():
+            return ProposalTypeSection.objects.all()
+        return ProposalTypeSection.objects.none()
 
     @list_route(methods=['GET', ])
     def schema_proposal_type_datatable_list(self, request, *args, **kwargs):
@@ -3782,11 +3791,14 @@ class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
-    queryset = ProposalTypeSection.objects.all()
+    queryset = ProposalTypeSection.objects.none()
     serializer_class = SchemaProposalTypeSerializer
 
     def get_queryset(self):
-        return self.queryset
+        user = self.request.user
+        if user.is_authenticated():
+            return ProposalTypeSection.objects.all()
+        return ProposalTypeSection.objects.none()
 
     @detail_route(methods=['GET', ])
     def get_proposal_type_selects(self, request, *args, **kwargs):

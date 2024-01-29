@@ -72,10 +72,10 @@ from disturbance.components.main.utils import get_template_group, handle_validat
 
 
 class OrganisationViewSet(viewsets.ModelViewSet):
-    queryset = Organisation.objects.all()
+    queryset = Organisation.objects.none()
     serializer_class = OrganisationSerializer
 
-    def _get_queryset(self):
+    def get_queryset(self):
         user = self.request.user
         if is_internal(self.request):
             return Organisation.objects.all()
