@@ -122,19 +122,19 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ApprovalRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-            #data.pop('recordsTotal')
-            #data.pop('recordsFiltered')
-        return super(ApprovalRenderer, self).render(data, accepted_media_type, renderer_context)
+#class ApprovalRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+#            #data.pop('recordsTotal')
+#            #data.pop('recordsFiltered')
+#        return super(ApprovalRenderer, self).render(data, accepted_media_type, renderer_context)
 
 
 class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ApprovalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ApprovalRenderer,)
+    #renderer_classes = (ApprovalRenderer,)
     page_size = 10
     queryset = Approval.objects.none()
     serializer_class = ApprovalSerializer

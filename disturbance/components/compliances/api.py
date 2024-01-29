@@ -49,7 +49,7 @@ from disturbance.components.compliances.serializers import (
 from disturbance.components.main.utils import handle_validation_error
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
+from disturbance.components.proposals.api import ProposalFilterBackend #, ProposalRenderer
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
@@ -121,20 +121,20 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ComplianceRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        #import ipdb; ipdb.set_trace()
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-            #data.pop('recordsTotal')
-            #data.pop('recordsFiltered')
-        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
+#class ComplianceRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        #import ipdb; ipdb.set_trace()
+#        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+#            #data.pop('recordsTotal')
+#            #data.pop('recordsFiltered')
+#        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
 
 
 class CompliancePaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ComplianceRenderer,)
+    #renderer_classes = (ComplianceRenderer,)
     page_size = 10
     queryset = Compliance.objects.none()
     serializer_class = ComplianceSerializer
