@@ -1378,17 +1378,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
         return Proposal.objects.none()
 
     #TODO: review this - is this needed?
-    #def get_object(self):
-    #    check_db_connection()
-    #    try:
-    #        obj = super(ProposalViewSet, self).get_object()
-    #    except Exception as e:
-    #        # because current queryset excludes migrated licences
-    #        #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
-    #        obj_id = self.kwargs['id'] if 'id' in self.kwargs else self.kwargs['pk']
-    #        obj = get_object_or_404(Proposal, id=obj_id)
-    #        raise #if we do not raise here it will return a record regardless of auth
-    #    return obj
+    def get_object(self):
+        check_db_connection()
+        try:
+            obj = super(ProposalViewSet, self).get_object()
+        except Exception as e:
+            # because current queryset excludes migrated licences
+            #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
+            obj_id = self.kwargs['id'] if 'id' in self.kwargs else self.kwargs['pk']
+            obj = get_object_or_404(Proposal, id=obj_id)
+            if self.request.user != obj.submitter:
+                raise #if we do not raise here it will return a record regardless of auth
+        return obj
 
     def get_serializer_class(self):
         try:
