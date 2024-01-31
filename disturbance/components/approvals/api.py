@@ -258,6 +258,20 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return queryset
         return Approval.objects.none()
 
+    #TODO: review this - seems like a workaround at the moment
+    def get_serializer_class(self):
+        try:
+            approval = self.get_object()
+            return ApprovalSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
     def list(self, request, *args, **kwargs):
         #queryset = self.get_queryset()
         queryset = self.get_queryset().order_by('-lodgement_number', '-issue_date').distinct('lodgement_number')
