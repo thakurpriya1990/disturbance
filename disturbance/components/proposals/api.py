@@ -2083,10 +2083,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
             elif action == 'save' and 'input_name' in request.POST and 'filename' in request.POST:
                 proposal_id = request.POST.get('proposal_id')
-                filename = request.POST.get('filename')
+                filename = request.POST.get('filename').replace(' ', '_')
                 _file = request.POST.get('_file')
                 if not _file:
                     _file = request.FILES.get('_file')
+                _file._name = filename
 
                 #Check if the file with same extension already exists so not to allow multiple shapefiles with same extension.
                 fname, fext=os.path.splitext(filename)
