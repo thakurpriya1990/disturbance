@@ -18,8 +18,7 @@ from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
-from rest_framework.renderers import JSONRenderer
-from rest_framework.reverse import reverse_lazy
+from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
 import time
@@ -316,13 +315,13 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
-class ProposalRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-            # data.pop('recordsTotal')
-            #data.pop('recordsFiltered')
-        return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
+#class ProposalRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+#            # data.pop('recordsTotal')
+#            #data.pop('recordsFiltered')
+#        return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
 
 #from django.utils.decorators import method_decorator
 #from django.views.decorators.cache import cache_page
@@ -331,7 +330,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     #filter_backends = (DatatablesFilterBackend,)
     filter_backends = (ProposalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ProposalRenderer,)
+    #renderer_classes = (ProposalRenderer,)
     queryset = Proposal.objects.none()
     serializer_class = ListProposalSerializer
     search_fields = ['lodgement_number',]
@@ -346,12 +345,12 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         user = self.request.user
         if is_internal(self.request): #user.is_authenticated():
             #return Proposal.objects.all().order_by('-id')
-            return Proposal.objects.all().exclude(processing_status='hidden')
+            return Proposal.objects.exclude(processing_status='hidden')
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             #return  Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
             #return Proposal.objects.filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) | Q(proxy_applicant = user)).order_by('-id')
-            qs = Proposal.objects.filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user)).exclude(processing_status='hidden')
+            qs = Proposal.objects.exclude(processing_status='hidden').filter(Q(applicant_id__in=user_orgs) | Q(submitter=user) | Q(proxy_applicant=user))
             return qs
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
@@ -531,15 +530,13 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = OnSiteInformation.objects.all()
-        qs = qs.filter(datetime_deleted=None)
-
-        #if is_internal(self.request):  # user.is_authenticated():
-        #    qs = OnSiteInformation.objects.none()
-        #else:
-        #    logger.warn("User is not internal user: {} <{}>".format(user.get_full_name(), user.email))
-        #    qs = OnSiteInformation.objects.none()
-        return qs
+        if is_internal(self.request):
+            return OnSiteInformation.objects.filter(datetime_deleted=None)
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
+            qs = OnSiteInformation.objects.filter(datetime_deleted=None).filter(Q(apiary_site_on_approval_id__approval_id__applicant_id__in=user_orgs)|Q(apiary_site_on_approval_id__approval_id__current_proposal_id__submitter_id=user.id))
+            return qs
+        return OnSiteInformation.objects.none()
 
     @staticmethod
     def sanitize_date(data_dict, property_name):
@@ -626,7 +623,7 @@ class OnSiteInformationViewSet(viewsets.ModelViewSet):
 
 
 class ApiarySiteViewSet(viewsets.ModelViewSet):
-    queryset = ApiarySite.objects.all()
+    queryset = ApiarySite.objects.none()
     serializer_class = ApiarySiteSerializer
 
     def is_internal_system(self, request):
@@ -646,20 +643,17 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        qs = ApiarySite.objects.all()
 
         # Only internal user is supposed to access here
         if is_internal(self.request):  # user.is_authenticated():
-            pass
-        elif is_customer(self.request):
+            return ApiarySite.objects.all()
+        #elif is_customer(self.request):
             # qs = qs.exclude(status=ApiarySite.STATUS_DRAFT)
-            pass
+            #pass
         else:
-            logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
-            qs = OnSiteInformation.objects.none()
-
-        return qs
-
+            #logger.warn("User is neither internal user nor customer: {} <{}>".format(user.get_full_name(), user.email))
+            return ApiarySite.objects.none()
+        
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def contact_licence_holder(self, request, *args, **kwargs):
@@ -937,7 +931,14 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def get_queryset(self):
-        return ProposalApiary.objects.all()
+        user = self.request.user
+        if is_internal(self.request):
+            return ProposalApiary.objects.all()
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
+            qs = ProposalApiary.objects.filter(Q(proposal_id__applicant_id__in=user_orgs)|Q(proposal_id__submitter_id=user.id))
+            return qs
+        return ProposalApiary.objects.none()
 
     @basic_exception_handler
     def internal_apiary_serializer_class(self):
@@ -1434,7 +1435,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-
         if is_internal(self.request):
             return Proposal.objects.filter(
                 Q(region__isnull=False) |
@@ -1448,11 +1448,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
             ).exclude(processing_status='')
             return queryset
 
-        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        #logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
         return Proposal.objects.none()
 
+    #TODO: review this - is this needed?
     def get_object(self):
-
         check_db_connection()
         try:
             obj = super(ProposalViewSet, self).get_object()
@@ -1461,6 +1461,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
             obj_id = self.kwargs['id'] if 'id' in self.kwargs else self.kwargs['pk']
             obj = get_object_or_404(Proposal, id=obj_id)
+            if self.request.user != obj.submitter:
+                raise #if we do not raise here it will return a record regardless of auth
         return obj
 
     def get_serializer_class(self):
@@ -3470,8 +3472,14 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     serializer_class = ProposalRequirementSerializer
 
     def get_queryset(self):
-        qs = ProposalRequirement.objects.all().exclude(is_deleted=True)
-        return qs
+        user = self.request.user
+        if is_internal(self.request):
+            return ProposalRequirement.objects.exclude(is_deleted=True)
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            qs = ProposalRequirement.objects.exclude(is_deleted=True).filter(Q(proposal_id__applicant_id__in=user_orgs)|Q(proposal_id__submitter_id=user.id))
+            return qs
+        return ProposalRequirement.objects.none()
 
     @detail_route(methods=['GET',])
     def move_up(self, request, *args, **kwargs):
@@ -3529,8 +3537,14 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ProposalStandardRequirement.objects.all()
+    queryset = ProposalStandardRequirement.objects.none()
     serializer_class = ProposalStandardRequirementSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated():
+            return ProposalStandardRequirement.objects.all()
+        return ProposalStandardRequirement.objects.none()
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -3566,8 +3580,18 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class AmendmentRequestViewSet(viewsets.ModelViewSet):
-    queryset = AmendmentRequest.objects.all()
+    queryset = AmendmentRequest.objects.none()
     serializer_class = AmendmentRequestSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return AmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            qs = AmendmentRequest.objects.filter(Q(proposal_id__applicant_id__in=user_orgs)|Q(proposal_id__submitter_id=user.id))
+            return qs
+        return AmendmentRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
         try:
@@ -3775,27 +3799,30 @@ class SchemaMasterlistFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class SchemaMasterlistRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and \
-                hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = \
-                renderer_context['view']._datatables_total_count
-        return super(SchemaMasterlistRenderer, self).render(
-            data, accepted_media_type, renderer_context)
+#class SchemaMasterlistRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        if 'view' in renderer_context and \
+#                hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = \
+#                renderer_context['view']._datatables_total_count
+#        return super(SchemaMasterlistRenderer, self).render(
+#            data, accepted_media_type, renderer_context)
 
 
 class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SchemaMasterlistFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (SchemaMasterlistRenderer,)
+    #renderer_classes = (JSONRenderer,BrowsableAPIRenderer,SchemaMasterlistRenderer,) #if we need the custom renderer classes we should set it like this
+    #renderer_classes = (SchemaMasterlistRenderer,)
     queryset = MasterlistQuestion.objects.none()
     serializer_class = DTSchemaMasterlistSerializer
     page_size = 10
 
     def get_queryset(self):
-        # user = self.request.user
-        return MasterlistQuestion.objects.all()
+        user = self.request.user
+        if user.is_authenticated():
+            return MasterlistQuestion.objects.all()
+        return MasterlistQuestion.objects.none()
 
     @list_route(methods=['GET', ])
     def schema_masterlist_datatable_list(self, request, *args, **kwargs):
@@ -3814,11 +3841,14 @@ class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaMasterlistViewSet(viewsets.ModelViewSet):
-    queryset = MasterlistQuestion.objects.all()
+    queryset = MasterlistQuestion.objects.none()
     serializer_class = SchemaMasterlistSerializer
 
     def get_queryset(self):
-        return self.queryset
+        user = self.request.user
+        if user.is_authenticated():
+            return MasterlistQuestion.objects.all()
+        return MasterlistQuestion.objects.none()
 
     @detail_route(methods=['GET', ])
     def get_masterlist_selects(self, request, *args, **kwargs):
@@ -4050,27 +4080,29 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class SchemaQuestionRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and \
-                hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = \
-                renderer_context['view']._datatables_total_count
-        return super(SchemaQuestionRenderer, self).render(
-            data, accepted_media_type, renderer_context)
+#class SchemaQuestionRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        if 'view' in renderer_context and \
+#                hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = \
+#                renderer_context['view']._datatables_total_count
+#        return super(SchemaQuestionRenderer, self).render(
+#            data, accepted_media_type, renderer_context)
 
 
 class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SchemaQuestionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (SchemaQuestionRenderer,)
+    #renderer_classes = (SchemaQuestionRenderer,)
     queryset = SectionQuestion.objects.none()
     serializer_class = DTSchemaQuestionSerializer
     page_size = 10
 
     def get_queryset(self):
-        # user = self.request.user
-        return SectionQuestion.objects.all()
+        user = self.request.user
+        if user.is_authenticated():
+            return SectionQuestion.objects.all()
+        return SectionQuestion.objects.none()
 
     @list_route(methods=['GET', ])
     def schema_question_datatable_list(self, request, *args, **kwargs):
@@ -4090,11 +4122,14 @@ class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaQuestionViewSet(viewsets.ModelViewSet):
-    queryset = SectionQuestion.objects.all()
+    queryset = SectionQuestion.objects.none()
     serializer_class = SchemaQuestionSerializer
 
     def get_queryset(self):
-        return self.queryset
+        user = self.request.user
+        if user.is_authenticated():
+            return SectionQuestion.objects.all()
+        return SectionQuestion.objects.none()
 
     @detail_route(methods=['GET', ])
     def get_question_parents(self, request, *args, **kwargs):
@@ -4413,27 +4448,29 @@ class SchemaProposalTypeFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class SchemaProposalTypeRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        if 'view' in renderer_context and \
-                hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = \
-                renderer_context['view']._datatables_total_count
-        return super(SchemaProposalTypeRenderer, self).render(
-            data, accepted_media_type, renderer_context)
+#class SchemaProposalTypeRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        if 'view' in renderer_context and \
+#                hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = \
+#                renderer_context['view']._datatables_total_count
+#        return super(SchemaProposalTypeRenderer, self).render(
+#            data, accepted_media_type, renderer_context)
 
 
 class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (SchemaProposalTypeFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (SchemaProposalTypeRenderer,)
+    #renderer_classes = (SchemaProposalTypeRenderer,)
     queryset = ProposalTypeSection.objects.none()
     serializer_class = DTSchemaProposalTypeSerializer
     page_size = 10
 
     def get_queryset(self):
-        # user = self.request.user
-        return ProposalTypeSection.objects.all()
+        user = self.request.user
+        if user.is_authenticated():
+            return ProposalTypeSection.objects.all()
+        return ProposalTypeSection.objects.none()
 
     @list_route(methods=['GET', ])
     def schema_proposal_type_datatable_list(self, request, *args, **kwargs):
@@ -4453,11 +4490,14 @@ class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
 
 
 class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
-    queryset = ProposalTypeSection.objects.all()
+    queryset = ProposalTypeSection.objects.none()
     serializer_class = SchemaProposalTypeSerializer
 
     def get_queryset(self):
-        return self.queryset
+        user = self.request.user
+        if user.is_authenticated():
+            return ProposalTypeSection.objects.all()
+        return ProposalTypeSection.objects.none()
 
     @detail_route(methods=['GET', ])
     def get_proposal_type_selects(self, request, *args, **kwargs):

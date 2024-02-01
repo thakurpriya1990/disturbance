@@ -1193,8 +1193,8 @@ class SchemaQuestionSerializer(serializers.ModelSerializer):
             if option_list:
                 options = [
                     {
-                        'label': o.label,
-                        'value': o.value,
+                        'label': o["label"],
+                        'value': o["value"],
                         #'conditions': self.conditions
 
                     } for o in option_list
