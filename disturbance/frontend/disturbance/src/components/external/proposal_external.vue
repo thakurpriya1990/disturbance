@@ -821,9 +821,10 @@ export default {
                 }
              }
              else{
-                if((!vm.proposal.region) || (!vm.proposal.district)||(vm.proposal.management_area=='')||(vm.proposal.approval_level==''))
-                {
-                    blank_fields.push('Region or District or Category cannot be blank')
+                if((!vm.proposal.region) || (!vm.proposal.district) || (vm.proposal.approval_level=='')) {
+                    if((vm.proposal.management_area=='') && (vm.proposal.sub_activity_level1='')) {
+                        blank_fields.push('Region or District or Category/Sub Activity cannot be blank')
+                    }
                 }
              }
 
