@@ -51,6 +51,7 @@ KB_API_URL=env("KMI_URL", 'https://kaartdijin-boodja.dbca.wa.gov.au/')
 KB_LAYER_URL = env('KB_LAYER_URL', 'https://kaartdijin-boodja.dbca.wa.gov.au/api/catalogue/entries/{{layer_name}}/layer/')
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 SHOW_DAS_MAP = env('SHOW_DAS_MAP', True)
+SHOW_ROOT_API = env('SHOW_ROOT_API', False)
 
 
 INSTALLED_APPS += [

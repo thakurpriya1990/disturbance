@@ -28,8 +28,7 @@ from disturbance.utils import are_migrations_running
 from disturbance.views import LedgerPayView
 
 router = routers.DefaultRouter()
-if not settings.DEBUG:
-    router.include_root_view = False
+router.include_root_view = settings.SHOW_ROOT_API
 
 router.register(r'organisations',org_api.OrganisationViewSet,"organisations")
 router.register(r'proposal',proposal_api.ProposalViewSet,"proposal")
