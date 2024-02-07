@@ -2280,8 +2280,10 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     previous_proposal = Proposal.objects.get(id=self.id)
                     proposal = clone_proposal_with_status_reset(previous_proposal)
                     #proposal.schema = ProposalType.objects.first().schema
-                    ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
-                    proposal.schema = ptype.schema
+                    # Commented Below - USE existing proposal_type for consistency - section names can change between ptype's particularly with schema gen tool
+                    #ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
+                    #proposal.schema = ptype.schema
+
                 proposal.proposal_type = 'renewal'
                 proposal.submitter = request.user
                 proposal.previous_application = self
@@ -2329,8 +2331,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 proposal = clone_proposal_with_status_reset(previous_proposal)
                 proposal.proposal_type = 'amendment'
                 #proposal.schema = ProposalType.objects.first().schema
-                ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
-                proposal.schema = ptype.schema
+                # Commented Below - USE existing proposal_type for consistency - section names can change between ptype's particularly with schema gen tool
+                #ptype = ProposalType.objects.filter(name=proposal.application_type).latest('version')
+                #proposal.schema = ptype.schema
                 proposal.submitter = request.user
                 proposal.previous_application = self
                 #copy all the requirements from the previous proposal
