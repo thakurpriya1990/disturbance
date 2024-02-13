@@ -27,6 +27,10 @@ from disturbance.components.organisations.emails import (
 
             )
 
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
+private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+
 @python_2_unicode_compatible
 class Organisation(models.Model):
     organisation = models.ForeignKey(ledger_organisation)
@@ -581,7 +585,7 @@ def update_organisation_comms_log_filename(instance, filename):
 
 class OrganisationLogDocument(Document):
     log_entry = models.ForeignKey('OrganisationLogEntry',related_name='documents')
-    _file = models.FileField(upload_to=update_organisation_comms_log_filename)
+    _file = models.FileField(upload_to=update_organisation_comms_log_filename, storage=private_storage)
 
     class Meta:
         app_label = 'disturbance'
@@ -803,7 +807,7 @@ def update_organisation_request_comms_log_filename(instance, filename):
 
 class OrganisationRequestLogDocument(Document):
     log_entry = models.ForeignKey('OrganisationRequestLogEntry',related_name='documents')
-    _file = models.FileField(upload_to=update_organisation_request_comms_log_filename)
+    _file = models.FileField(upload_to=update_organisation_request_comms_log_filename, storage=private_storage)
 
     class Meta:
         app_label = 'disturbance'
