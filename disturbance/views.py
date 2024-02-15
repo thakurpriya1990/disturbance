@@ -300,6 +300,7 @@ def is_authorised_to_access_document(request):
         if a_document_id:
             return is_authorised_to_access_approval_document(request,a_document_id)
         
+        #for organisation requests, this will fail and they are stored in a request subdir and by date (which is fine for current use cases)
         o_document_id = get_file_path_id("organisations",request.path)
         if o_document_id:
             return is_authorised_to_access_organisation_document(request,a_document_id)
