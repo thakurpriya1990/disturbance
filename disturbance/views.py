@@ -273,7 +273,7 @@ def is_authorised_to_access_organisation_document(request,document_id):
         user = request.user
         org_contacts = OrganisationContact.objects.filter(is_admin=True).filter(email=user.email)
         user_admin_orgs = [org.organisation.id for org in org_contacts]
-        return Organisation.objects.filter(id__in=user_admin_orgs).exists()
+        return Organisation.objects.filter(id=document_id).filter(id__in=user_admin_orgs).exists()
     
 def get_file_path_id(check_str,file_path):
     file_name_path_split = file_path.split("/")
