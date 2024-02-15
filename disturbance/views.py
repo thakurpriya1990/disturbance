@@ -310,8 +310,10 @@ def getPrivateFile(request):
 
     if is_authorised_to_access_document(request):
         file_name_path =  request.path
-        full_file_path= settings.BASE_DIR+file_name_path
-        if os.path.isfile(full_file_path) is True:
+        #norm path will convert any traversal or repeat / in to its normalised form
+        full_file_path= os.path.normpath(os.path.join(settings.BASE_DIR,file_name_path)) 
+        #we then ensure the normalised path is within the BASE_DIR (and the file exists)
+        if full_file_path.startswith(settings.BASE_DIR) and os.path.isfile(full_file_path):
             extension = file_name_path.split(".")[-1]
             the_file = open(full_file_path, 'rb')
             the_data = the_file.read()
