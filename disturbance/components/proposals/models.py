@@ -80,7 +80,7 @@ def update_proposal_doc_filename(instance, filename):
     return 'proposals/{}/documents/{}'.format(instance.proposal.id,filename)
 
 def update_proposal_comms_log_filename(instance, filename):
-    return 'proposals/{}/communications/{}/{}'.format(instance.log_entry.proposal.id,instance.id,filename)
+    return 'proposals/{}/communications/{}/{}'.format(instance.log_entry.proposal.id,instance.log_entry.id,filename)
 
 def update_amendment_request_doc_filename(instance, filename):
     return 'proposals/{}/amendment_request_documents/{}'.format(instance.amendment_request.proposal.id,filename)

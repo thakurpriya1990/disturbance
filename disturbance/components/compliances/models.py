@@ -323,12 +323,12 @@ class ComplianceLogEntry(CommunicationsLogEntry):
         app_label = 'disturbance'
 
 def update_compliance_comms_log_filename(instance, filename):
-    return 'proposals/{}/compliance/{}/communications/{}/{}'.format(instance.log_entry.compliance.proposal.id,instance.log_entry.compliance.id,instance.id,filename)
+    return 'proposals/{}/compliance/{}/communications/{}/{}'.format(instance.log_entry.compliance.proposal.id,instance.log_entry.compliance.id,instance.log_entry.id,filename)
 
 
 class ComplianceLogDocument(Document):
     log_entry = models.ForeignKey('ComplianceLogEntry',related_name='documents')
-    _file = models.FileField(upload_to=update_compliance_comms_log_filename)
+    _file = models.FileField(upload_to=update_compliance_comms_log_filename, storage=private_storage)
 
     class Meta:
         app_label = 'disturbance'

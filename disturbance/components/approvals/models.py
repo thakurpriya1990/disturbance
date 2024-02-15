@@ -48,7 +48,7 @@ def update_approval_doc_filename(instance, filename):
 
 
 def update_approval_comms_log_filename(instance, filename):
-    return 'approvals/{}/communications/{}/{}'.format(instance.log_entry.approval.id,instance.id,filename)
+    return 'approvals/{}/communications/{}/{}'.format(instance.log_entry.approval.id,instance.log_entry.id,filename)
 
 
 class ApprovalDocument(Document):
