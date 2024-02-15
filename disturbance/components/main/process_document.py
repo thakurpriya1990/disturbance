@@ -2,7 +2,7 @@ import os
 from django.core.files.base import ContentFile
 import traceback
 from disturbance.components.main.models import TemporaryDocument
-from disturbance.components.approvals import models
+from disturbance.components.approvals import models #TODO: improvable - this should be imported from a common source instead of one of many models
 from django.conf import settings
 
 from disturbance.components.proposals.models import (

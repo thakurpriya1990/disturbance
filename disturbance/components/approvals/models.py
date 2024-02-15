@@ -29,6 +29,7 @@ from disturbance.utils import search_keys, search_multiple_keys
 from disturbance.helpers import is_customer
 from django_countries.fields import CountryField
 
+#TODO: improvable - these three lines are repeated throughout the models and ought to be set in one place
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
