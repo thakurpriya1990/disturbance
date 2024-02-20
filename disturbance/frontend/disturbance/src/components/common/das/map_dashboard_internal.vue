@@ -74,7 +74,7 @@
                                 </div>
                                 <div class="col-md-3">
                                     <div class="form-group">
-                                        <label for="">Proponent Type</label>
+                                        <label for="">Proposal Type</label>
                                         <select class="form-control" v-model="filterProposalApplicationType">
                                             <option value="All">All</option>
                                             <option v-for="a in application_types" :value="a">{{a}}</option>
