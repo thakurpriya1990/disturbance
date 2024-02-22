@@ -35,7 +35,8 @@
         </div>
     </div>
 
-    <div class="row">
+    <!--TODO There is no user details dashboard and no working search functionality below - commenting this block out until both are available -->
+    <!--<div class="row">
         <div class="col-sm-12">
             <div class="panel panel-default">
                 <div class="panel-heading">
@@ -69,7 +70,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>-->
 
     <div class="row">
         <div class="col-sm-12">
