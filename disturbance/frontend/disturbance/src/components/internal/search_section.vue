@@ -57,7 +57,7 @@
                             </div>
 
                             <div v-if="display_activity_matrix_selectbox">
-                              <div v-if="activities.length > 0">
+                              <!--<div v-if="activities.length > 0">-->
                                 <label for="" class="control-label" >Activity Type  <a :href="activity_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
                                 <div >
                                   <div class="form-group">
@@ -69,11 +69,11 @@
                                     </select>
                                   </div>
                                 </div>
-                              </div>
+                              <!--</div>-->
                             </div>
 
                             <div v-if="display_section_selectbox">
-                              <div v-if="sections.length > 0">
+                              <!--<div v-if="sections.length > 0">-->
                                 <label for="" class="control-label" >Sections </label>
                                 <div >
                                   <div class="form-group">
@@ -85,11 +85,11 @@
                                     </select>
                                   </div>
                                 </div>
-                              </div>
+                              <!--</div>-->
                             </div>
 
                             <div>
-                              <div v-if="questions.length > 0">
+                              <!--<div v-if="questions.length > 0">-->
                                 <label for="" class="control-label" >Questions </label>
                                 <div >
                                   <div class="form-group">
@@ -101,7 +101,7 @@
                                     </select>
                                   </div>
                                 </div>
-                              </div>
+                              <!--</div>-->
                             </div>
 
                             <div v-if="selected_question">
@@ -117,7 +117,7 @@
                                 </div>
                               </div>
 
-                              <div v-else-if="select_type && options.length > 0">
+                              <div v-else-if="select_type"> <!--&& options.length > 0">-->
                                 <label for="" class="control-label" >Options </label>
                                 <div >
                                   <div class="form-group">
