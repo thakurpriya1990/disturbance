@@ -3375,14 +3375,16 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
-def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
+def search_sections(proposal_type_id, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
     from disturbance.utils import search_section
     #print(application_type_name, section_label,question_label,option_label,is_internal)
     qs = []
     if is_internal:
-        if(not application_type_name or not section_label or not question_id or not option_label):
+        if(not proposal_type_id or not section_label or not question_id or not option_label):
             raise ValidationError('Some of the mandatory fields are missing')
-        proposal_list = Proposal.objects.filter(application_type__name=application_type_name, data__isnull=False).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        proposal_type=ProposalType.objects.get(id=proposal_type_id)
+        proposal_type_name=proposal_type.name
+        proposal_list = Proposal.objects.filter(application_type__name=proposal_type_name, data__isnull=False).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         question=MasterlistQuestion.objects.get(id=question_id)
         filter_conditions={}
         if region:
