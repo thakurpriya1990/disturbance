@@ -188,7 +188,7 @@ import {
 }
 from '@/utils/hooks'
 import utils from './utils'
-import searchSection from './search_section.vue'
+import searchSection from './search_section_latest.vue'
 export default {
   name: 'ExternalDashboard',
   props: {
