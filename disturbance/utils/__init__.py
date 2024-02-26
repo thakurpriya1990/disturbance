@@ -619,7 +619,8 @@ def search_section(schema, section_label, question, data, answer):
                             found_fields.append( dict(key=item['label'], value=flat_key[1]) )
                             break 
                     else: 
-                        if answer.replace(" ","").lower() in flat_key[1].lower():
+                        # if answer.replace(" ","").lower() in flat_key[1].lower():
+                        if answer.strip().lower() in flat_key[1].lower():
                             found_fields.append( dict(key=item['label'], value=flat_key[1]) )
                             break
     return found_fields
