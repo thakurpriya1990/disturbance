@@ -43,10 +43,30 @@
                             </div>
                         </div>
                     </div>
+                    <!--<div class="row">
+                        <div class="col-md-3">
+                            <label for="">Start date From</label>
+                            <div class="input-group date" ref="complianceStartDateFromPicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterComplianceStartFrom">
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="">Start date To</label>
+                            <div class="input-group date" ref="complianceStartDateToPicker">
+                                <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterComplianceStartTo">
+                                <span class="input-group-addon">
+                                    <span class="glyphicon glyphicon-calendar"></span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>-->
                     <div class="row">
                         <div class="col-md-3">
                             <label for="">Due date From</label>
-                            <div class="input-group date" ref="complianceDateFromPicker">
+                            <div class="input-group date" ref="complianceDueDateFromPicker">
                                 <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterComplianceDueFrom">
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
@@ -55,7 +75,7 @@
                         </div>
                         <div class="col-md-3">
                             <label for="">Due date To</label>
-                            <div class="input-group date" ref="complianceDateToPicker">
+                            <div class="input-group date" ref="complianceDueDateToPicker">
                                 <input type="text" class="form-control" placeholder="DD/MM/YYYY" v-model="filterComplianceDueTo">
                                 <span class="input-group-addon">
                                     <span class="glyphicon glyphicon-calendar"></span>
@@ -116,6 +136,8 @@ export default {
             filterProposalRegion: [],
             filterProposalActivity: 'All',
             filterComplianceStatus: 'All',
+            filterComplianceStartFrom: '',
+            filterComplianceStartTo: '',
             filterComplianceDueFrom: '',
             filterComplianceDueTo: '',
             filterProposalSubmitter: 'All',
@@ -182,6 +204,12 @@ export default {
             this.$refs.proposal_datatable.vmDataTable.draw();
         },
         filterProposalSubmitter: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        filterComplianceStartFrom: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        filterComplianceStartTo: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
         },
         filterComplianceDueFrom: function(){
@@ -378,8 +406,10 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.start_date_from = vm.filterComplianceStartFrom != '' && vm.filterComplianceStartFrom != null ? moment(vm.filterComplianceStartFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.start_date_to = vm.filterComplianceStartTo != '' && vm.filterComplianceStartTo != null ? moment(vm.filterComplianceStartTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.due_date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        d.due_date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.compliance_status = vm.filterComplianceStatus;
                         d.region = vm.filterProposalRegion;
                         d.proposal_activity = vm.filterProposalActivity;
@@ -451,22 +481,42 @@ export default {
         addEventListeners: function(){
             let vm = this;
             // Initialise Proposal Date Filters
-            $(vm.$refs.complianceDateToPicker).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.complianceDateToPicker).on('dp.change', function(e){
-                if ($(vm.$refs.complianceDateToPicker).data('DateTimePicker').date()) {
-                    vm.filterComplianceDueTo =  e.date.format('DD/MM/YYYY');
+            $(vm.$refs.complianceStartDateToPicker).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.complianceStartDateToPicker).on('dp.change', function(e){
+                if ($(vm.$refs.complianceStartDateToPicker).data('DateTimePicker').date()) {
+                    vm.filterComplianceStartTo =  e.date.format('DD/MM/YYYY');
                 }
-                else if ($(vm.$refs.complianceDateToPicker).data('date') === "") {
+                else if ($(vm.$refs.complianceStartDateToPicker).data('date') === "") {
                     vm.filterProposaLodgedTo = "";
                 }
              });
-            $(vm.$refs.complianceDateFromPicker).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.complianceDateFromPicker).on('dp.change',function (e) {
-                if ($(vm.$refs.complianceDateFromPicker).data('DateTimePicker').date()) {
-                    vm.filterComplianceDueFrom = e.date.format('DD/MM/YYYY');
-                    $(vm.$refs.complianceDateToPicker).data("DateTimePicker").minDate(e.date);
+            $(vm.$refs.complianceStartDateFromPicker).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.complianceStartDateFromPicker).on('dp.change',function (e) {
+                if ($(vm.$refs.complianceStartDateFromPicker).data('DateTimePicker').date()) {
+                    vm.filterComplianceStartFrom = e.date.format('DD/MM/YYYY');
+                    $(vm.$refs.complianceStartDateToPicker).data("DateTimePicker").minDate(e.date);
                 }
-                else if ($(vm.$refs.complianceDateFromPicker).data('date') === "") {
+                else if ($(vm.$refs.complianceStartDateFromPicker).data('date') === "") {
+                    vm.filterComplianceStartFrom = "";
+                }
+            });
+            
+            $(vm.$refs.complianceDueDateToPicker).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.complianceDueDateToPicker).on('dp.change', function(e){
+                if ($(vm.$refs.complianceDueDateToPicker).data('DateTimePicker').date()) {
+                    vm.filterComplianceDueTo =  e.date.format('DD/MM/YYYY');
+                }
+                else if ($(vm.$refs.complianceDueDateToPicker).data('date') === "") {
+                    vm.filterProposaLodgedTo = "";
+                }
+             });
+            $(vm.$refs.complianceDueDateFromPicker).datetimepicker(vm.datepickerOptions);
+            $(vm.$refs.complianceDueDateFromPicker).on('dp.change',function (e) {
+                if ($(vm.$refs.complianceDueDateFromPicker).data('DateTimePicker').date()) {
+                    vm.filterComplianceDueFrom = e.date.format('DD/MM/YYYY');
+                    $(vm.$refs.complianceDueDateToPicker).data("DateTimePicker").minDate(e.date);
+                }
+                else if ($(vm.$refs.complianceDueDateFromPicker).data('date') === "") {
                     vm.filterComplianceDueFrom = "";
                 }
             });
