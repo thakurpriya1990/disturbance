@@ -59,6 +59,7 @@ router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet,"apiary_r
 router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet,"apiary_site_fees")
 #router.register(r'payment',payment_api.PaymentViewSet)
 router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet,"proposal_type_sections")
+router.register(r'search_proposal_types', proposal_api.SearchProposalTypeViewSet)
 
 router.register(
     r'schema_question_paginated', proposal_api.SchemaQuestionPaginatedViewSet,"schema_question_paginated")

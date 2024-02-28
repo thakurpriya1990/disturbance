@@ -126,6 +126,7 @@ from disturbance.components.proposals.serializers import (
     SchemaMasterlistOptionSerializer,
     DASMapFilterSerializer,
     SearchGeoJsonSerializer,
+    SearchProposalTypeSerializer,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
@@ -3728,11 +3729,17 @@ class ProposalTypeSectionViewSet(viewsets.ReadOnlyModelViewSet):
     #queryset = ProposalTypeSection.objects.all().order_by('id')
     serializer_class = ProposalTypeSectionSerializer
 
+class SearchProposalTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    #Only select Proposal Types which has Sections linked to them
+    proposal_type_ids= ProposalTypeSection.objects.all().values_list('proposal_type_id', flat=True).distinct()
+    queryset = ProposalType.objects.filter(id__in=proposal_type_ids)
+    serializer_class = SearchProposalTypeSerializer
+
 class SearchSectionsView(views.APIView):
     renderer_classes = [JSONRenderer,]
     def post(self,request, format=None):
         qs = []
-        application_type_name= request.data.get('application_type_name')
+        proposal_type_id= request.data.get('proposal_type_id')
         region= request.data.get('region')
         district= request.data.get('district')
         activity= request.data.get('activity')
@@ -3740,7 +3747,7 @@ class SearchSectionsView(views.APIView):
         question_id= request.data.get('question_id')
         option_label= request.data.get('option_label')
         is_internal= request.data.get('is_internal')
-        qs= search_sections(application_type_name, section_label,question_id,option_label,is_internal, region,district,activity)
+        qs= search_sections(proposal_type_id, section_label,question_id,option_label,is_internal, region,district,activity)
         #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
         return Response(serializer.data)

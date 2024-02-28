@@ -834,6 +834,20 @@ class ProposalTypeSectionSerializer(serializers.ModelSerializer):
         model = ProposalTypeSection
         fields = '__all__'
 
+class SearchProposalTypeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType on the Search Section.
+    '''
+    sections = ProposalTypeSectionSerializer(many=True, read_only=True)
+    class Meta:
+        model = ProposalType
+        fields = (
+                'id',
+                'name_with_version',
+                'name',
+                'sections',
+        )
+
 #Schema screen serializers 
 class SchemaSectionSerializer(serializers.ModelSerializer):
     '''

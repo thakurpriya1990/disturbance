@@ -366,7 +366,9 @@
                                         <div class="navbar-inner">
                                             <div v-if="hasAssessorMode" class="container">
                                               <p class="pull-right">
-                                                <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                                <button class="btn btn-primary" style="margin-top:5px;" @click.prevent="save()">Save and Continue</button>
+                                                
+                                                <button class="btn btn-primary" style="margin-top:5px;" @click.prevent="save_exit()">Save and Exit</button>
                                               </p>
                                             </div>
                                         </div>
@@ -1069,6 +1071,18 @@ export default {
               )
           },err=>{
           });
+        },
+        save_exit: function(e) {
+          let vm = this;
+          vm.checkAssessorData();
+          let formData = new FormData(vm.form);
+          vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+          },err=>{
+          });
+          // redirect back to dashboard
+            vm.$router.push({
+                name: 'internal-dashboard'
+            });
         },
         save_wo: function() {
           let vm = this;
