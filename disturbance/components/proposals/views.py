@@ -7,6 +7,7 @@ from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
 from django.core.cache import cache
+from django.db.models import Q
 
 import requests
 from requests.auth import HTTPBasicAuth
@@ -63,7 +64,7 @@ class ProposalFilteredHistoryCompareView(HistoryCompareDetailView):
     """
 
     model = Proposal
-    template_name = 'commercialoperator/reversion_history.html'
+    template_name = 'disturbance/reversion_history.html'
 
     def _get_action_list(self,):
         """ Get only versions when processing_status changed, and add the most recent (current) version """
