@@ -8,10 +8,10 @@
         <h3 v-if="proposal.migrated">Proposal: {{ proposal.lodgement_number }} (Migrated)</h3>
         <h3 v-else>Proposal: {{ proposal.lodgement_number }}</h3>
         <h4>Proposal Type: {{proposal.proposal_type }}</h4>
-        <div v-if="proposal.application_type!='Apiary'">
+        <div v-if="proposal.application_type!='Apiary'" class="noPrint">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 noPrint">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
             <div class="row" v-if="canSeeSubmission || (!canSeeSubmission && showingProposal) || versionCurrentlyShowing>0">
                 <div class="panel panel-default">
@@ -1542,8 +1542,19 @@ export default {
             });
             */
         },
+        beforePrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "none" );
+        },
+        afterPrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "" );
+        }
     },
     mounted: function() {
+        window.addEventListener('beforeprint', this.beforePrinting);
+        window.addEventListener('afterprint', this.afterPrinting);
+        
     },
     updated: function(){
         let vm = this;
@@ -1564,6 +1575,8 @@ export default {
                 vm.deficientFields();
             }
         });
+        window.addEventListener('beforeprint', this.beforePrinting);
+        window.addEventListener('afterprint', this.afterPrinting);
     },
     created: function() {
         Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
@@ -1639,5 +1652,11 @@ export default {
     padding:10px;
     margin:0 0 0 -15px;
 }
+@media print { 
+.noPrint { 
+  display: none;
+ }
+
+} 
 
 </style>
