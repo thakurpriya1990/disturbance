@@ -254,6 +254,8 @@ class ProposalSerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     # apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
     apiary_group_application_type = serializers.SerializerMethodField()
+    # region_name=serializers.CharField(source='region.name', read_only=True)
+    # district_name=serializers.CharField(source='district.name', read_only=True)
 
     class Meta:
         model = Proposal
@@ -262,6 +264,8 @@ class ProposalSerializer(BaseProposalSerializer):
             'proposal_apiary',
             'apiary_temporary_use',
             'apiary_group_application_type',
+            'region_name',
+            'district_name',
             # 'apiary_temporary_use_set',
         )
 
@@ -380,6 +384,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
     reversion_history = serializers.SerializerMethodField()
+    # region_name=serializers.CharField(source='region.name', read_only=True)
+    # district_name=serializers.CharField(source='district.name', read_only=True)
     
     class Meta:
         model = Proposal
@@ -443,6 +449,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'requirements_completed',
                 'reversion_history',
                 'reissued',
+                'region_name',
+                'district_name',
                 )
         read_only_fields=('documents','requirements')
 
