@@ -387,7 +387,7 @@ export default {
                         // 10. Action
                         data: '',
                         mRender:function (data,type,full) {
-                            console.log(full)
+                            //console.log(full)
                             let links = '';
                             if (!vm.is_external){
                                 if (full.processing_status=='With Assessor' && vm.check_assessor(full)) {
@@ -455,8 +455,8 @@ export default {
 
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
-                        d.start_date_from = vm.filterComplianceStartFrom != '' && vm.filterComplianceStartFrom != null ? moment(vm.filterComplianceStartFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
-                        d.start_date_to = vm.filterComplianceStartTo != '' && vm.filterComplianceStartTo != null ? moment(vm.filterComplianceStartTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        //d.start_date_from = vm.filterComplianceStartFrom != '' && vm.filterComplianceStartFrom != null ? moment(vm.filterComplianceStartFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
+                        //d.start_date_to = vm.filterComplianceStartTo != '' && vm.filterComplianceStartTo != null ? moment(vm.filterComplianceStartTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.due_date_from = vm.filterComplianceDueFrom != '' && vm.filterComplianceDueFrom != null ? moment(vm.filterComplianceDueFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.due_date_to = vm.filterComplianceDueTo != '' && vm.filterComplianceDueTo != null ? moment(vm.filterComplianceDueTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.compliance_status = vm.filterComplianceStatus;
@@ -577,11 +577,11 @@ export default {
             //vm.applySelect2()
         },
         applySelect2: function(){
-            console.log('in applySelect2')
+            //console.log('in applySelect2')
             let vm = this
 
             if (!vm.select2Applied){
-                console.log('select2 is being applied')
+                //console.log('select2 is being applied')
                 $(vm.$refs.filterRegion).select2({
                     "theme": "bootstrap",
                     allowClear: true,
@@ -716,7 +716,7 @@ export default {
         });
     },
     mounted: function(){
-        console.log('in mounted')
+        //console.log('in mounted')
         let vm = this;
         vm.fetchFilterLists();
         vm.fetchProfile();
