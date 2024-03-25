@@ -344,13 +344,16 @@ export default {
                     name: "current_proposal__title",
                     //visible: false,
                     searchable: true,
-                },
-                {
-                    data: "associated_proposals",
-                    //name: "current_proposal__activity",
-                    //visible: false,
-                    searchable: false,
                 });
+                if (!this.is_external){
+                    columnList.push(
+                    {
+                        data: "associated_proposals",
+                        //name: "current_proposal__activity",
+                        //visible: false,
+                        searchable: false,
+                    });
+                }
                 
             };
             columnList.push({
