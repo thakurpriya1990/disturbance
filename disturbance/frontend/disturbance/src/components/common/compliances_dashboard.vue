@@ -241,6 +241,7 @@ export default {
         },
         proposal_headers: function() {
             let approval_or_licence = this.dasTemplateGroup ? 'Approval' : 'Licence';
+            let holder_or_organisation = this.dasTemplateGroup ? 'Organisation' : 'Holder';
             let columnHeaders = [
                 "Number"]
             if (this.dasTemplateGroup) {
@@ -256,10 +257,12 @@ export default {
             if (this.dasTemplateGroup) {
                 columnHeaders.push("Proposal");
             };
-            columnHeaders.push(approval_or_licence,
-                "Holder",
-                "Status",
+            columnHeaders.push(
                 "Due Date",
+                "District",
+                holder_or_organisation,
+                approval_or_licence,
+                "Status",
                 );
             if (!this.is_external) {
                 columnHeaders.push("Assigned To");
@@ -307,7 +310,7 @@ export default {
             if (this.dasTemplateGroup) {
                 columnList.push(
                     {
-                        // 4. Requirement
+                        // 5. Requirement
                         data: "requirement",
                         //name: "proposal__title",
                         //visible: false,
@@ -341,7 +344,7 @@ export default {
             if (this.dasTemplateGroup) {
                 columnList.push(
                     {
-                        // 4. Title
+                        // 6. Proposal
                         data: "proposal_lodgement_number",
                         name: "proposal__lodgement_number",
                         //visible: false,
@@ -349,7 +352,24 @@ export default {
             };
             columnList.push(
                     {
-                        // 5. Approval/Licence
+                        // 7. Due Date
+                        data: "due_date",
+                        mRender:function (data,type,full) {
+                            return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
+                        }
+                    },
+                    {
+                        // 8. District
+                        data: "district",
+                        searchable: false,
+                    },
+                    {
+                        // 9. Holder
+                        data: "holder",
+                        name: "proposal__applicant__organisation__name"
+                    },
+                    {
+                        // 10. Approval/Licence
                         data: "approval_lodgement_number",
                         mRender:function (data,type,full) {
                             return `A${data}`;
@@ -357,26 +377,15 @@ export default {
                         name: "approval__lodgement_number"
                     },
                     {
-                        // 6. Holder
-                        data: "holder",
-                        name: "proposal__applicant__organisation__name"
-                    },
-                    {
-                        // 7. Status
+                        // 11. Status
                         data: vm.level == 'external'? "customer_status" : "processing_status",
                         searchable: false,  // There is a filter dropdown for 'Status'
                     },
-                    {
-                        // 8. Due Date
-                        data: "due_date",
-                        mRender:function (data,type,full) {
-                            return data != '' && data != null ? moment(data).format(vm.dateFormat): '';
-                        }
-                    });
+                    );
 
             if (!vm.is_external) {
                 columnList.push({
-                        // 9. Assigned To
+                        // 12. Assigned To
                         data: "assigned_to",
                         name: "assigned_to__first_name, assigned_to__last_name, assigned_to__email"
                         // visible: false
@@ -384,7 +393,7 @@ export default {
             }
             columnList.push(
                     {
-                        // 10. Action
+                        // 13. Action
                         data: '',
                         mRender:function (data,type,full) {
                             //console.log(full)
