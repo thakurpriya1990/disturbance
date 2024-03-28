@@ -10,13 +10,13 @@ import logging
 logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
-    help = 'Clears old tasks to prevent unnecessary growth of TaskMonitor table'
+    help = f'Clears old tasks to prevent unnecessary growth of TaskMonitor table (> {settings.MAX_TASK_HISTORY} days)'
 
     def handle(self, *args, **options):
 
         task_ids = []
         errors = []
-        earliest_date = (datetime.now() - timedelta(days=60)).replace(tzinfo=timezone.utc)
+        earliest_date = (datetime.now() - timedelta(days=settings.MAX_TASK_HISTORY)).replace(tzinfo=timezone.utc)
         logger.info('Running command {}'.format(__name__))
 
         try:

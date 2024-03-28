@@ -478,6 +478,7 @@ class TaskMonitor(models.Model):
     STATUS_COMPLETED = 'completed'
     STATUS_CANCELLED = 'cancelled'
     STATUS_ERROR = 'error'
+    STATUS_MAX_QUEUE_TIME = 'max_queue_time'
     STATUS_MAX_RETRIES_REACHED = 'max_retries'
     STATUS_CHOICES = (
         (STATUS_FAILED,    'Failed'),
@@ -486,11 +487,12 @@ class TaskMonitor(models.Model):
         (STATUS_COMPLETED, 'Completed'),
         (STATUS_CANCELLED, 'Cancelled'),
         (STATUS_ERROR,     'Error'),
+        (STATUS_MAX_QUEUE_TIME, 'Max_Queue_Time_Reached'),
         (STATUS_MAX_RETRIES_REACHED, 'Max_Retries_Reached'),
     )
 
     task_id = models.PositiveIntegerField()
-    status  = models.CharField('Task Status', choices=STATUS_CHOICES, default=STATUS_CREATED, max_length=12)
+    status  = models.CharField('Task Status', choices=STATUS_CHOICES, default=STATUS_CREATED, max_length=32)
     retries = models.PositiveSmallIntegerField(default=0)
     proposal = models.ForeignKey('Proposal')
     info = models.TextField(blank=True, null=True)
