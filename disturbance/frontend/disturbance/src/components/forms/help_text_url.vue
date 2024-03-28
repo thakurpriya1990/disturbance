@@ -1,5 +1,5 @@
 <template lang="html">
-    <span v-if="help_text_url">
+    <span v-if="help_text_url" class="noPrint">
         <template v-if="!isForAssessor">
             <a :href="help_text_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
         </template>
@@ -22,6 +22,12 @@ export default {
 </script>
 
 <style lang="css">
+@media print { 
+.noPrint { 
+  display: none;
+ }
+
+} 
 </style>
 
 
