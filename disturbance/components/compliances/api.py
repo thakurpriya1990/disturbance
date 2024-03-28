@@ -92,13 +92,21 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
             else:
                 queryset = queryset.filter(processing_status=get_processing_choice(compliance_status))
 
-        date_from = request.GET.get('date_from')
-        date_to = request.GET.get('date_to')
+        start_date_from = request.GET.get('start_date_from')
+        start_date_to = request.GET.get('start_date_to')
         #import ipdb; ipdb.set_trace()
-        if date_from:
-            queryset = queryset.filter(approval__start_date__gte=date_from)
-        if date_to:
-            queryset = queryset.filter(approval__expiry_date__lte=date_to)
+        if start_date_from:
+            queryset = queryset.filter(approval__start_date__gte=start_date_from)
+        if start_date_to:
+            queryset = queryset.filter(approval__start_date__lte=start_date_to)
+
+        due_date_from = request.GET.get('due_date_from')
+        due_date_to = request.GET.get('due_date_to')
+        #import ipdb; ipdb.set_trace()
+        if due_date_from:
+            queryset = queryset.filter(due_date__gte=due_date_from)
+        if due_date_to:
+            queryset = queryset.filter(due_date__lte=due_date_to)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)

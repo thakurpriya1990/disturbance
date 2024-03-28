@@ -95,12 +95,19 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 #            if queryset.model is Referral:
 #                #processing_status_id = [i for i in Proposal.PROCESSING_STATUS_CHOICES if i[1]==processing_status][0][0]
 #                queryset = queryset.filter(processing_status=processing_status)
-        date_from = request.GET.get('date_from')
-        date_to = request.GET.get('date_to')
-        if date_from:
-            queryset = queryset.filter(start_date__gte=date_from)
-        if date_to:
-            queryset = queryset.filter(expiry_date__lte=date_to)
+        start_date_from = request.GET.get('start_date_from')
+        start_date_to = request.GET.get('start_date_to')
+        if start_date_from:
+            queryset = queryset.filter(start_date__gte=start_date_from)
+        if start_date_to:
+            queryset = queryset.filter(start_date__lte=start_date_to)
+        
+        expiry_date_from = request.GET.get('expiry_date_from')
+        expiry_date_to = request.GET.get('expiry_date_to')
+        if expiry_date_from:
+            queryset = queryset.filter(expiry_date__gte=expiry_date_from)
+        if expiry_date_to:
+            queryset = queryset.filter(expiry_date__lte=expiry_date_to)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)

@@ -187,6 +187,11 @@
                 <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_external="true" />
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" :key="proposalComponentMapKey">
                 <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+
+                <!-- From master 28-Mar-2024 TODO remove this commented section
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
+                <NewApply v-if="proposal" :proposal="proposal" ref="proposal_apply"></NewApply>
+                -->
                 <div>
                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                     <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -824,6 +829,20 @@ export default {
                 if((!vm.proposal.region) || (!vm.proposal.district) || (vm.proposal.approval_level=='')) {
                     if((vm.proposal.management_area=='') && (vm.proposal.sub_activity_level1='')) {
                         blank_fields.push('Region or District or Category/Sub Activity cannot be blank')
+                    }
+                }
+             }
+
+             if(vm.proposal.application_type == 'Disturbance'){
+                if(vm.proposal && vm.proposal.region && vm.proposal.district){
+                    let districts=vm.$refs.proposal_apply.districts
+                    let district_exists=false;
+                    if(districts){
+                        district_exists = [...districts.filter(district => district.value == vm.proposal.district)]
+                    }
+                    if(!district_exists || district_exists.length<1){
+                        vm.proposal.district=null;
+                        blank_fields.push(' You must select at least one District')
                     }
                 }
              }

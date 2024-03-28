@@ -20,7 +20,7 @@ from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
 from django.contrib.gis.db import models as gis_models
-from django.db.models import Q, Max
+from django.db.models import Q, Max, F
 from django.dispatch import receiver
 from django.db.models.signals import pre_delete, post_save
 from django.utils.encoding import python_2_unicode_compatible
@@ -3316,9 +3316,40 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
         proposal_list = Proposal.objects.filter(application_type__name='Disturbance').exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
         approval_list = Approval.objects.all().order_by('lodgement_number', '-issue_date').distinct('lodgement_number')
         compliance_list = Compliance.objects.all()
+
+        #print(proposal_list.count()+approval_list.count()+compliance_list.count())
+
     if searchWords:
+
+        search_words_regex = "(?:"
+        for i in range(0,len(searchWords)):
+            search_words_regex = search_words_regex + searchWords[i]
+            if i == len(searchWords)-1:
+                search_words_regex = search_words_regex + ")"
+            else:
+                search_words_regex = search_words_regex + "|"
+
+        filter_regex = ".*\".*\":\s\"(\\\\\"|[^\"])*"+search_words_regex+"(\\\\\"|[^\"])*\".*"
+        #extract_regex = "(?i)\'*\':\s\'(?:\\\\\'|[^\'])*"+search_words_regex+"(?:\\\\\'|[^\'])*\'" #attempted to further optimise but additional regex had a negligable impact at the cost of the data key
         if searchProposal:
+            
+            proposal_list = proposal_list.filter(data__iregex=filter_regex)
             for p in proposal_list:
+                name = ""
+                if p.applicant:
+                    name = p.applicant.name
+                #TODO consider below code and extract regex: it takes fewer lines and may be slightly(?) faster - but we lose the text dict key value (which is not currently in use, but may later be required)
+                #value = re.findall(extract_regex,str(p.data))
+                #if len(value):
+                #    value = value[-1][3:-1]
+                #res = {
+                #'number': p.lodgement_number,
+                #'id': p.id,
+                #'type': 'Proposal',
+                #'applicant': p.applicant.name,
+                #'text': {"key":"key","value":value},
+                #}
+                #qs.append(res)
                 if p.data:
                     try:
                         results = search(p.data[0], searchWords)
@@ -3326,18 +3357,19 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
                         if results:
                             for r in results:
                                 for key, value in r.items():
-                                    final_results.update({'key': key, 'value': value})
+                                    final_results.update({'key': key, 'value': value})                           
                             res = {
                                 'number': p.lodgement_number,
                                 'id': p.id,
                                 'type': 'Proposal',
-                                'applicant': p.applicant.name,
+                                'applicant': name,
                                 'text': final_results,
                                 }
                             qs.append(res)
                     except:
                         raise
         if searchApproval:
+            approval_list = approval_list.filter(Q(surrender_details__iregex=filter_regex) | Q(suspension_details__iregex=filter_regex) | Q(cancellation_details__iregex=search_words_regex))
             for a in approval_list:
                 try:
                     results = search_approval(a, searchWords)
@@ -3345,12 +3377,14 @@ def searchKeyWords(searchWords, searchProposal, searchApproval, searchCompliance
                 except:
                     raise
         if searchCompliance:
+            compliance_list = compliance_list.filter(Q(text__iregex=search_words_regex) | Q(requirement__free_requirement__iregex=search_words_regex) | Q(requirement__standard_requirement__text__iregex=search_words_regex))
             for c in compliance_list:
                 try:
                     results = search_compliance(c, searchWords)
                     qs.extend(results)
                 except:
                     raise
+    #print(len(qs))
     return qs
 
 def search_reference(reference_number):

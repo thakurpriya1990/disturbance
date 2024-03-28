@@ -276,6 +276,8 @@ class ProposalSerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     # apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
     apiary_group_application_type = serializers.SerializerMethodField()
+    # region_name=serializers.CharField(source='region.name', read_only=True)
+    # district_name=serializers.CharField(source='district.name', read_only=True)
 
     class Meta:
         model = Proposal
@@ -291,6 +293,8 @@ class ProposalSerializer(BaseProposalSerializer):
             'refresh_timestamp',
             'prefill_timestamp',
             'layer_data',
+            'region_name',
+            'district_name',
             # 'apiary_temporary_use_set',
         )
 
@@ -414,6 +418,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
     reversion_history = serializers.SerializerMethodField()
+    # region_name=serializers.CharField(source='region.name', read_only=True)
+    # district_name=serializers.CharField(source='district.name', read_only=True)
     
     class Meta:
         model = Proposal
@@ -485,6 +491,8 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'reversion_history',
                 'shapefile_json',
                 'reissued',
+                'region_name',
+                'district_name',
                 )
         read_only_fields=('documents','requirements','gis_info',)
 
