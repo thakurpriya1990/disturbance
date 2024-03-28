@@ -473,6 +473,10 @@ export default {
                         d.proposal_activity = vm.filterProposalActivity;
                         d.is_external = vm.is_external;
                         d.regions = vm.filterProposalRegion.join();
+                        //Remove the extra unused parameters from the GET url to reduce the length of the url
+                        for (var i = 0; i < d.columns.length; i++) {
+                            delete d.columns[i].search.regex;
+                        }
                     }
 
                 },
