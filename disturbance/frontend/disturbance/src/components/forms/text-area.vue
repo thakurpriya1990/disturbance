@@ -30,7 +30,7 @@
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
             <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
-            <textarea :readonly="readonly" class="form-control" rows="5" :name="name" :required="isRequired">{{ value }}</textarea>
+            <textarea :readonly="readonly" class="form-control" rows="5" :name="name" :required="isRequired" :id="textarea_id">{{ value }} </textarea>
         </div>
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
         <CommentBox :comment_boxes="JSON.parse(comment_boxes)" v-show="showingComment && assessorMode"/> 
@@ -56,6 +56,9 @@ export default {
         }
     },
     computed:{
+        textarea_id:function () {
+            return "textarea_"+this.id
+        },
         has_comment_value:function () {
             let has_value=false;
             let boxes=JSON.parse(this.comment_boxes)
@@ -72,8 +75,46 @@ export default {
     methods: {
         toggleComment(){
             this.showingComment = ! this.showingComment;
+        },
+        
+        adjustTextareaHeight() {
+            // var textareas = document.querySelectorAll('textarea');
+            // textareas.forEach(function(textarea) {
+            //     textarea.dataset.originalHeight = textarea.style.height;
+            //     textarea.dataset.originalOverflow = textarea.style.overflow;
+            //     textarea.style.height = 'auto';
+            //     textarea.style.height = textarea.scrollHeight + 'px';
+            //     textarea.style.overflow = 'hidden';
+
+            // });
+            // let textarea = $('#' + 'textarea_' + this.id);
+            // textarea.css('height','auto') 
+            // textarea.css('height',textarea.height()) 
+            // textarea.css('overflow','hidden') 
+            let textarea = document.getElementById('textarea_' + this.id);
+                textarea.dataset.originalHeight = textarea.style.height;
+                textarea.dataset.originalOverflow = textarea.style.overflow;
+                textarea.style.height = 'auto';
+                textarea.style.height = textarea.scrollHeight + 'px';
+                textarea.style.overflow = 'hidden';
+        },
+        revertTextareaStyleAfterPrinting() {
+            // var textareas = document.querySelectorAll('textarea');
+            // textareas.forEach(function(textarea) {
+            //     // Revert to original height and overflow style
+            //     textarea.style.height = textarea.dataset.originalHeight;
+            //     textarea.style.overflow = textarea.dataset.originalOverflow;
+            // });
+            let textarea = document.getElementById('textarea_' + this.id);
+                textarea.style.height = textarea.dataset.originalHeight;
+                textarea.style.overflow = textarea.dataset.originalOverflow;
         }
-    }
+
+    },
+    mounted() {
+        window.addEventListener('beforeprint', this.adjustTextareaHeight);
+        window.addEventListener('afterprint', this.revertTextareaStyleAfterPrinting);
+    },
 }
 </script>
 
@@ -81,4 +122,11 @@ export default {
     input {
         box-shadow:none;
     }
+    @media print { 
+    .noPrint { 
+    display: none;
+    }
+
+    } 
+    
 </style>
