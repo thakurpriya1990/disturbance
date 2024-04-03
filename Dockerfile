@@ -1,15 +1,14 @@
 # Prepare the base environment.
-# Based on the Dockerfile: https://github.com/dbca-wa/commercialoperator/blob/cols_fe_py3/Dockerfile
-FROM ubuntu:22.04 as builder_base_cols
+FROM ubuntu:22.04 as builder_base_das
 MAINTAINER asi@dbca.wa.gov.au
 ENV DEBIAN_FRONTEND=noninteractive
 ENV DEBUG=True
 ENV TZ=Australia/Perth
 ENV EMAIL_HOST="smtp.corporateict.domain"
 ENV DEFAULT_FROM_EMAIL='no-reply@dbca.wa.gov.au'
-ENV NOTIFICATION_EMAIL='brendan.blackford@dbca.wa.gov.au'
-ENV NON_PROD_EMAIL='brendan.blackford@dbca.wa.gov.au, walter.genuit@dbca.wa.gov.au, katsufumi.shibata@dbca.wa.gov.au,test_licensing@dpaw.wa.gov.au,jawaid.mushtaq@dbca.wa.gov.au,kelly.thomas@dbca.wa.gov.au,matthew.king@dbca.wa.gov.au,ashlee.russell@dbca.wa.gov.au,aaron.farr@dbca.wa.gov.au'
-ENV PRODUCTION_EMAIL=False
+ENV NOTIFICATION_EMAIL=''
+ENV NON_PROD_EMAIL=''
+ENV PRODUCTION_EMAIL=True
 ENV EMAIL_INSTANCE='DEV'
 ENV SECRET_KEY="ThisisNotRealKey"
 ENV SITE_PREFIX='das-apiary'
@@ -64,20 +63,36 @@ python3-gevent \
 software-properties-common \
 imagemagick \
 libspatialindex-dev \
+bzip2 \
+curl \
 npm 
 
-RUN add-apt-repository ppa:deadsnakes/ppa
+#RUN apt-get install -y ca-certificates curl gnupg build-essential
+#RUN mkdir -p /etc/apt/keyrings && \
+#    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+#    NODE_MAJOR=10 && \
+#    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" | tee /etc/apt/sources.list.d/nodesource.list
+#RUN apt-get update
+#RUN apt-get install nodejs -y
 
-#RUN apt-get update && apt-get install -y software-properties-common
+# nvm env vars
+RUN mkdir -p /usr/local/nvm
+ENV NVM_DIR /usr/local/nvm
+ENV NODE_VERSION v10.19.0
+RUN curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+RUN /bin/bash -c ". $NVM_DIR/nvm.sh && nvm install $NODE_VERSION && nvm use --delete-prefix $NODE_VERSION"
+ENV NODE_PATH $NVM_DIR/versions/node/$NODE_VERSION/bin
+ENV PATH $NODE_PATH:$PATH
+
+
 RUN add-apt-repository ppa:deadsnakes/ppa
-#RUN apt-get install --no-install-recommends -y python3.7
 RUN apt-get install --no-install-recommends -y python3.7 python3.7-dev python3.7-distutils 
 RUN ln -s /usr/bin/python3.7 /usr/bin/python && \
 python3.7 -m pip install --upgrade pip==21.3.1 && \
 apt-get install -yq vim
 
 # Install Python libs from requirements.txt.
-FROM builder_base_cols as python_libs_cols
+FROM builder_base_das as python_libs_das
 WORKDIR /app
 COPY requirements.txt ./
 RUN python3.7 -m pip install --no-cache-dir -r requirements.txt \
@@ -91,7 +106,7 @@ RUN patch /usr/local/lib/python3.7/dist-packages/django/contrib/gis/geos/libgeos
 rm /app/libgeos.py.patch
 
 # Install the project (ensure that frontend projects have been built prior to this step).
-FROM python_libs_cols
+FROM python_libs_das
 COPY gunicorn.ini manage_ds.py ./
 #COPY timezone /etc/timezone
 ENV TZ=Australia/Perth
@@ -126,6 +141,9 @@ RUN mkdir /app/logs/.ipython
 RUN export IPYTHONDIR=/app/logs/.ipython/
 #RUN python profile create
 
+# Health checks for kubernetes 
+RUN wget https://raw.githubusercontent.com/dbca-wa/wagov_utils/main/wagov_utils/bin/health_check.sh -O /bin/health_check.sh
+RUN chmod 755 /bin/health_check.sh
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
