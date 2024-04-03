@@ -262,9 +262,6 @@ def validate_invoice_details(request):
             "alert_message": "There are no unpaid invoices that meet the criteria.",
         })
 
-<<<<<<< HEAD
-
-
 @csrf_exempt
 def kbProxyViewOrig(request, path):
     from requests.auth import HTTPBasicAuth
