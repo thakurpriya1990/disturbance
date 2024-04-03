@@ -46,7 +46,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, search_sections, get_search_geojson
+    SupportingApplicationDocument, search_sections, get_search_geojson, private_storage
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure, search_label, get_schema_questions
@@ -159,7 +159,6 @@ from disturbance.components.main.serializers import DASMapLayerSqsSerializer
 
 from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
@@ -2016,7 +2015,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     _file = request.FILES.get('_file')
 
                 document = instance.documents.get_or_create(input_name=section, name=filename)[0]
-                path = default_storage.save('proposals/{}/documents/{}'.format(proposal_id, filename), ContentFile(_file.read()))
+                path = private_storage.save('proposals/{}/documents/{}'.format(proposal_id, filename), ContentFile(_file.read()))
 
                 document._file = path
                 document.save()
