@@ -264,6 +264,12 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(proposal__submitter__email=submitter)
             else:
                 queryset = queryset.filter(submitter__email=submitter)
+        applicant = request.GET.get('applicant')
+        if applicant and not applicant.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__applicant_id=applicant)
+            else:
+                queryset = queryset.filter(applicant_id=applicant)
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         if queryset.model is Proposal:
@@ -1943,6 +1949,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         region_qs = []
         activity_qs = []
         application_type_qs = []
+        applicant_qs = []
         if template_group == 'apiary':
             qs = self.get_queryset().filter(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
@@ -1951,21 +1958,32 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 submitter__isnull=False).filter(
                     application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
                     'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+            application_type_qs =  ApplicationType.objects.filter(
+                    name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, 
+                        #ApplicationType.TEMPORARY_USE
+                        ]).values_list(
+                        'name', flat=True).distinct()
         else:
             qs = self.get_queryset().exclude(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+            applicant_qs = qs.filter(applicant__isnull=False).distinct(
+                            'applicant_id').values_list('applicant_id','applicant__organisation__name',)
+
 
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
+        application_type_qs =  qs.filter(application_type__isnull=False).values_list('application_type__name', flat=True).distinct()
+        applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
         data = dict(
             regions=region_qs,
             #districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
-            #application_types=application_type_qs,
+            application_types=application_type_qs,
+            applicants=applicants,
             ##processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
             ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
             ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],

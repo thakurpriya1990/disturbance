@@ -13,6 +13,11 @@
                     </h3>
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
+                    <div class="row" v-if="is_external">
+                        <div class="col-md-3">                            
+                            <router-link  style="margin-top:25px;" class="btn btn-primary" :to="{ name: 'apply_proposal' }">{{newProposalText}}</router-link>
+                        </div>
+                    </div>
                     <div class="row">
                         <div v-if="!apiaryTemplateGroup">
                             <div class="col-md-3">
@@ -46,9 +51,18 @@
                                 </select>
                             </div>
                         </div>
-                        <div v-if="is_external" class="col-md-3">
-                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">{{newProposalText}}</router-link>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Proponent</label>
+                                <select class="form-control" v-model="filterProposalApplicant">
+                                        <option value="All">All</option>
+                                        <option v-for="s in proposal_applicants" :value="s.id">{{s.search_term}}</option>
+                                </select>
+                             </div>
                         </div>
+                        <!-- <div v-if="is_external" class="col-md-3">
+                            <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">{{newProposalText}}</router-link>
+                        </div> -->
                     </div>
                     <div class="row">
                         <div class="col-md-3">
@@ -75,6 +89,15 @@
                                 <select class="form-control" v-model="filterProposalSubmitter">
                                     <option value="All">All</option>
                                     <option v-for="s in proposal_submitters" :value="s.email">{{s.search_term}}</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Proposal Type</label>
+                                <select class="form-control" v-model="filterProposalApplicationType">
+                                    <option value="All">All</option>
+                                    <option v-for="a in proposal_applicationTypes" :value="a">{{a}}</option>
                                 </select>
                             </div>
                         </div>
@@ -146,6 +169,7 @@ export default {
             filterProposalLodgedFrom: '',
             filterProposalLodgedTo: '',
             filterProposalSubmitter: 'All',
+            filterProposalApplicant: 'All',
             dashboardTitle: '',
             dashboardDescription: '',
             newProposalText: '',
@@ -208,12 +232,13 @@ export default {
             }
         },
         filterProposalApplicationType: function() {
-            let vm = this;
-            if (vm.filterProposalApplicationType!= 'All') {
-                vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search(vm.filterProposalApplicationType).draw();
-            } else {
-                vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search('').draw();
-            }
+            // let vm = this;
+            // if (vm.filterProposalApplicationType!= 'All') {
+            //     vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search(vm.filterProposalApplicationType).draw();
+            // } else {
+            //     vm.$refs.proposal_datatable.vmDataTable.column('activity:name').search('').draw();
+            // }
+            this.$refs.proposal_datatable.vmDataTable.draw();
         },
         filterProposalSubmitter: function(){
             //this.$refs.proposal_datatable.vmDataTable.draw();
@@ -231,6 +256,9 @@ export default {
             } else {
                 vm.$refs.proposal_datatable.vmDataTable.column('status:name').search('').draw();
             }
+        },
+        filterProposalApplicant: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
         },
         filterProposalLodgedFrom: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
@@ -502,6 +530,7 @@ export default {
                         d.proposal_activity = vm.filterProposalActivity;
                         d.submitter = vm.filterProposalSubmitter;
                         d.proposal_status = vm.filterProposalStatus;
+                        d.applicant = vm.filterProposalApplicant;
                     }
                 },
                 dom: 'lBfrtip',
@@ -593,6 +622,7 @@ export default {
                 //vm.proposal_activityTitles.push('Apiary');
 
                 vm.proposal_submitters = response.body.submitters;
+                vm.proposal_applicants = response.body.applicants;
                 //vm.proposal_status = vm.level == 'internal' ? response.body.processing_status_choices: response.body.customer_status_choices;
                 vm.proposal_status = vm.level == 'internal' ? vm.internal_status: vm.external_status;
             },(error) => {
