@@ -32,7 +32,8 @@
 
                     <div class="row">
                         <div class="col-md-12">
-                            <button class="btn btn-primary pull-right" @click.prevent="addTableEntry()" name="add-spatialquery">New Question</button>
+                            <button class="btn btn-primary pull-right" @click.prevent="export_layers_used()" name="export-layers-used">Export Layers Used</button>
+			    <button class="btn btn-primary pull-right" @click.prevent="addTableEntry()" name="add-spatialquery">New Question</button>
                         </div>
                     </div>
 
@@ -1405,6 +1406,39 @@ export default {
             });
         },
 
+        export_layers_used:function () {
+            let vm = this;
+            vm.show_spinner = true;
+            swal({
+                title: "Export Layers Used",
+                text: "Are you sure you want to run export?",
+                type: "warning",
+                showCancelButton: true,
+                confirmButtonText: 'Export',
+                //confirmButtonColor:'#d9534f'
+            }).then(() => {
+                //vm.$http.get(api_endpoints.proposals + '/layers_used/')
+                vm.$http.get('/api/proposal/layers_used/')
+                .then((response) => {
+                    var FileSaver = require('file-saver');
+                    const blob = new Blob([response.body], {type: 'text/csv'});
+                    //const blob = new Blob([response.bodyText], {type: 'text/csv'});
+                    //console.log(response.headers.map.filename)
+                    FileSaver.saveAs(blob, response.headers.map.filename);
+                    vm.show_spinner = false;
+                }, (error) => {
+                    console.log(error);
+                    swal({
+                    title: "Export Layers Used",
+                    text: error.body,
+                    type: "error",
+                    })
+                });
+            },(error) => {
+
+            });
+        },
+
         has_form_errors: function () {
             console.log
             if (!this.spatialquery.question) { this.missing_fields.push({'label':'Question field is required'}); }
@@ -1839,4 +1873,6 @@ hr {
 }
 
 .superscript { position: relative; top: -0.2em; font-size: 140%; }
+
+.btn{display: inline-block; margin-right: 20px;}
 </style>

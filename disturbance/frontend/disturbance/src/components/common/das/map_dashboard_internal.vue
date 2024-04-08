@@ -84,9 +84,13 @@
                             </div>
                             
                             <div class="row">
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
-                                    Get Spatial File</button>
+                                    Get GeoJSON File</button>
+                                    <!--
+                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked"><i class="fa fa-download"></i>
+                                    Get Shapefile</button>
+                                    -->
                                 </div>
                                 <!-- <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
@@ -213,7 +217,7 @@
     import 'select2/dist/css/select2.min.css'
     import 'select2-bootstrap-theme/dist/select2-bootstrap.min.css'
     import Awesomplete from 'awesomplete'
-    import { api_endpoints } from '@/utils/hooks'
+    import { api_endpoints, helpers } from '@/utils/hooks'
     import { fromLonLat } from 'ol/proj'
     import {getCenter} from 'ol/extent'
     import {get as getProjection} from 'ol/proj';
@@ -378,7 +382,11 @@
                 let vm = this
                 
                 return false
-            }
+            },
+            csrf_token: function() { 
+              return helpers.getCookie('csrftoken') 
+            },
+
         },
         methods: {
             applyFiltersFrontEnd: function () {
@@ -455,7 +463,7 @@
                 a.download = fileName;
                 a.click();
             },
-            geoJsonButtonClicked: function () {
+            create_geoJson: function () {
                 let vm = this
                 // let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
                 // vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
@@ -465,23 +473,70 @@
                             let proposal = f.getProperties().proposal;
                             if(proposal){
                                 f.setProperties({
-                                    organisation : proposal.applicant_name,
-                                    approval_number: proposal.approval_lodgement_number,
-                                    proposal_title: proposal.title,
-                                    approval_issue_date: proposal.approval_issue_date,
-                                    approval_start_date: proposal.approval_start_date,
-                                    approval_expiry_date: proposal.approval_expiry_date,
-                                    proposal_type: proposal.proposal_type,
-                                    approval_status: proposal.approval_status,
-                                    associated_proposals: proposal.associated_proposals,
-                                    proposal_url: proposal.proposal_url,
+                                    org : proposal.applicant_name,
+                                    app_no: proposal.approval_lodgement_number,
+                                    prop_title: proposal.title,
+                                    appissdate: proposal.approval_issue_date,
+                                    appstadate: proposal.approval_start_date,
+                                    appexpdate: proposal.approval_expiry_date,
+                                    proptype: proposal.proposal_type,
+                                    appstatus: proposal.approval_status,
+                                    assocprop: proposal.assocprop,
+                                    propurl: proposal.proposal_url,
                                 })
                             }
                         });
                     }
-                let json = new GeoJSON().writeFeatures(features, {})
+                //let json = new GeoJSON().writeFeatures(features, {})
+                //vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
+                return new GeoJSON().writeFeatures(features, {})
+            },
+            geoJsonButtonClicked: function () {
+                let vm = this
+                let json = vm.create_geoJson();
                 vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
             },
+            shapefileButtonClicked: function () {
+                let vm = this
+                vm.show_spinner = true;
+                let json = vm.create_geoJson();
+                //vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
+
+                //let url = '/api/proposal/1/create_shapefile/'
+                let url = '/api/proposal/create_shapefile/'
+                //await self.$http.post(url ,JSON.stringify(json),{
+                //vm.$http.post(url, JSON.stringify(json),{
+                vm.$http.post(url, json,{
+                    emulateJSON:true,
+                }).then((response)=>{
+                    //vm.download_content(response.body, 'DAS_layers.zip', 'text/plain');
+                    vm.download_content(response.data, 'DAS_layers_1.zip', 'application/zip');
+
+//                    var FileSaver = require('file-saver');
+//                    const blob = new Blob([response.data], {type: 'application/zip'});
+//
+//                    //console.log(response.headers.map.filename)
+//                    //FileSaver.saveAs(blob, response.headers.map.filename);
+//                    FileSaver.saveAs(blob, 'jm.zip');
+
+                    swal(
+                        'Create shapefile',
+                        //response.body.message,
+                        'Completed',
+                        'success'
+                    )
+                    vm.show_spinner = false;
+                }, (error) => {
+                    swal(
+                        'Create shapefile Error',
+                        helpers.apiVueResourceError(error),
+                        'error'
+                    )
+                    vm.show_spinner = false;
+                });
+
+            },
+
             exportPNG: function () {
                 let vm = this;
                 vm.map.once('rendercomplete', function () {
