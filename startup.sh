@@ -28,7 +28,7 @@ if [ $status -ne 0 ]; then
   exit $status
 fi
 else
-   echo "ENABLE_WEB environment vairable not set to True, web server is not starting."
+   echo "ENABLE_WEB environment variable not set to True, web server is not starting."
    /bin/bash
 fi
 
