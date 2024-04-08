@@ -1,5 +1,5 @@
 <template lang="html">
-    <div class="" v-if="assessorMode && layer_value">
+    <div class="noPrint" v-if="assessorMode && layer_value">
     <div class="row">
         <div class="col-md-12">
             <div class="form-group">
@@ -66,4 +66,9 @@ export default {
 .buffer {
     margin-top: 5px;
 }
+@media print { 
+        .noPrint { 
+        display: none;
+        }
+    }
 </style>

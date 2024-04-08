@@ -87,10 +87,10 @@
             if (vm.withSectionsSelector){
                 return (
                     <div>
-                        <div id="scrollspy-heading" class="col-lg-12" >
+                        <div id="scrollspy-heading" class="col-lg-12 noPrint" >
                             <h3>Proposal: <small>{vm.proposal.lodgement_number}</small></h3>
                         </div>
-                        <div v-show={vm.showSections} class="col-md-3" >
+                        <div v-show={vm.showSections} class="col-md-3 noPrint" >
                             <div class="panel panel-default fixed">
                               <div class="panel-heading">
                                 <h5>Sections</h5>

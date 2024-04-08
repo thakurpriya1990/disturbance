@@ -1070,6 +1070,14 @@ export default {
             // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
             
         },
+        beforePrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "none" );
+        },
+        afterPrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "" );
+        }
     },
     mounted: function() {
         console.log('in mounted')
@@ -1078,6 +1086,8 @@ export default {
         vm.form = document.forms.new_proposal;
         window.addEventListener('beforeunload', vm.leaving);
         window.addEventListener('onblur', vm.leaving);
+        window.addEventListener('beforeprint', this.beforePrinting);
+        window.addEventListener('afterprint', this.afterPrinting);
         // this.$nextTick(() => {
         //   console.log("I am here1");
         //         if(vm.hasAmendmentRequest){
