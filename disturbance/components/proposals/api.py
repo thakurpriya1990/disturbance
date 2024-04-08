@@ -2,6 +2,7 @@ import re
 from telnetlib import NEW_ENVIRON
 import traceback
 import os
+import csv
 import requests
 from requests.auth import HTTPBasicAuth
 
@@ -1525,6 +1526,88 @@ class ProposalViewSet(viewsets.ModelViewSet):
 #            geojson = geojson,
 #        )
 #        return Response(data)
+
+
+    @list_route(methods=['GET', ])
+    @api_exception_handler
+    def layers_used(self, request, *args, **kwargs):
+        if not is_internal(self.request):
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        response = cache.get(f'layers_used')
+
+        if response:
+            logger.info('Export Layers Used: Retrieved from cache.')
+        else:
+            rows = []
+            rows.append(('Proposal Number', 'Proposal Submitter', 'Proposal Section', 'Layer Name', 'Layer Version', 'Layer Modified Date', 'SQS Timestamp'))
+            for proposal in Proposal.objects.filter(layer_data__isnull=False):
+                for data in proposal.layer_data:
+                    rows.append((proposal.lodgement_number, proposal.submitter, data['name'], data['layer_name'], data['layer_version'], data['layer_modified_date'], data['sqs_timestamp']))
+
+            filename = f'layers_used_{datetime.now().strftime("%Y%m%dT%H%M")}.csv'
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename={filename}'
+            response['filename'] = filename 
+            writer = csv.writer(response)
+            for row in rows:
+                writer.writerow(row)
+
+            cache.set(f'layers_used', response, settings.LAYERS_USED_CACHE_TIMEOUT)
+
+        return response
+
+    @list_route(methods=['POST', ])
+    @api_exception_handler
+    def _create_shapefile(self, request, *args, **kwargs):
+        #response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read())
+        response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read(), content_type='application/zip', mimetype="application/x-zip-compressed")
+        #response['Content-Type'] = 'application/zip'
+        #response['Content-Disposition'] = f'attachment; filename=DAS_layers_20240408T1336.shz'
+        #import ipdb; ipdb.set_trace()
+        return response
+
+
+    #@detail_route(methods=['POST',])
+    @list_route(methods=['POST', ])
+    @api_exception_handler
+    def create_shapefile(self, request, *args, **kwargs):
+        ''' 
+            requests.get('http://localhost:8003/api/proposal/1528/create_shapefile.json')
+        '''
+        import geopandas as gpd
+
+        if not is_internal(self.request):
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        if self.request.data['type'] != 'FeatureCollection' :
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        geojson = json.dumps(self.request.data)
+        #_type = data['type']
+        #features = data['features']
+
+            
+        gdf = gpd.read_file(geojson)
+        gdf.drop(columns=['proposal'], inplace=True)
+        gdf['appstadate'] = gdf['appstadate'].astype("string")
+        gdf['appissdate'] = gdf['appissdate'].astype("string")
+        gdf['appexpdate'] = gdf['appexpdate'].astype("string")
+
+        filename = f'/dbdumps/dumps/DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M")}.shz'
+        gdf.to_file(filename, driver='ESRI Shapefile')
+        #import ipdb; ipdb.set_trace()
+        
+        response = HttpResponse(open(filename, 'rb').read())
+        #response = HttpResponse(buffer.getvalue())
+#        response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read())
+#        response['Content-Type'] = 'application/x-zip-compressed'
+#        response['Content-Disposition'] = f'attachment; filename=DAS_layers_20240408T1336.shz'
+        response['Content-Type'] = 'application/zip'
+        response['Content-Disposition'] = f'attachment; filename={filename}'
+
+        return response
+
 
     @detail_route(methods=['POST',])
     @api_exception_handler

@@ -45,10 +45,12 @@ gcc \
 binutils \
 libproj-dev \
 gdal-bin \
+libgdal-dev \
 python3-setuptools \
 python3-pip \
 tzdata \
 cron \
+#nginx \
 rsyslog \
 gunicorn \
 libreoffice \
@@ -91,6 +93,10 @@ RUN ln -s /usr/bin/python3.7 /usr/bin/python && \
 python3.7 -m pip install --upgrade pip==21.3.1 && \
 apt-get install -yq vim
 
+# GDAL
+#RUN wget -O /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl https://github.com/girder/large_image_wheels/raw/wheelhouse/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl#sha256=e2fe6cfbab02d535bc52c77cdbe1e860304347f16d30a4708dc342a231412c57
+#RUN pip install /tmp/GDAL-3.8.3-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+
 # Install Python libs from requirements.txt.
 FROM builder_base_das as python_libs_das
 WORKDIR /app
@@ -125,6 +131,7 @@ chmod 777 /app/tmp/
 
 COPY cron /etc/cron.d/dockercron
 COPY startup.sh /
+#COPY nginx-default.conf /etc/nginx/sites-enabled/default
 # Cron start
 #RUN service rsyslog start
 RUN chmod 0644 /etc/cron.d/dockercron
