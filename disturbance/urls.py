@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
-from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView
+from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView, FileDownloadView, FileListView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
@@ -172,6 +172,8 @@ urlpatterns = [
     url(r'^internal/proposal/(?P<proposal_pk>\d+)/$', views.InternalProposalView.as_view(), name='internal-proposal-detail'),
     url(r'^external/compliance/(?P<compliance_pk>\d+)/$', views.ExternalComplianceView.as_view(), name='external-compliance-detail'),
     url(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
+    url(r'filelist/$', FileListView.as_view(), name='file-list'),
+    url(r'filedownload/(?P<filename>[\w\s ().-]+)/$', FileDownloadView.as_view(), name='file-download'),
     
     url(r'apiary_admin', views.ApiarySiteStatusView.as_view(), name='apiary_admin'),
 

@@ -5086,6 +5086,36 @@ class SupportingApplicationDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
+def export_file_path(instance, filename):
+    return f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+
+class OldFileExportManager(models.Manager):
+    def get_queryset(self):
+        days_ago = timezone.now() - datetime.timedelta(days=settings.CLEAR_AFTER_DAYS_FILE_EXPORT)
+        return super().get_queryset().filter(created__lt=days_ago)
+
+
+class ExportDocument(models.Model):
+    _file = models.FileField(upload_to=export_file_path, max_length=255, storage=private_storage)
+    requester = models.ForeignKey(EmailUser, related_name='+')
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    proposal = models.ForeignKey('Proposal', blank=True, null=True)
+  
+    objects = models.Manager()
+    old_files = OldFileExportManager()
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return f'Document {self._file}'
+
+    @property
+    def filename(self):
+        return os.path.basename(self._file.name)
+
+
 #class DeedPollDocument(DefaultDocument):
 #    proposal = models.ForeignKey('Proposal', related_name='deed_poll_documents')
 #    _file = models.FileField(max_length=512)
@@ -6213,5 +6243,5 @@ reversion.register(SectionQuestion)
 #CDDP Spatial model
 reversion.register(SpatialQueryQuestion)
 
-
+reversion.register(ExportDocument)
 

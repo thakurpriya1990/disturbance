@@ -47,7 +47,7 @@ from disturbance.components.proposals.utils import (
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, search_sections, get_search_geojson, private_storage
+    SupportingApplicationDocument, ExportDocument, search_sections, get_search_geojson, private_storage
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure, search_label, get_schema_questions
@@ -1565,56 +1565,39 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['POST', ])
     @api_exception_handler
-    def _create_shapefile(self, request, *args, **kwargs):
-        #response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read())
-        response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read(), content_type='application/zip', mimetype="application/x-zip-compressed")
-        #response['Content-Type'] = 'application/zip'
-        #response['Content-Disposition'] = f'attachment; filename=DAS_layers_20240408T1336.shz'
-        #import ipdb; ipdb.set_trace()
-        return response
-
-
-    #@detail_route(methods=['POST',])
-    @list_route(methods=['POST', ])
-    @api_exception_handler
     def create_shapefile(self, request, *args, **kwargs):
         ''' 
             requests.get('http://localhost:8003/api/proposal/1528/create_shapefile.json')
         '''
         import geopandas as gpd
-
+    
         if not is_internal(self.request):
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
         if self.request.data['type'] != 'FeatureCollection' :
             return Response(status=status.HTTP_401_UNAUTHORIZED)
-
+        
         geojson = json.dumps(self.request.data)
-        #_type = data['type']
-        #features = data['features']
-
             
         gdf = gpd.read_file(geojson)
         gdf.drop(columns=['proposal'], inplace=True)
         gdf['appstadate'] = gdf['appstadate'].astype("string")
         gdf['appissdate'] = gdf['appissdate'].astype("string")
         gdf['appexpdate'] = gdf['appexpdate'].astype("string")
+            
+        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.shz'
+        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+        gdf.to_file(f'private-media/{filepath}', driver='ESRI Shapefile')
 
-        filename = f'/dbdumps/dumps/DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M")}.shz'
-        gdf.to_file(filename, driver='ESRI Shapefile')
-        #import ipdb; ipdb.set_trace()
-        
-        response = HttpResponse(open(filename, 'rb').read())
-        #response = HttpResponse(buffer.getvalue())
-#        response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read())
-#        response['Content-Type'] = 'application/x-zip-compressed'
-#        response['Content-Disposition'] = f'attachment; filename=DAS_layers_20240408T1336.shz'
-        response['Content-Type'] = 'application/zip'
-        response['Content-Disposition'] = f'attachment; filename={filename}'
+        doc = ExportDocument()
+        doc._file.name = filepath
+        doc._file = filepath
+        doc.requester = request.user
+        doc.save()
 
-        return response
-
-
+        file_url = reverse('file-download', kwargs={'filename':filename})
+        return Response(data={'message': f'File created {filename}'}, status=status.HTTP_200_OK)
+                
     @detail_route(methods=['POST',])
     @api_exception_handler
     def sqs_data(self, request, *args, **kwargs):
@@ -3859,7 +3842,6 @@ class GetSearchGeoJsonView(views.APIView):
         
         search_geojson= get_search_geojson(proposal_lodgement_numbers, request)
         #queryset = list(set(qs))
-        #import ipdb; ipdb.set_trace()
         serializer = SearchGeoJsonSerializer({'search_geojson':search_geojson})
         return Response(serializer.data)
 

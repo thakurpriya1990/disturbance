@@ -1,0 +1,29 @@
+{% extends 'disturbance/base.html' %}
+
+{% load bootstrap3 %}
+
+{% load static %}
+
+{% block extra_css %}
+    <link type="text/css" href="{% static 'wl/css/index.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container">
+        <div class="row">
+            <div class="col-md-8">
+		    <span><h2>Files available for download</h2><p>(Files are kept for {{max_age_days}} days):<p></span>
+                <ol>
+                    {% for doc in docs %}
+                        {% url 'file-download' filename=doc.filename as file_url %}
+                        <li>
+                            <a href="{{ file_url }}">{{ doc.filename }} </a>{% if is_internal %} ({{doc.requester.get_full_name}}) {% endif %}
+                        </li>
+                    {% endfor %}
+                </ol>
+
+
+            </div>
+        </div>
+    </div>
+{% endblock %}

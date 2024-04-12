@@ -85,12 +85,14 @@
                             
                             <div class="row">
                                 <div class="col-md-6">
+                                    <!--
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
                                     Get GeoJSON File</button>
-                                    <!--
-                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked"><i class="fa fa-download"></i>
-                                    Get Shapefile</button>
                                     -->
+                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked"><i class="fa fa-download"></i>
+                                        Get Shapefile
+                                    </button>
+                                    <a class="btn btn-primary" href="/filelist" target="_blank">View Export Files</a>
                                 </div>
                                 <!-- <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
@@ -509,20 +511,10 @@
                 vm.$http.post(url, json,{
                     emulateJSON:true,
                 }).then((response)=>{
-                    //vm.download_content(response.body, 'DAS_layers.zip', 'text/plain');
-                    vm.download_content(response.data, 'DAS_layers_1.zip', 'application/zip');
-
-//                    var FileSaver = require('file-saver');
-//                    const blob = new Blob([response.data], {type: 'application/zip'});
-//
-//                    //console.log(response.headers.map.filename)
-//                    //FileSaver.saveAs(blob, response.headers.map.filename);
-//                    FileSaver.saveAs(blob, 'jm.zip');
-
                     swal(
                         'Create shapefile',
-                        //response.body.message,
-                        'Completed',
+                        response.body.message,
+                        //'Completed',
                         'success'
                     )
                     vm.show_spinner = false;
