@@ -169,7 +169,7 @@
                     </div>
 
 
-                    <div id="loadingSpinner" style="display: none; text-align: center; padding: 20px;">
+                    <div id="loadingSpinner2" style="display: none; text-align: center; padding: 20px;">
                       <!-- You can replace this with your preferred loading spinner or element -->
                       <i class='fa fa-4x fa-spinner fa-spin'></i>
                       <p>Loading...</p>
@@ -306,7 +306,7 @@ export default {
           ],
           processing: true,
           initComplete: function() {
-                    $('#loadingSpinner').hide();
+                    $('#loadingSpinner2').hide();
           },
       }
     }
@@ -393,7 +393,7 @@ export default {
           vm.select_type=false;
           vm.$refs.proposal_datatable.vmDataTable.clear()
           vm.$refs.proposal_datatable.vmDataTable.draw();   
-           $('#loadingSpinner').hide();   
+           $('#loadingSpinner2').hide();   
         },
 
         search: function() {
@@ -414,7 +414,7 @@ export default {
           }
           else
           {
-            $('#loadingSpinner').show();
+            $('#loadingSpinner2').show();
             vm.$http.post('/api/search_sections.json',{
               proposal_type_id: vm.selected_proposal_type_id,
               region: vm.selected_region,
@@ -429,11 +429,11 @@ export default {
               vm.$refs.proposal_datatable.vmDataTable.clear()
               vm.$refs.proposal_datatable.vmDataTable.rows.add(vm.results);
               vm.$refs.proposal_datatable.vmDataTable.draw();
-               $('#loadingSpinner').hide();
+               $('#loadingSpinner2').hide();
             },
             err => {
               console.log(err);
-               $('#loadingSpinner').hide();
+               $('#loadingSpinner2').hide();
             });
           }
 
