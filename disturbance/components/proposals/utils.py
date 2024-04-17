@@ -2213,6 +2213,7 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
             gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
             gdf['prop_activ'] = p.activity
 
+            gdf.set_crs = settings.CRS
             gdf_concat = pd.concat([gdf_concat, gdf], ignore_index=True)
 
         except Exception as ge:
