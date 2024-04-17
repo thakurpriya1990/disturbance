@@ -2,7 +2,9 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.conf import settings
 from django.core.mail import EmailMessage
-import os, time
+import os, time, datetime
+
+from disturbance.components.proposals.models import ExportDocument
 
 #import itertools
 #import subprocess
@@ -13,14 +15,18 @@ logger = logging.getLogger(__name__)
 #LOGFILE = 'logs/cron_tasks.log'
 
 class Command(BaseCommand):
-    help = f'script to clear old export shape files (older than {settings.CLEAR_AFTER_DAYS_FILE_EXPORT} days)'
+    help = f'script to clear old export shape files (older than {settings.CLEAR_AFTER_DAYS_FILE_EXPORT} days) Eg. ./manage_ds.py clear_old_files --days 7'
+
+
+    def add_arguments(self, parser):
+        parser.add_argument('--days', nargs='?', type=int, help='<no. of days old> to clear', default=settings.CLEAR_AFTER_DAYS_FILE_EXPORT)
 
     def handle(self, *args, **options):
         logger.info('Running command {}'.format(__name__))
+        days = options['days']
 
-        path = "geo_exports"
+        path = 'private-media' + os.sep + settings.GEO_EXPORT_FOLDER
         now = time.time()
-        days = settings.CLEAR_AFTER_DAYS_FILE_EXPORT # delete files older than <days> old
      
         # Delete from the Folder
         count = 0
@@ -40,7 +46,10 @@ class Command(BaseCommand):
                     logger.error(f'Failed to Delete: {ex}')
 
         # Delete from the DB Table
-        ExportDocument.old_files.all().delete()
+        days_ago = timezone.now() - datetime.timedelta(days=days)
+        qs = ExportDocument.objects.filter(created__lt=days_ago)
+        qs_count = qs.count()
+        qs.delete()
 
 #        subject = "DAS - Layers Used CSV"
 #        body = "CSV file for Layers used in proposal applications, where:\n\t1. Proposal polygon/layer(s) exist (DAS Phase 2),\n\t2. Approved proposals"
@@ -48,5 +57,5 @@ class Command(BaseCommand):
 #        message.attach(f'layers_used_{datetime.now().strftime("%Y%m%dT%H%M")}.csv', csvfile.getvalue(), 'text/csv')
 #        message.send()
 
-        logger.info(f'Command {__name__} completed: Files deleted {count}')
+        logger.info(f'Command {__name__} completed: Files deleted {count}, deleted from DB {qs.count}')
 

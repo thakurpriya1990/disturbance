@@ -353,7 +353,7 @@ class DefaultDocument(Document):
 
 class ProposalMapDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='map_documents')
-    _file = models.FileField(upload_to=update_proposal_map_doc_filename, max_length=500)
+    _file = models.FileField(upload_to=update_proposal_map_doc_filename, max_length=500, storage=private_storage)
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
@@ -1513,7 +1513,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 MAX_NO_POLYGONS=15
             #TODO : validate shapefile and all the other related filese are present
             if shp_file_qs:
-                shp_file_obj= shp_file_qs[0]
+                shp_file_obj= shp_file_qs.last()
                 # shp_file=shp_file_obj._file
                 # shp= gpd.read_file(shp_file_obj.path)
                 # shp_transform=shp.to_crs(crs=4326)

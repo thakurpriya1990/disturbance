@@ -1,11 +1,15 @@
 import re
 from datetime import datetime
+import time
 
 import pytz
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
 from django.contrib.gis.geos import Point, GEOSGeometry
+from django.db.models import Q
+from django.urls import reverse
 from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
@@ -25,6 +29,7 @@ from disturbance.components.proposals.models import (
     SectionQuestion,
     HelpPage,
     ApplicationType,
+    ExportDocument,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
@@ -39,7 +44,8 @@ from disturbance.components.organisations.models import Organisation
 import traceback
 import os
 import json
-
+import pandas as pd
+import geopandas as gpd
 
 from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
 from disturbance.utils import convert_moment_str_to_python_datetime_obj, search_keys
@@ -2162,4 +2168,81 @@ def search_schema(proposal_id, question):
 
     return res
 
+
+def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=False):
+    '''
+        Generate and save shapefile from qs of Proposals
+        eg.
+            from disturbance.components.proposals.utils import gen_shapefile
+            filter_kwargs = {'region_id': 1, 'activity': 'Basic raw material', 'processing_status': 'approved', 'applicant_id': 163, 'submitter__email': 'jawaid.mushtaq@dbca.wa.gov.au', 
+                             'application_type__name': 'Disturbance', 'lodgement_date__gte': '2024-04-17', 'lodgement_date__lte': '2024-04-24'}
+            gen_shapefile(user, qs, filter_kwargs)
+            OR
+            gen_shapefile(user, filter_kwargs)
+    '''
+    status_exc = [
+        Proposal.PROCESSING_STATUS_TEMP,
+        #Proposal.PROCESSING_STATUS_DRAFT,
+        Proposal.PROCESSING_STATUS_DECLINED, 
+        Proposal.PROCESSING_STATUS_DISCARDED,
+    ]
+
+    if qs.exists():
+        qs = qs.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+    else:
+        qs = Proposal.objects.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+
+    t0 = time.time()
+    logger.info('create_shapefile: 0')
+
+    gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry")
+    for p in qs:
+        try: 
+            gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)
+
+            gdf['org']        = p.applicant.name if p.applicant else None
+            gdf['app_no']     = p.approval.lodgement_number if p.approval else None
+            gdf['prop_title'] = p.title
+            gdf['appissdate'] = p.approval.issue_date.strftime("%Y-%d-%d") if p.approval else None
+            gdf['appstadate'] = p.approval.start_date.strftime("%Y-%d-%d") if p.approval else None
+            gdf['appexpdate'] = p.approval.expiry_date.strftime("%Y-%d-%d") if p.approval else None
+            gdf['appstatus']  =  p.approval.status if p.approval else None
+            gdf['assocprop']  = list(Proposal.objects.filter(approval__lodgement_number=p.approval.lodgement_number).values_list('lodgement_number', flat=True)) if p.approval else None
+            gdf['proptype']   = p.proposal_type
+            #gdf['propurl']    = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id}))
+            gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
+            gdf['prop_activ'] = p.activity
+
+            gdf_concat = pd.concat([gdf_concat, gdf], ignore_index=True)
+
+        except Exception as ge:
+            logger.error(f'Cannot append proposal {p} to shapefile: {ge}')
+
+    t1 = time.time()
+    logger.info(f'create_shapefile: 1 - {t1 - t0}')
+    gdf_concat.set_crs = settings.CRS
+    if geojson:
+        # The .shz extension allows the GeoJSON file to be downloaded (rather than opened in browser)
+        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.geojson.shz'
+        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+        gdf_concat.to_file(f'private-media/{filepath}', driver='GeoJSON')
+    else:
+        # The .shz extension allows the shapefile to be zipped
+        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.shz'
+        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+        gdf_concat.to_file(f'private-media/{filepath}', driver='ESRI Shapefile')
+
+    t2 = time.time()
+    logger.info(f'create_shapefile: len(gdf_concat) - {len(gdf_concat)}')
+    logger.info(f'create_shapefile: 2 - {t2 - t1}')
+    doc = ExportDocument()
+    doc._file.name = filepath
+    doc._file = filepath
+    doc.requester = user
+    doc.save()
+
+    t3 = time.time()
+    logger.info(f'create_shapefile: 3 - {t3 - t2}')
+
+    return filename
 

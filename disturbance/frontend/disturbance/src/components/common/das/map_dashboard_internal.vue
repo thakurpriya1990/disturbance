@@ -89,7 +89,9 @@
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
                                     Get GeoJSON File</button>
                                     -->
-                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked"><i class="fa fa-download"></i>
+                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(true)"><i class="fa fa-download"></i>
+                                        Get GeoJSON File</button>
+                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(false)"><i class="fa fa-download"></i>
                                         Get Shapefile
                                     </button>
                                     <a class="btn btn-primary" href="/filelist" target="_blank">View Export Files</a>
@@ -475,46 +477,51 @@
                             let proposal = f.getProperties().proposal;
                             if(proposal){
                                 f.setProperties({
-                                    org : proposal.applicant_name,
-                                    app_no: proposal.approval_lodgement_number,
-                                    prop_title: proposal.title,
-                                    appissdate: proposal.approval_issue_date,
-                                    appstadate: proposal.approval_start_date,
-                                    appexpdate: proposal.approval_expiry_date,
-                                    proptype: proposal.proposal_type,
-                                    appstatus: proposal.approval_status,
-                                    assocprop: proposal.assocprop,
-                                    propurl: proposal.proposal_url,
+                                    org :       proposal.applicant_name ? proposal.applicant_name : '',
+                                    app_no:     proposal.approval_lodgement_number ? proposal.approval_lodgement_number : '',
+                                    prop_title: proposal.title ? proposal.title : '',
+                                    appissdate: proposal.approval_issue_date ? proposal.approval_issue_date : '',
+                                    appstadate: proposal.approval_start_date ? proposal.approval_start_date : '',
+                                    appexpdate: proposal.approval_expiry_date ? proposal.approval_expiry_date : '',
+                                    proptype:   proposal.proposal_type ? proposal.proposal_type : '',
+                                    appstatus:  proposal.approval_status ? proposal.approval_status : '',
+                                    assocprop:  proposal.assocprop ? proposal.assocprop : '',
+                                    propurl:    proposal.proposal_url ? proposal.proposal_url : '',
                                 })
                             }
                         });
                     }
-                //let json = new GeoJSON().writeFeatures(features, {})
-                //vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
-                return new GeoJSON().writeFeatures(features, {})
+                let json = new GeoJSON().writeFeatures(features, {})
+                console.log(json)
+                vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
+                //return new GeoJSON().writeFeatures(features, {})
             },
             geoJsonButtonClicked: function () {
                 let vm = this
                 let json = vm.create_geoJson();
                 vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
             },
-            shapefileButtonClicked: function () {
+            shapefileButtonClicked: function (geojson) {
                 let vm = this
                 vm.show_spinner = true;
-                let json = vm.create_geoJson();
-                //vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
-
-                //let url = '/api/proposal/1/create_shapefile/'
                 let url = '/api/proposal/create_shapefile/'
-                //await self.$http.post(url ,JSON.stringify(json),{
-                //vm.$http.post(url, JSON.stringify(json),{
-                vm.$http.post(url, json,{
+
+                let filter_kwargs = {}
+		if (vm.filterProposalRegion != 'All')        { filter_kwargs['region_id'] = vm.filterProposalRegion; }
+		if (vm.filterProposalActivity != 'All')      { filter_kwargs['activity'] = vm.filterProposalActivity; }
+		if (vm.filterProposalStatus != 'All')        { filter_kwargs['processing_status'] = vm.filterProposalStatus; }
+		if (vm.filterProposalApplicant != 'All')     { filter_kwargs['applicant_id'] = vm.filterProposalApplicant; }
+		if (vm.filterProposalSubmitter != 'All')     { filter_kwargs['submitter__email'] = vm.filterProposalSubmitter; }
+		if (vm.filterProposalApplicationType!='All') { filter_kwargs['application_type__name'] = vm.filterProposalApplicationType; }
+		if (vm.filterProposalLodgedFrom)             { filter_kwargs['lodgement_date__gte'] = vm.filterProposalLodgedFrom; }
+		if (vm.filterProposalLodgedTo)               { filter_kwargs['lodgement_date__lte'] = vm.filterProposalLodgedTo; }
+
+                vm.$http.post(url, JSON.stringify({"geojson": geojson, "filter_kwargs": filter_kwargs}),{
                     emulateJSON:true,
                 }).then((response)=>{
                     swal(
                         'Create shapefile',
                         response.body.message,
-                        //'Completed',
                         'success'
                     )
                     vm.show_spinner = false;
@@ -526,9 +533,7 @@
                     )
                     vm.show_spinner = false;
                 });
-
             },
-
             exportPNG: function () {
                 let vm = this;
                 vm.map.once('rendercomplete', function () {

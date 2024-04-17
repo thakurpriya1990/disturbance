@@ -42,7 +42,8 @@ from disturbance.components.proposals.utils import (
     save_assessor_data,
     save_apiary_assessor_data, 
     update_proposal_apiary_temporary_use,
-    search_schema
+    search_schema,
+    gen_shapefile,
 )
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
@@ -1566,35 +1567,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['POST', ])
     @api_exception_handler
     def create_shapefile(self, request, *args, **kwargs):
-        ''' 
-            requests.get('http://localhost:8003/api/proposal/1528/create_shapefile.json')
+        ''' requests.get('http://localhost:8003/api/proposal/create_shapefile.json')
         '''
-        import geopandas as gpd
-    
-        if not is_internal(self.request):
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        if self.request.data['type'] != 'FeatureCollection' :
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
-        geojson = json.dumps(self.request.data)
-            
-        gdf = gpd.read_file(geojson)
-        gdf.drop(columns=['proposal'], inplace=True)
-        gdf['appstadate'] = gdf['appstadate'].astype("string")
-        gdf['appissdate'] = gdf['appissdate'].astype("string")
-        gdf['appexpdate'] = gdf['appexpdate'].astype("string")
-            
-        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.shz'
-        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
-        gdf.to_file(f'private-media/{filepath}', driver='ESRI Shapefile')
-
-        doc = ExportDocument()
-        doc._file.name = filepath
-        doc._file = filepath
-        doc.requester = request.user
-        doc.save()
-
+        geojson = request.data.get('geojson', False)
+        filter_kwargs = request.data.get('filter_kwargs', {})
+        filename = gen_shapefile(request.user, self.get_queryset(), filter_kwargs, geojson)
         file_url = reverse('file-download', kwargs={'filename':filename})
         return Response(data={'message': f'File created {filename}'}, status=status.HTTP_200_OK)
                 
@@ -2180,7 +2157,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError('Document with extension {} already exists.'.format(fext))
                 else:
                     document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
-                    path = default_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
+                    path = private_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
 
                     document._file = path
                     document.save()
