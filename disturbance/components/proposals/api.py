@@ -1598,7 +1598,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_questions = json.loads(rendered)
 
@@ -1673,7 +1673,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'request': request}, many=True)
+        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'data': request.data}, many=True)
         rendered_all = JSONRenderer().render(serializer_all.data).decode('utf-8')
         masterlist_questions_all = json.loads(rendered_all)
 
@@ -1711,7 +1711,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     if question_dict['question_group'] in sqq_record.values():
                         question_dict['questions'].append(sqq_record)
         else:
-            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
             question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -1773,8 +1773,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        #serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_question_json = json.loads(rendered)
         masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -2469,6 +2468,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def prefill_proposal(self, request, *args, **kwargs):
+        if proposal.apiary_group_application_type:
+            return
+
+        if not instance.shapefile_json:
+            raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+
         try:
             instance = self.get_object()
             if instance.apiary_group_application_type:
@@ -2487,7 +2492,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
                     masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -2535,6 +2540,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         )
                     if not created and task.requester.email != request.user.email:
                         # another user may attempt to Prefill, whilst job is still queued
+                        logger.info(f'Task ID {task.id}, Proposal {proposal.lodgement_number} requester updated. Prev {task.requester.email}, New {request.user.email}')
                         task.requester = request.user
 
                     return Response(resp_data, status=resp.status_code)
@@ -2566,7 +2572,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
                     masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -4795,7 +4801,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         # self.paginator.page_size = 0
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = DTSpatialQueryQuestionSerializer(
-            result_page, context={'request': request}, many=True
+            result_page, context={'data': request.data}, many=True
         )
         data = serializer.data
 
@@ -5377,7 +5383,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             )
         
         with transaction.atomic():
-            serializer = DTSpatialQueryQuestionSerializer(data=request.data, context={'request': request})
+            serializer = DTSpatialQueryQuestionSerializer(data=request.data, context={'data': request.data})
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
@@ -5445,7 +5451,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
 
                 serializer = DTSpatialQueryQuestionSerializer(
-                    instance, data=request.data, context={'request': request}
+                    instance, data=request.data, context={'data': request.data}
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()

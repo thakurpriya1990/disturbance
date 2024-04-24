@@ -13,7 +13,7 @@ import traceback
 import os
 
 from dateutil.relativedelta import relativedelta
-from django.contrib.gis.db.models.fields import PointField
+from django.contrib.gis.db.models.fields import PointField, MultiPolygonField, GeometryField, GeometryCollectionField
 from django.contrib.gis.db.models.manager import GeoManager
 from django.contrib.gis.geos import GEOSGeometry
 from django.contrib.gis.measure import Distance
@@ -547,7 +547,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
-    shapefile_json = JSONField(blank=True, null=True)
+    shapefile_json = JSONField('Source/Submitter (multi) polygon geometry', blank=True, null=True)
+    proposal_geom = MultiPolygonField(srid=4326, null=True, blank=True)
     reissued = models.BooleanField(default=False)
 
 
@@ -1540,6 +1541,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise ValidationError(f'Cannot upload a Shapefile - {msg}')
                 else:
                     raise ValidationError('Please upload a valid shapefile')
+
+                # Set proposal_geom field for shapefile export sql query (from KB)
+                geoms = []         
+                for ft in self.shapefile_json['features']:
+                    # geom_str = json.dumps(ft['geometry'])      
+                    geom = GEOSGeometry(json.dumps(ft['geometry']))        
+                    geoms.append(geom)       
+                self.proposal_geom = MultiPolygon(geoms)
 
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
