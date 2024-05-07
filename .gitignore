@@ -7,6 +7,7 @@ node_modules/
 cronjobs
 mooring/cache/*
 tmp/
+geo_exports/
 disturbance/utils/csv
 !disturbance/utils/csv/CDDP_Layers_v4.xlsx
 

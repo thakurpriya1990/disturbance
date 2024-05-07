@@ -13,9 +13,9 @@ import traceback
 import os
 
 from dateutil.relativedelta import relativedelta
-from django.contrib.gis.db.models.fields import PointField
+from django.contrib.gis.db.models.fields import PointField, MultiPolygonField, GeometryField, GeometryCollectionField
 from django.contrib.gis.db.models.manager import GeoManager
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
@@ -353,7 +353,7 @@ class DefaultDocument(Document):
 
 class ProposalMapDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='map_documents')
-    _file = models.FileField(upload_to=update_proposal_map_doc_filename, max_length=500)
+    _file = models.FileField(upload_to=update_proposal_map_doc_filename, max_length=500, storage=private_storage)
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
     can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
@@ -547,7 +547,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
-    shapefile_json = JSONField(blank=True, null=True)
+    shapefile_json = JSONField('Source/Submitter (multi) polygon geometry', blank=True, null=True)
+    proposal_geom = MultiPolygonField(srid=4326, null=True, blank=True)
     reissued = models.BooleanField(default=False)
 
 
@@ -1513,14 +1514,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 MAX_NO_POLYGONS=15
             #TODO : validate shapefile and all the other related filese are present
             if shp_file_qs:
-                shp_file_obj= shp_file_qs[0]
+                shp_file_obj= shp_file_qs.last()
                 # shp_file=shp_file_obj._file
                 # shp= gpd.read_file(shp_file_obj.path)
                 # shp_transform=shp.to_crs(crs=4326)
                 # shp_json=shp_transform.to_json()
 
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
-                result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                #result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                result = subprocess.run(f'{OGR2OGR} -t_srs EPSG:4326 -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 shp_json = json.loads(result.stdout)
                 shapefile_json=None
                 if type(shp_json)==str:
@@ -1540,6 +1542,14 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         raise ValidationError(f'Cannot upload a Shapefile - {msg}')
                 else:
                     raise ValidationError('Please upload a valid shapefile')
+
+                # Set proposal_geom field for shapefile export sql query (from KB)
+                geoms = []         
+                for ft in self.shapefile_json['features']:
+                    # geom_str = json.dumps(ft['geometry'])      
+                    geom = GEOSGeometry(json.dumps(ft['geometry']))        
+                    geoms.append(geom)       
+                self.proposal_geom = MultiPolygon(geoms)
 
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
@@ -5086,6 +5096,36 @@ class SupportingApplicationDocument(Document):
     class Meta:
         app_label = 'disturbance'
 
+
+def export_file_path(instance, filename):
+    return f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+
+class OldFileExportManager(models.Manager):
+    def get_queryset(self):
+        days_ago = timezone.now() - datetime.timedelta(days=settings.CLEAR_AFTER_DAYS_FILE_EXPORT)
+        return super().get_queryset().filter(created__lt=days_ago)
+
+
+class ExportDocument(models.Model):
+    _file = models.FileField(upload_to=export_file_path, max_length=255, storage=private_storage)
+    requester = models.ForeignKey(EmailUser, related_name='+')
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    proposal = models.ForeignKey('Proposal', blank=True, null=True)
+  
+    objects = models.Manager()
+    old_files = OldFileExportManager()
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return f'Document {self._file}'
+
+    @property
+    def filename(self):
+        return os.path.basename(self._file.name)
+
+
 #class DeedPollDocument(DefaultDocument):
 #    proposal = models.ForeignKey('Proposal', related_name='deed_poll_documents')
 #    _file = models.FileField(max_length=512)
@@ -6145,10 +6185,12 @@ class SpatialQueryMetrics(models.Model):
         ''' Tabulated summary of metrics '''
         
         try:
-            print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Layer cached|Condition|Expired|Error|Time retrieve layer|Time taken")
+            #print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Layer cached|Condition|Expired|Error|Time retrieve layer|Time taken")
+            print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Condition|Expired|Error|Time retrieve layer|Time taken")
             count = 0
             for idx, m in enumerate(self.metrics, 1):
-                print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['layer_cached']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                #print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['layer_cached']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
                 count += 1
 
             print(f'Total Query Time:        {self.total_query_time}')
@@ -6213,5 +6255,5 @@ reversion.register(SectionQuestion)
 #CDDP Spatial model
 reversion.register(SpatialQueryQuestion)
 
-
+reversion.register(ExportDocument)
 

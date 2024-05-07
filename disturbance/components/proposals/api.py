@@ -42,12 +42,13 @@ from disturbance.components.proposals.utils import (
     save_assessor_data,
     save_apiary_assessor_data, 
     update_proposal_apiary_temporary_use,
-    search_schema
+    search_schema,
+    gen_shapefile,
 )
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, search_sections, get_search_geojson, private_storage
+    SupportingApplicationDocument, ExportDocument, search_sections, get_search_geojson, private_storage
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
 from disturbance.utils import search_tenure, search_label, get_schema_questions
@@ -1565,56 +1566,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['POST', ])
     @api_exception_handler
-    def _create_shapefile(self, request, *args, **kwargs):
-        #response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read())
-        response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read(), content_type='application/zip', mimetype="application/x-zip-compressed")
-        #response['Content-Type'] = 'application/zip'
-        #response['Content-Disposition'] = f'attachment; filename=DAS_layers_20240408T1336.shz'
-        #import ipdb; ipdb.set_trace()
-        return response
-
-
-    #@detail_route(methods=['POST',])
-    @list_route(methods=['POST', ])
-    @api_exception_handler
     def create_shapefile(self, request, *args, **kwargs):
-        ''' 
-            requests.get('http://localhost:8003/api/proposal/1528/create_shapefile.json')
+        ''' requests.get('http://localhost:8003/api/proposal/create_shapefile.json')
         '''
-        import geopandas as gpd
-
-        if not is_internal(self.request):
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        if self.request.data['type'] != 'FeatureCollection' :
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-
-        geojson = json.dumps(self.request.data)
-        #_type = data['type']
-        #features = data['features']
-
-            
-        gdf = gpd.read_file(geojson)
-        gdf.drop(columns=['proposal'], inplace=True)
-        gdf['appstadate'] = gdf['appstadate'].astype("string")
-        gdf['appissdate'] = gdf['appissdate'].astype("string")
-        gdf['appexpdate'] = gdf['appexpdate'].astype("string")
-
-        filename = f'/dbdumps/dumps/DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M")}.shz'
-        gdf.to_file(filename, driver='ESRI Shapefile')
-        #import ipdb; ipdb.set_trace()
-        
-        response = HttpResponse(open(filename, 'rb').read())
-        #response = HttpResponse(buffer.getvalue())
-#        response = HttpResponse(open('DAS_layers_20240408T1336.shz', 'rb').read())
-#        response['Content-Type'] = 'application/x-zip-compressed'
-#        response['Content-Disposition'] = f'attachment; filename=DAS_layers_20240408T1336.shz'
-        response['Content-Type'] = 'application/zip'
-        response['Content-Disposition'] = f'attachment; filename={filename}'
-
-        return response
-
-
+        geojson = request.data.get('geojson', False)
+        filter_kwargs = request.data.get('filter_kwargs', {})
+        filename = gen_shapefile(request.user, self.get_queryset(), filter_kwargs, geojson)
+        file_url = reverse('file-download', kwargs={'filename':filename})
+        return Response(data={'message': f'File created {filename}'}, status=status.HTTP_200_OK)
+                
     @detail_route(methods=['POST',])
     @api_exception_handler
     def sqs_data(self, request, *args, **kwargs):
@@ -1638,7 +1598,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_questions = json.loads(rendered)
 
@@ -1713,7 +1673,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'request': request}, many=True)
+        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'data': request.data}, many=True)
         rendered_all = JSONRenderer().render(serializer_all.data).decode('utf-8')
         masterlist_questions_all = json.loads(rendered_all)
 
@@ -1751,7 +1711,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     if question_dict['question_group'] in sqq_record.values():
                         question_dict['questions'].append(sqq_record)
         else:
-            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
             question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -1813,8 +1773,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        #serializer = SpatialQueryQuestionSerializer(masterlist_question_qs, many=True)
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_question_json = json.loads(rendered)
         masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
@@ -2197,7 +2156,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError('Document with extension {} already exists.'.format(fext))
                 else:
                     document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
-                    path = default_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
+                    path = private_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
 
                     document._file = path
                     document.save()
@@ -2509,6 +2468,12 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def prefill_proposal(self, request, *args, **kwargs):
+        if proposal.apiary_group_application_type:
+            return
+
+        if not instance.shapefile_json:
+            raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+
         try:
             instance = self.get_object()
             if instance.apiary_group_application_type:
@@ -2527,7 +2492,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
                     masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -2575,6 +2540,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         )
                     if not created and task.requester.email != request.user.email:
                         # another user may attempt to Prefill, whilst job is still queued
+                        logger.info(f'Task ID {task.id}, Proposal {proposal.lodgement_number} requester updated. Prev {task.requester.email}, New {request.user.email}')
                         task.requester = request.user
 
                     return Response(resp_data, status=resp.status_code)
@@ -2606,7 +2572,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
                     masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'request': request}, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -3859,7 +3825,6 @@ class GetSearchGeoJsonView(views.APIView):
         
         search_geojson= get_search_geojson(proposal_lodgement_numbers, request)
         #queryset = list(set(qs))
-        #import ipdb; ipdb.set_trace()
         serializer = SearchGeoJsonSerializer({'search_geojson':search_geojson})
         return Response(serializer.data)
 
@@ -4836,7 +4801,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         # self.paginator.page_size = 0
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = DTSpatialQueryQuestionSerializer(
-            result_page, context={'request': request}, many=True
+            result_page, context={'data': request.data}, many=True
         )
         data = serializer.data
 
@@ -5418,7 +5383,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             )
         
         with transaction.atomic():
-            serializer = DTSpatialQueryQuestionSerializer(data=request.data, context={'request': request})
+            serializer = DTSpatialQueryQuestionSerializer(data=request.data, context={'data': request.data})
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
@@ -5486,7 +5451,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             with transaction.atomic():
 
                 serializer = DTSpatialQueryQuestionSerializer(
-                    instance, data=request.data, context={'request': request}
+                    instance, data=request.data, context={'data': request.data}
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()

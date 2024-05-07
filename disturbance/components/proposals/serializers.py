@@ -1424,7 +1424,8 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 #        return datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
 
     def create(self, validated_data):
-        data = self.context['request'].data
+        #data = self.context['request'].data
+        data = self.context['data']
 
         if data.get('answer_mlq'):
             validated_data.update(
@@ -1440,7 +1441,8 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
         )
 
     def update(self, instance, validated_data):
-        data = self.context['request'].data
+        #data = self.context['request'].data
+        data = self.context['data']
 
         if data.get('answer_mlq'):
             validated_data.update(

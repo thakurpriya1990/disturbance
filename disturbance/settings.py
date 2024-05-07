@@ -196,6 +196,11 @@ ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
 MAX_QUEUE_TIME = env('MAX_QUEUE_TIME', 7) # Days
 MAX_TASK_HISTORY = env('MAX_TASK_HISTORY', 60) # Days
 
+CLEAR_AFTER_DAYS_FILE_EXPORT = env('CLEAR_AFTER_DAYS_FILE_EXPORT', 7) # Days
+GEO_EXPORT_FOLDER = env('GEO_EXPORT_FOLDER', 'geo_exports') # Days
+if not os.path.exists('private-media' + os.sep + GEO_EXPORT_FOLDER):
+    os.makedirs('private-media' + os.sep + GEO_EXPORT_FOLDER)
+
 CRS = env('CRS', 'epsg:4326')
 CRS_CARTESIAN = env('CRS_CARTESIAN', 'epsg:3043')
 OGR2OGR = env('OGR2OGR', '/usr/bin/ogr2ogr')
