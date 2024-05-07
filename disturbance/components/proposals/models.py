@@ -15,7 +15,7 @@ import os
 from dateutil.relativedelta import relativedelta
 from django.contrib.gis.db.models.fields import PointField, MultiPolygonField, GeometryField, GeometryCollectionField
 from django.contrib.gis.db.models.manager import GeoManager
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
@@ -1521,7 +1521,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # shp_json=shp_transform.to_json()
 
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
-                result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                #result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                result = subprocess.run(f'{OGR2OGR} -t_srs EPSG:4326 -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 shp_json = json.loads(result.stdout)
                 shapefile_json=None
                 if type(shp_json)==str:
@@ -6184,10 +6185,12 @@ class SpatialQueryMetrics(models.Model):
         ''' Tabulated summary of metrics '''
         
         try:
-            print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Layer cached|Condition|Expired|Error|Time retrieve layer|Time taken")
+            #print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Layer cached|Condition|Expired|Error|Time retrieve layer|Time taken")
+            print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Condition|Expired|Error|Time retrieve layer|Time taken")
             count = 0
             for idx, m in enumerate(self.metrics, 1):
-                print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['layer_cached']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                #print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['layer_cached']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
                 count += 1
 
             print(f'Total Query Time:        {self.total_query_time}')

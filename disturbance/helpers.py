@@ -21,25 +21,25 @@ def belongs_to(user, group_name):
     """
     return user.groups.filter(name=group_name).exists()
 
-def is_model_backend(request):
-    # Return True if user logged in via single sign-on (i.e. an internal)
-    return 'ModelBackend' in request.session.get('_auth_user_backend')
-
-def is_email_auth_backend(request):
-    # Return True if user logged in via social_auth (i.e. an external user signing in with a login-token)
-    return 'EmailAuth' in request.session.get('_auth_user_backend')
+#def is_model_backend(request):
+#    # Return True if user logged in via single sign-on (i.e. an internal)
+#    return 'ModelBackend' in request.session.get('_auth_user_backend')
+#
+#def is_email_auth_backend(request):
+#    # Return True if user logged in via social_auth (i.e. an external user signing in with a login-token)
+#    return 'EmailAuth' in request.session.get('_auth_user_backend')
 
 def is_disturbance_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
 
 def is_apiary_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.APIARY_ADMIN_GROUP))
+    return request.user.is_authenticated() and in_dbca_domain(request) and (belongs_to(request.user, settings.APIARY_ADMIN_GROUP))
 
 def is_das_apiary_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.DAS_APIARY_ADMIN_GROUP))
+    return request.user.is_authenticated() and in_dbca_domain(request) and (belongs_to(request.user, settings.DAS_APIARY_ADMIN_GROUP))
 
 def in_dbca_domain(request):
     user = request.user
@@ -66,10 +66,11 @@ def is_approved_external_user(request):
     return False
 
 def is_departmentUser(request):
-    return request.user.is_authenticated() and ( (is_model_backend(request) and in_dbca_domain(request)) or is_approved_external_user(request) )
+    return request.user.is_authenticated() and ( in_dbca_domain(request) or is_approved_external_user(request) )
 
 def is_customer(request):
-    return request.user.is_authenticated() and is_email_auth_backend(request)
+    #return request.user.is_authenticated() and is_email_auth_backend(request)
+    return request.user.is_authenticated() and not request.user.is_staff
 
 def is_internal(request):
     return is_departmentUser(request)

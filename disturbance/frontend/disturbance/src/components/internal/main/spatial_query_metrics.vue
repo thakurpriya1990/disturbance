@@ -231,7 +231,8 @@ export default {
 //            },
 
 
-            dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Layer Cached", "Error", "Retrive Layer Time (s)", "Operator Response"],
+            dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Error", "Retrive Layer Time (s)", "Operator Response"],
+            //dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name", "Condition", "Result", "Assessor Info", "Query Time (s)", "Layer Cached", "Error", "Retrive Layer Time (s)", "Operator Response"],
             //dtHeadersSchemaMetrics: ["Question", "Answer", "Layer Name"],
             //dtHeadersSchemaMetrics: ["Question"],
             dtOptionsSchemaMetrics:{
@@ -341,12 +342,12 @@ export default {
 			data: "time",
 			searchable: false,
 		    },
-                    {
-	 	        data: "layer_cached",
-			'render': function (value) {
-	  		    return value=='true' ? 'Yes' : 'No';
-			},
-		    },
+//                    {
+//	 	        data: "layer_cached",
+//			'render': function (value) {
+//	  		    return value=='true' ? 'Yes' : 'No';
+//			},
+//		    },
 
 		    {
 			data: "error",
