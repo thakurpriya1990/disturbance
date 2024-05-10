@@ -124,7 +124,7 @@
                                                         <li><a href="{% url 'admin:index' %}">Admin</a></li>
 							{% if DOMAIN_DETECTED != 'apiary' %}
                                                             <li><a href="/internal/schema">Manage Application Schema</a></li>
-                                                            <li><a href="/filelist">View Export Files</a></li>
+							    <!-- <li><a href="/filelist">View Export Files</a></li> -->
                                                         {% endif %}
 							{% comment %}
                                                         {% if is_apiary_admin_user and DOMAIN_DETECTED == 'apiary' %}
