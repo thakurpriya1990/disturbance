@@ -637,4 +637,67 @@ def search_section(schema, section_label, question, data, answer):
                             break
     return found_fields
 
+#Find the specific key in proposal.data and it's value.
+#e.g. 'Section1-1'
+def find_key_value(data, target_key):
+    # Define a function to recursively search for the key
+    def search_key(dictionary, target_key):
+        for key, value in dictionary.items():
+            if key == target_key:
+                return value
+            elif isinstance(value, dict):
+                result = search_key(value, target_key)
+                if result is not None:
+                    return result
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        result = search_key(item, target_key)
+                        if result is not None:
+                            return result
+        return None
+    
+    # Call the search function
+    result = search_key(data, target_key)
+    
+    return result
 
+def find_and_remove_key(data, target_key):
+    # Define a function to recursively search for the key and remove it
+    def search_and_remove(dictionary, target_key):
+        for key, value in dictionary.items():
+            if key == target_key:
+                del dictionary[key]
+                return True
+            elif isinstance(value, dict):
+                if search_and_remove(value, target_key):
+                    return True
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, dict):
+                        if search_and_remove(item, target_key):
+                            return True
+        return False
+    
+    # Call the search function
+    search_and_remove(data, target_key)
+
+def find_and_remove_keys(data, target_keys):
+   # Define a function to recursively search for the keys and remove them
+   def search_and_remove(dictionary, target_keys):
+       keys_to_remove = []
+       for key, value in dictionary.items():
+           if key in target_keys:
+               keys_to_remove.append(key)
+           elif isinstance(value, dict):
+               search_and_remove(value, target_keys)
+           elif isinstance(value, list):
+               for item in value:
+                   if isinstance(item, dict):
+                       search_and_remove(item, target_keys)
+       # Remove the keys after the iteration
+       for key in keys_to_remove:
+           del dictionary[key]
+   # Call the search function
+   search_and_remove(data, target_keys)
+   return data
