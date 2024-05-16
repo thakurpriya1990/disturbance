@@ -2468,16 +2468,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def prefill_proposal(self, request, *args, **kwargs):
-        if proposal.apiary_group_application_type:
-            return
-
-        if not instance.shapefile_json:
-            raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
-
         try:
             instance = self.get_object()
+            if not instance.shapefile_json:
+                raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+
             if instance.apiary_group_application_type:
-                pass
+                return
             else:
                 if instance.shapefile_json:
                     start_time = time.time()
@@ -2530,6 +2527,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     #url = get_sqs_url('das_queue/')
                     resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
                     resp_data = resp.json()
+                    if 'errors' in resp_data:
+                        logger.error(f'Error: {resp_data["errors"]}')
+                        raise serializers.ValidationError(f'Error: {resp_data["errors"]}')                   
                     
                     task, created = TaskMonitor.objects.get_or_create(
                             task_id=resp_data['data']['task_id'], 
@@ -2548,7 +2548,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
 
         except Exception as e:
-            print(traceback.print_exc())
+            logger.error(f'{traceback.print_exc()}')
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
@@ -4801,7 +4801,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         # self.paginator.page_size = 0
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = DTSpatialQueryQuestionSerializer(
-            result_page, context={'data': request.data}, many=True
+            result_page, context={'data': request.data, 'request': request}, many=True
         )
         data = serializer.data
 

@@ -283,9 +283,11 @@
                         console.log(err);
                         vm.showError=true;
                         vm.errorString=helpers.apiVueResourceError(err);
+                        swal.hideLoading();
                     });
 
                 },(error) => {
+                   swal.hideLoading();
 
                 });
                 
