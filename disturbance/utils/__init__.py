@@ -701,3 +701,10 @@ def find_and_remove_keys(data, target_keys):
    # Call the search function
    search_and_remove(data, target_keys)
    return data
+
+def remove_prefilled_data(proposal):
+    try:
+        if proposal and proposal.layer_data:
+            pass
+    except:
+        raise
