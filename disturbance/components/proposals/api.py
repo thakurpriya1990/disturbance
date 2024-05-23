@@ -4584,11 +4584,17 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
         try:
 
             sections = ProposalType.objects.all()
+            # proposal_types = [
+            #     {
+            #         'label': s.name_with_version,
+            #         'value': s.id,
+            #     } for s in sections if not s.apiary_group_proposal_type and s.latest
+            # ]
             proposal_types = [
                 {
                     'label': s.name_with_version,
                     'value': s.id,
-                } for s in sections if not s.apiary_group_proposal_type and s.latest
+                } for s in sections if not s.apiary_group_proposal_type
             ]
 
             return Response(
