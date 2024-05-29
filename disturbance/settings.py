@@ -214,7 +214,7 @@ APIARY_URL = env('APIARY_URL', [])
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 VERSION_NO="1.0.1"
 
-BASE_URL=env('BASE_URL')
+BASE_URL=env('BASE_URL', 'https:/das.dbca.wa.gov.au')
 
 CRON_CLASSES = [
     'appmonitor_client.cron.CronJobAppMonitorClient',
