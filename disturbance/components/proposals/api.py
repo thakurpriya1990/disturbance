@@ -307,6 +307,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
+        sort_by = request.GET.get('sort_by')
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             #for num, item in enumerate(ordering):
@@ -315,11 +316,14 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                # elif item == '-status__name':
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
-
+        
         try:
             queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
         except Exception as e:
             print(e)
+        if(sort_by and sort_by!=''):
+            if queryset.model is Proposal:
+                queryset = queryset.order_by(sort_by)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
@@ -4580,11 +4584,17 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
         try:
 
             sections = ProposalType.objects.all()
+            # proposal_types = [
+            #     {
+            #         'label': s.name_with_version,
+            #         'value': s.id,
+            #     } for s in sections if not s.apiary_group_proposal_type and s.latest
+            # ]
             proposal_types = [
                 {
                     'label': s.name_with_version,
                     'value': s.id,
-                } for s in sections if not s.apiary_group_proposal_type and s.latest
+                } for s in sections if not s.apiary_group_proposal_type
             ]
 
             return Response(

@@ -102,6 +102,17 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row" v-if="!is_external">
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="">Sort By</label>
+                                <select class="form-control" v-model="sortBy">
+                                    <option value=""></option>
+                                    <option v-for="s in sort_by" :value="s.value">{{s.name}}</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-lg-12">
                             <div v-if="datatableReady">
@@ -206,6 +217,19 @@ export default {
             select2Applied: false,
             dt_options: {},
             datatableReady: false,
+            sort_by:[
+                {value: 'applicant__organisation__name', name: 'Proponent - Asceding'},
+                {value: '-applicant__organisation__name', name: 'Proponent - Descending'},
+                {value: 'processing_status', name: 'Status - Asceding'},
+                {value: '-processing_status', name: 'Status - Descending'},
+                {value: 'lodgement_date', name: 'Lodged On - Asceding'},
+                {value: '-lodgement_date', name: 'Lodged On - Descending'},
+                {value: 'assigned_officer__first_name', name: 'Assigned Officer - Asceding'},
+                {value: '-assigned_officer__first_name', name: 'Assigned Officer - Descending'},
+                {value: 'approval__lodgement_number', name: 'Approval - Asceding'},
+                {value: '-approval__lodgement_number', name: 'Approval - Descending'},
+            ],
+            sortBy: '',
         }
     },
     components:{
@@ -264,6 +288,9 @@ export default {
             this.$refs.proposal_datatable.vmDataTable.draw();
         },
         filterProposalLodgedTo: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
+        },
+        sortBy: function(){
             this.$refs.proposal_datatable.vmDataTable.draw();
         }
     },
@@ -531,6 +558,7 @@ export default {
                         d.submitter = vm.filterProposalSubmitter;
                         d.proposal_status = vm.filterProposalStatus;
                         d.applicant = vm.filterProposalApplicant;
+                        d.sort_by= vm.sortBy;
                     }
                 },
                 dom: 'lBfrtip',

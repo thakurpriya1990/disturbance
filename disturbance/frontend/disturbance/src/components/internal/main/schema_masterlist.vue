@@ -116,7 +116,8 @@
                         </div>
                         <div class="col-md-9">
                             <!-- <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea> -->
-                        <ckeditor :config="editorConfigAssessor" name="question" v-model="masterlist.help_text_assessor"></ckeditor>
+                        <!-- <ckeditor :config="editorConfigAssessor" @namespaceloaded="onNamespaceLoaded" name="question" v-model="masterlist.help_text_assessor"></ckeditor> -->
+                            <ckeditor :config="editorConfigAssessor" name="question" v-model="masterlist.help_text_assessor"></ckeditor>
                         </div>
                     </div>
 
@@ -163,8 +164,13 @@ export default {
                 [ 'Format' ],
                 [ 'NumberedList', 'BulletedList' ],
                 [ 'Table' ],
-                ['links'],
+                ['Link' ],
+                ['Print'],
+                { name: 'editing', items: [ 'Find', 'Replace', '-' ] },
+                { name: 'document', items: [ 'Print', 'Source', 'Preview', 'Scayt' ] },
+                //[ 'Find' ],
             ]
+        
         return {
             schema_masterlist_id: 'schema-materlist-datatable-'+vm._uid,
             pMasterListBody: 'pMasterListBody' + vm._uid,
@@ -178,7 +184,17 @@ export default {
                 // The configuration of the editor.
                 //toolbar: toolbar_options,
                 format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
-
+                //add extra plugins for Print, formatting etc.
+                extraPlugins: 'find, colorbutton, copyformatting, font, preview, print, selectall',
+                externalPlugins: {
+                    'find': '/static/disturbance/js/ckeditor-plugins/find.js',
+                    'colorbutton': '/static/disturbance/js/ckeditor-plugins/colorbutton/plugin.js',
+                    'copyformatting': '/static/disturbance/js/ckeditor-plugins/copyformatting/plugin.js',
+                    'font': '/static/disturbance/js/ckeditor-plugins/font/plugin.js',
+                    'preview': '/static/disturbance/js/ckeditor-plugins/preview/plugin.js',
+                    'print': '/static/disturbance/js/ckeditor-plugins/print/plugin.js',
+                    'selectall': '/static/disturbance/js/ckeditor-plugins/selectall/plugin.js',
+                },
                 // remove bottom bar
                 removePlugins: 'elementspath',
                 resize_enabled: false, 
@@ -187,7 +203,17 @@ export default {
                 // The configuration of the editor.
                 //toolbar: toolbar_options,
                 format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
-
+                //add extra plugins for Print, formatting etc.
+                extraPlugins: 'find, colorbutton, copyformatting, font, preview, print, selectall',
+                externalPlugins: {
+                    'find': '/static/disturbance/js/ckeditor-plugins/find.js',
+                    'colorbutton': '/static/disturbance/js/ckeditor-plugins/colorbutton/plugin.js',
+                    'copyformatting': '/static/disturbance/js/ckeditor-plugins/copyformatting/plugin.js',
+                    'font': '/static/disturbance/js/ckeditor-plugins/font/plugin.js',
+                    'preview': '/static/disturbance/js/ckeditor-plugins/preview/plugin.js',
+                    'print': '/static/disturbance/js/ckeditor-plugins/print/plugin.js',
+                    'selectall': '/static/disturbance/js/ckeditor-plugins/selectall/plugin.js',
+                },
                 // remove bottom bar
                 removePlugins: 'elementspath',
                 resize_enabled: false, 
@@ -324,6 +350,11 @@ export default {
         },
     },
     methods: {
+         onNamespaceLoaded( CKEDITOR ) {
+                // Add external `placeholder` plugin which will be available for each
+                // editor instance on the page.
+                CKEDITOR.plugins.addExternal( 'find', '/static/disturbance/js/ckeditor-plugins', 'find.js' );
+            },
         delay(callback, ms) {
             var timer = 0;
             return function () {
