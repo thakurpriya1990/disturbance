@@ -162,8 +162,9 @@ class DASMapLayerSerializer(serializers.ModelSerializer):
             'display_name',
             'layer_full_name',
             'layer_group_name',
-            'layer_name',
             'display_all_columns',
+            'layer_name',
+            'layer_url',
             #'columns',
         )
 

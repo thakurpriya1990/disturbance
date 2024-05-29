@@ -2472,16 +2472,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def prefill_proposal(self, request, *args, **kwargs):
-        if proposal.apiary_group_application_type:
-            return
-
-        if not instance.shapefile_json:
-            raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
-
         try:
             instance = self.get_object()
+            if not instance.shapefile_json:
+                raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+
             if instance.apiary_group_application_type:
-                pass
+                return
             else:
                 if instance.shapefile_json:
                     start_time = time.time()
@@ -2534,6 +2531,9 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     #url = get_sqs_url('das_queue/')
                     resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
                     resp_data = resp.json()
+                    if 'errors' in resp_data:
+                        logger.error(f'Error: {resp_data["errors"]}')
+                        raise serializers.ValidationError(f'Error: {resp_data["errors"]}')                   
                     
                     task, created = TaskMonitor.objects.get_or_create(
                             task_id=resp_data['data']['task_id'], 
@@ -2552,7 +2552,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
 
         except Exception as e:
-            print(traceback.print_exc())
+            logger.error(f'{traceback.print_exc()}')
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['post'])
@@ -4811,7 +4811,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         # self.paginator.page_size = 0
         result_page = self.paginator.paginate_queryset(queryset, request)
         serializer = DTSpatialQueryQuestionSerializer(
-            result_page, context={'data': request.data}, many=True
+            result_page, context={'data': request.data, 'request': request}, many=True
         )
         data = serializer.data
 
@@ -5248,12 +5248,18 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def create_or_update_sqs_layer(self, request, *args, **kwargs):
         '''
-        Creates layer on SQS Server fom Geoserver, if layer does not already exist on SQS
+        Creates/Updates layer on SQS Server from Geoserver
+
         To test (from DAS shell): 
-            requests.post('http://localhost:8002/api/v1/add_layer')
+            import requests
+            from requests.auth import HTTPBasicAuth
+            import json
+
+            data = {'layer_details': json.dumps({'layer_name': 'CPT_DBCA_REGIONS', 'layer_url': ' https://kaartdijin-boodja.dbca.wa.gov.au/api/catalogue/entries/CPT_DBCA_REGIONS/layer/'})}
+            url='http://localhost:8002/api/v1/add_layer'
+            resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         ''' 
-        data = {'layer_details': json.dumps(request.data.get('layer'))}
-        #url = f'{settings.SQS_APIURL}add_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/add_layer/'
+        data = json.dumps({'layer_details': request.data.get('layer'), 'system': settings.SYSTEM_NAME_SHORT})
         url = get_sqs_url(f'add_layer/')
         resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         if resp.status_code != 200:
