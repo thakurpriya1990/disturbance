@@ -5238,12 +5238,18 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
     @api_exception_handler
     def create_or_update_sqs_layer(self, request, *args, **kwargs):
         '''
-        Creates layer on SQS Server fom Geoserver, if layer does not already exist on SQS
+        Creates/Updates layer on SQS Server from Geoserver
+
         To test (from DAS shell): 
-            requests.post('http://localhost:8002/api/v1/add_layer')
+            import requests
+            from requests.auth import HTTPBasicAuth
+            import json
+
+            data = {'layer_details': json.dumps({'layer_name': 'CPT_DBCA_REGIONS', 'layer_url': ' https://kaartdijin-boodja.dbca.wa.gov.au/api/catalogue/entries/CPT_DBCA_REGIONS/layer/'})}
+            url='http://localhost:8002/api/v1/add_layer'
+            resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         ''' 
-        data = {'layer_details': json.dumps(request.data.get('layer'))}
-        #url = f'{settings.SQS_APIURL}add_layer/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/add_layer/'
+        data = json.dumps({'layer_details': request.data.get('layer'), 'system': settings.SYSTEM_NAME_SHORT})
         url = get_sqs_url(f'add_layer/')
         resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         if resp.status_code != 200:
