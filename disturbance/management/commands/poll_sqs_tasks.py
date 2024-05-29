@@ -107,6 +107,9 @@ class Command(BaseCommand):
                         msg = f'task_id {task_id} not found in SQS API request'
                         logger.warn(msg)
                         update_retries(msg)
+            else:
+                logger.info("There are no jobs queued.")
+
 
         except Exception as e: 
             msg = f'{e}'

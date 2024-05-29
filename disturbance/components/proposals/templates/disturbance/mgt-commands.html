@@ -43,6 +43,9 @@
             <div class="row">
                 <button type="submit" name="script" value="layers_used" {% if layers_used == 'true' %}style="color:green" {% endif %} title="Run Layers Used CSV Export script.">Run Script 'layers_used'</button>
             </div>
+            <div class="row">
+                <button type="submit" name="script" value="poll_sqs_tasks" {% if poll_sqs_tasks == 'true' %}style="color:green" {% endif %} title="Run Poll SQS Tasks script.">Run Script 'poll_sqs_tasks'</button>
+            </div>
 
         </form>
     </div>
