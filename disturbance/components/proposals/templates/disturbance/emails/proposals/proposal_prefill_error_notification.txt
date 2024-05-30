@@ -2,5 +2,5 @@
 
 {%  block content %}
 	There was an error processing your Disturbance proposal {{proposal.lodgement_number}}. (TaskID: {{task_id}}).
-       	Please click here to review and resubmit.
+       	Please click {{url}} to review the proposal
 {%  endblock %}
