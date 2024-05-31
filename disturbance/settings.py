@@ -169,6 +169,7 @@ SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
 APIARY_SYSTEM_NAME = env('APIARY_SYSTEM_NAME', 'Apiary System')
 SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
 SITE_PREFIX = env('SITE_PREFIX')
+SITE_PREFIX_APIARY = env('SITE_PREFIX_APIARY')
 SITE_DOMAIN = env('SITE_DOMAIN')
 SUPPORT_EMAIL = env('SUPPORT_EMAIL', SYSTEM_NAME_SHORT.lower() + '@' + SITE_DOMAIN).lower()
 APIARY_SUPPORT_EMAIL = env('APIARY_SUPPORT_EMAIL', SUPPORT_EMAIL).lower()
@@ -214,7 +215,7 @@ APIARY_URL = env('APIARY_URL', [])
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
 VERSION_NO="1.0.1"
 
-BASE_URL=env('BASE_URL', 'https:/das.dbca.wa.gov.au')
+BASE_URL='https://' + SITE_PREFIX + '.' + SITE_DOMAIN + os.sep
 
 CRON_CLASSES = [
     'appmonitor_client.cron.CronJobAppMonitorClient',
