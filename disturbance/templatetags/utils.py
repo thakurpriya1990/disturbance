@@ -15,7 +15,6 @@ def system_name():
 
 @register.simple_tag()
 def system_name_short():
-    #import ipdb; ipdb.set_trace()
     return settings.SYSTEM_NAME_SHORT
 
 @register.simple_tag()
@@ -29,4 +28,12 @@ def dept_name():
 @register.simple_tag()
 def dept_support_phone():
     return settings.DEP_PHONE_SUPPORT
+
+@register.simple_tag(takes_context=True)
+def system_base_url(context):
+    request = context['request']
+    if 'apiary' in request.get_full_path:
+       return 'https://' + settings.SITE_PREFIX_APIARY + '.' + SITE_DOMAIN + os.sep
+    return 'https://' + SITE_PREFIX + '.' + SITE_DOMAIN + os.sep
+
 

@@ -3,6 +3,9 @@
 {% load bootstrap3 %}
 
 {% load static %}
+{% load utils %}
+{% system_base_url as base_url %}
+
 
 {% block extra_css %}
     <link type="text/css" href="{% static 'wl/css/index.css' %}" rel="stylesheet">
@@ -31,7 +34,7 @@
                             Access to {{DISPLAYED_SYSTEM_NAME}}
                         </h3>
                         {% bootstrap_messages %}
-                        <a class="btn btn-primary" href="{{ request.get_full_path }}ssologin">Login</a>
+                        <a class="btn btn-primary" href="{{ base_url }}ssologin">Login</a>
                         <hr>
                         <h4>
                             {{DISPLAYED_SYSTEM_NAME}} Password-less Logins
