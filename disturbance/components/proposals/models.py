@@ -6015,14 +6015,7 @@ class SectionQuestion(models.Model):
 # --------------------------------------------------------------------------------------
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
-
-class CurrentSpatialQueryQuestionManager(models.Manager):
-    ''' Return queryset with non-expired SpatialQueryQuestions '''
-    def get_queryset(self):
-        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
-
-#class SpatialQueryQuestion(models.Model):
-class SpatialQueryQuestion(RevisionedMixin):
+class SpatialQueryLayer(RevisionedMixin):
     OVERLAPPING = 'Overlapping'
     OUTSIDE = 'Outside'
     HOW_CHOICES=(
@@ -6036,12 +6029,18 @@ class SpatialQueryQuestion(RevisionedMixin):
     )
 
     EQUALS = 'Equals'
+    CONTAINS = 'Contains'
+    OR = 'OR'
+    LIKE = 'Like'
     GREATERTHAN = 'GreaterThan'
     LESSTHAN = 'LessThan'
     #ISNULL = 'IsNull'
     ISNOTNULL = 'IsNotNull'
     OPERATOR_CHOICES=(
         (EQUALS, 'Equals'),
+        (CONTAINS, 'Contains'),
+        (OR, 'OR'),
+        (LIKE, 'Like'),
         (GREATERTHAN, 'Greather than'),
         (LESSTHAN, 'Less than'),
     #    (ISNULL, 'Is null'),
@@ -6052,12 +6051,12 @@ class SpatialQueryQuestion(RevisionedMixin):
     MULTISELECT = 'Multi-Select'
     RADIOBUTTON = 'Radio button'
     CHECKBOX = 'Checkbox'
-    WIDGET_TYPE_CHOICES=(
-        (TEXT, 'Text'),
-        (MULTISELECT, 'Multi select'),
-        (RADIOBUTTON, 'Radio button'),
-        (CHECKBOX, 'Checkbox'),
-    )
+#    WIDGET_TYPE_CHOICES=(
+#        (TEXT, 'Text'),
+#        (MULTISELECT, 'Multi select'),
+#        (RADIOBUTTON, 'Radio button'),
+#        (CHECKBOX, 'Checkbox'),
+#    )
 
     NONE = '' 
     TEXT = 'Text'
@@ -6070,25 +6069,14 @@ class SpatialQueryQuestion(RevisionedMixin):
         (FLOAT, 'Float'),
     )
                          
-    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
-    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
-#    question = models.TextField('Question (Masterlist Question)')
-#    answer_mlq = models.CharField('Answer (Masterlist Question)', max_length=512, blank=True, null=True)
-
     layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE) #, blank=True, null=True)
-    group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)
-    #layer_name = models.CharField(max_length=100)
-    #layer_url = models.CharField(max_length=512, blank=True, null=True)
     expiry = models.DateField('Expiry Date', blank=True, null=True)
     visible_to_proponent = models.BooleanField(default=False)
     buffer = models.PositiveIntegerField(blank=True, null=True)
     how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
-    #widget_type = models.CharField('Component type', max_length=40, choices=WIDGET_TYPE_CHOICES, blank=True, null=True) #default=WIDGET_TYPE_CHOICES[0][0])
-    #priority = models.SmallIntegerField('Radio button priority', blank=True, null=True)
     column_name = models.CharField('Name of layer attribute/field', max_length=100)
     operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
     value = models.CharField(max_length=100, blank=True, null=True)
-    #value_type = models.CharField('Value type', max_length=40, choices=VALUE_TYPE_CHOICES, default=VALUE_TYPE_CHOICES[0][0])
 
     prefix_answer = models.TextField(blank=True, null=True)
     no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1, blank=True)
@@ -6102,7 +6090,32 @@ class SpatialQueryQuestion(RevisionedMixin):
     assessor_items = JSONField('Assessor response set', default=[{}])
 
     regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
+
+    spatial_query_question = models.ForeignKey(SpatialQueryQuestion, related_name='spatial_query_questions', on_delete=models.CASCADE)
                                 
+    class Meta:
+        app_label = 'disturbance'
+        #ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.layer_name}'
+
+    @property
+    def layer_name(self):
+        return self.layer.layer_name
+
+
+class CurrentSpatialQueryQuestionManager(models.Manager):
+    ''' Return queryset with non-expired SpatialQueryQuestions '''
+    def get_queryset(self):
+        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
+
+class SpatialQueryQuestion(RevisionedMixin):
+                        
+    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
+    group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)
+                               
     objects = models.Manager()
     current_questions = CurrentSpatialQueryQuestionManager()
 
@@ -6112,8 +6125,7 @@ class SpatialQueryQuestion(RevisionedMixin):
         ordering = ['-id']
 
     def __str__(self):
-        #return '{} - {}'.format(self.question.id, self.layer_name)
-        return '{} - {}'.format(self.question, self.layer_name)
+        return f'{self.question}'
 
     def __cddp_group(self):
         try:
@@ -6128,7 +6140,7 @@ class SpatialQueryQuestion(RevisionedMixin):
 
     @property
     def layer_name(self):
-        return self.layer.layer_name
+        return self.spatial_query_layer.layer_name
 
     @property
     def allowed_editors(self):

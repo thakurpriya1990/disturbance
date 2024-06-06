@@ -2511,6 +2511,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                             if question_dict['question_group'] in sqq_record.values():
                                 question_dict['questions'].append(sqq_record)
 
+                    #import ipdb; ipdb.set_trace()
                     data = dict(
                         proposal=dict(
                             id=proposal.id,
@@ -2530,6 +2531,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     url = get_sqs_url('das/task_queue')
                     #url = get_sqs_url('das_queue/')
                     resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+                    #import ipdb; ipdb.set_trace()
                     resp_data = resp.json()
                     if 'errors' in resp_data:
                         logger.error(f'Error: {resp_data["errors"]}')

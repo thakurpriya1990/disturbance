@@ -21,6 +21,7 @@ from disturbance.components.proposals.models import (
                                     MasterlistQuestion,
                                     QuestionOption,
                                     SpatialQueryQuestion,
+                                    SpatialQueryLayer,
                                     SpatialQueryMetrics,
                                     CddpQuestionGroup,
                                 )
@@ -1364,39 +1365,18 @@ class CddpQuestionGroupSerializer(serializers.ModelSerializer):
 #        model = QuestionOption
 #        fields = ('id', 'label', 'value')
 
-
-class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
-    '''
-    Serializer for Datatable SpatialQueryQuestion.
-    '''
-    question = serializers.CharField(source='question.question')
-    answer_mlq = serializers.CharField(allow_null=True, source='answer_mlq.label')
-    #question = MLQuestionSerializer()
-    #answer_mlq = SchemaOptionSerializer()
-
-    #expiry = serializers.DateField(read_only=True)
-    #buffer = serializers.IntegerField(read_only=True)
+class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
     expiry = serializers.DateField(allow_null=True, required=False)
     buffer = serializers.IntegerField(allow_null=True, required=False)
-    group = CddpQuestionGroupSerializer()
     layer = DASMapLayerSqsSerializer()
-    masterlist_question = serializers.SerializerMethodField(read_only=True)
-    #modified_date = serializers.SerializerMethodField(read_only=True)
     modified_date = serializers.DateTimeField(required=False)
-    #layer_name = serializers.SerializerMethodField()
-    #layer_url = serializers.SerializerMethodField()
 
     class Meta:
-        model = SpatialQueryQuestion
+        model = SpatialQueryLayer
         #fields = '__all__'
         fields = (
           'id',
           'modified_date',
-          'masterlist_question',
-          'question',
-          'answer_mlq',
-          #'layer_name',
-          #'layer_url',
           'expiry',
           'visible_to_proponent',
           'buffer',
@@ -1415,6 +1395,91 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
           'assessor_items',
           'regions',
           'layer',
+          'spatial_query_question',
+        )
+        datatables_always_serialize = fields
+
+#    def _get_modified_date(self, obj):
+#        dt = timezone.make_aware(datetime.now(),timezone.get_default_timezone())
+#        return datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
+
+    def create(self, validated_data):
+        #data = self.context['request'].data
+        data = self.context['data']
+
+        #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        [validated_data.pop(key) for key in ['layer']]
+        return SpatialQueryQuestion.objects.create(
+            **validated_data, 
+            layer_id=data['layer'].get('id')
+        )
+
+    def update(self, instance, validated_data):
+        #data = self.context['request'].data
+        data = self.context['data']
+
+        #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        [validated_data.pop(key) for key in ['layer']]
+        return SpatialQueryQuestion.objects.filter(id=instance.id).update(
+            **validated_data, 
+            layer_id=data['layer'].get('id')
+        )
+
+
+#    def get_question(self, obj):
+#        #return obj.question.question if obj.question else None
+#        return obj.question.question
+#
+#    def get_answer_mlq(self, obj):
+#        return obj.answer_mlq.label if obj.answer_mlq else None
+#
+#    def _get_allowed_editors(self, obj):
+#        return obj.email
+
+    def get_layer_name(self, obj):
+        return obj.layer.layer_name
+
+    def get_layer_url(self, obj):
+        return obj.layer.layer_url
+
+    def get_masterlist_question(self, obj):
+        l = [] 
+        qs = MasterlistQuestion.objects.filter(question=obj.question)
+        _id = qs[0].id if qs.exists() else None
+        question = qs[0].question if qs.exists() else None
+        answer_type = qs[0].answer_type if qs.exists() else None
+
+        l.append( 
+            dict(
+                id=_id,
+                question=question,
+                answer_type=answer_type
+            ) 
+        )
+
+        return l
+
+
+class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+    '''
+    Serializer for Datatable SpatialQueryQuestion.
+    '''
+    question = serializers.CharField(source='question.question')
+    answer_mlq = serializers.CharField(allow_null=True, source='answer_mlq.label')
+    group = CddpQuestionGroupSerializer()
+    layer = DASMapLayerSqsSerializer()
+    masterlist_question = serializers.SerializerMethodField(read_only=True)
+    modified_date = serializers.DateTimeField(required=False)
+
+    class Meta:
+        model = SpatialQueryQuestion
+        #fields = '__all__'
+        fields = (
+          'id',
+          'modified_date',
+          'masterlist_question',
+          'question',
+          'answer_mlq',
           'group',
         )
         datatables_always_serialize = fields
