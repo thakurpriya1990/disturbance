@@ -711,7 +711,7 @@ def remove_prefilled_data(proposal):
                     data_keys.append(layer['name'])
         if data_keys:
             new_data=find_and_remove_keys(proposal.data[0], data_keys)
-            proposal.data=new_data
+            proposal.data=[new_data]
         return proposal
     except:
         raise
