@@ -46,7 +46,7 @@ from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
-    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca, DASMapLayer
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca, DASMapLayer, TaskMonitor
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification,
@@ -741,6 +741,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
+    @property
+    def in_prefill_queue(self):
+        """
+        :return: True if the application is in the prefilling queue.
+        """
+        queue_status=[TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]
+        if self.taskmonitor_set.all():
+            task=self.taskmonitor_set.latest('id')
+            if task.status in queue_status:
+                return True        
+        return False
+    
     @property
     def is_discardable(self):
         """

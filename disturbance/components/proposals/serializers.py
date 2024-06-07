@@ -299,6 +299,8 @@ class ProposalSerializer(BaseProposalSerializer):
         )
 
     def get_readonly(self,obj):
+        if not obj.can_user_view:
+            return obj.in_prefill_queue
         return obj.can_user_view
 
     def get_comment_data(self,obj):
