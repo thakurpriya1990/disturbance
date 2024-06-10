@@ -184,9 +184,9 @@
                 </div>
             </template>
             <template v-else>
-                <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_external="true" />
+                <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" @refreshFromResponseProposal="refreshFromResponseProposal" ref="mapSection" :is_external="true" />
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" :key="proposalComponentMapKey">
-                <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                <NewApply v-if="proposal" :proposal="proposal" ref="proposal_apply"></NewApply>
 
                 <!-- From master 28-Mar-2024 TODO remove this commented section
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
@@ -1063,9 +1063,16 @@ export default {
             },
         refreshFromResponse:function(response){
             let vm = this;
-            console.log('inside refresh');
             vm.original_proposal = helpers.copyObject(response.body);
             vm.proposal = helpers.copyObject(response.body);
+            this.incrementProposalComponentMapKey();
+            // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+            
+        },
+        refreshFromResponseProposal:function(new_proposal){
+            let vm = this;
+            vm.original_proposal = helpers.copyObject(new_proposal);
+            vm.proposal = helpers.copyObject(new_proposal);
             this.incrementProposalComponentMapKey();
             // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
             

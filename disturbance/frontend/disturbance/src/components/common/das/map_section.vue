@@ -250,9 +250,22 @@
                     type: "warning",
                     showCancelButton: true,
                     confirmButtonText: 'Prefill Proposal',
-                    confirmButtonColor:'#d9534f'
-                }).then(async () => {
-
+                    confirmButtonColor:'#d9534f',
+                    input: 'radio',
+                    inputOptions: {
+                      'clear_sqs':  'Clear only Proposal data from SQS',
+                      'clear_all': 'Clear all Proposal data',
+                    }
+                }).then(async (result) => {
+                    console.log("Result: " + result);
+                    if (!result) {
+                        swal(
+                            'Please select an option',
+                            null,
+                            'warning'
+                        )
+                        return;
+                    }
                     //vm.prefilling=true;
                     swal({
                         title: "Loading...",
@@ -263,10 +276,17 @@
                             swal.showLoading()
                         }
                     })
-                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
+                    var data={};
+                    data.option = result;
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal'), JSON.stringify(data),{
+                        emulateJSON:true
+                    }).then(res=>{
                         swal.hideLoading();
                         swal.close();
-                        vm.$emit('refreshFromResponse',res);
+                        var resp_proposal=null;
+                        resp_proposal=res['body']['proposal']
+                        //vm.$emit('refreshFromResponse',res);
+                        vm.$emit('refreshFromResponseProposal',resp_proposal);
                         console.log('URL:' + helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal'))
                         //console.log('RES:' + JSON.stringify(res))
                         let title = res['body']['message'].includes('updated') ? "Processing Proposal (UPDATED)" : "Processing Proposal"

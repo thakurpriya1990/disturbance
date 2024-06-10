@@ -2490,7 +2490,15 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     else:
                         current_ts = proposal.prefill_timestamp
                     geojson=proposal.shapefile_json
-
+                    #clear_data_option='clear_all'
+                    clear_data_option=request.data.get('option') if 'option' in request.data else 'clear_all'
+                    from disturbance.utils import remove_prefilled_data
+                    if(clear_data_option=='clear_sqs'):
+                        proposal=remove_prefilled_data(proposal)
+                    elif(clear_data_option=='clear_all'):
+                        proposal.data=None
+                    proposal.save(version_comment=f'Proposal data cleared for Prefill')
+                
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
                     masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
                     serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
@@ -2548,6 +2556,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
                         # another user may attempt to Prefill, whilst job is still queued
                         logger.info(f'Task ID {task.id}, Proposal {proposal.lodgement_number} requester updated. Prev {task.requester.email}, New {request.user.email}')
                         task.requester = request.user
+                    serializer = self.get_serializer(proposal)
+                    resp_data['proposal']=serializer.data
 
                     return Response(resp_data, status=resp.status_code)
                 else:
