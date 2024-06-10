@@ -1073,6 +1073,7 @@ export default {
             let vm = this;
             vm.original_proposal = helpers.copyObject(new_proposal);
             vm.proposal = helpers.copyObject(new_proposal);
+            vm.setdata(vm.proposal.readonly);
             this.incrementProposalComponentMapKey();
             // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
             
