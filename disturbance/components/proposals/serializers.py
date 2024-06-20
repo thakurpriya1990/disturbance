@@ -1378,6 +1378,7 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
         #fields = '__all__'
         fields = (
           'id',
+          'spatial_query_question_id',
           'modified_date',
           'expiry',
           'visible_to_proponent',
@@ -1387,17 +1388,12 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
           'operator',
           'value',
           'prefix_answer',
-          'no_polygons_proponent',
           'answer',
           'prefix_info',
-          'no_polygons_assessor',
           'assessor_info',
-          'show_add_info_section_prop',
           'proponent_items',
           'assessor_items',
-          'regions',
           'layer',
-          'spatial_query_question',
         )
         datatables_always_serialize = fields
 
@@ -1406,14 +1402,14 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
 #        return datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
 
     def create(self, validated_data):
-        #data = self.context['request'].data
         data = self.context['data']
+        #import ipdb; ipdb.set_trace()
 
-        #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
         [validated_data.pop(key) for key in ['layer']]
-        return SpatialQueryQuestion.objects.create(
+        return SpatialQueryLayer.objects.create(
             **validated_data, 
-            layer_id=data['layer'].get('id')
+            spatial_query_question_id=data['spatial_query_question_id'],
+            layer_id=data['layer'].get('id'),
         )
 
     def update(self, instance, validated_data):
@@ -1422,9 +1418,10 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
 
         #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
         [validated_data.pop(key) for key in ['layer']]
-        return SpatialQueryQuestion.objects.filter(id=instance.id).update(
+        return SpatialQueryLayer.objects.filter(id=instance.id).update(
             **validated_data, 
-            layer_id=data['layer'].get('id')
+            spatial_query_question_id=data['spatial_query_question_id'],
+            layer_id=data['layer'].get('id'),
         )
 
 
@@ -1444,33 +1441,16 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
     def get_layer_url(self, obj):
         return obj.layer.layer_url
 
-    def get_masterlist_question(self, obj):
-        l = [] 
-        qs = MasterlistQuestion.objects.filter(question=obj.question)
-        _id = qs[0].id if qs.exists() else None
-        question = qs[0].question if qs.exists() else None
-        answer_type = qs[0].answer_type if qs.exists() else None
 
-        l.append( 
-            dict(
-                id=_id,
-                question=question,
-                answer_type=answer_type
-            ) 
-        )
-
-        return l
-
-
-class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+class SpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
     '''
     Serializer for Datatable SpatialQueryQuestion.
     '''
-    question = serializers.CharField(source='question.question')
+    #question = serializers.CharField(source='question.question')
+    question = serializers.SerializerMethodField()
     answer_mlq = serializers.CharField(allow_null=True, source='answer_mlq.label')
     group = CddpQuestionGroupSerializer()
-    layer = DASMapLayerSqsSerializer()
-    masterlist_question = serializers.SerializerMethodField(read_only=True)
+    layers = SpatialQueryLayerSerializer(source='spatial_query_layers', many=True, read_only=True)
     modified_date = serializers.DateTimeField(required=False)
 
     class Meta:
@@ -1479,10 +1459,37 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
         fields = (
           'id',
           'modified_date',
-          'masterlist_question',
           'question',
           'answer_mlq',
           'group',
+          #'other_data',
+          'layers',
+        )
+        datatables_always_serialize = fields
+
+
+class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
+    '''
+    Serializer for Datatable SpatialQueryQuestion.
+    '''
+    #question = serializers.CharField(source='question.question')
+    masterlist_question = serializers.SerializerMethodField(read_only=True)
+    answer_mlq = serializers.CharField(allow_null=True, source='answer_mlq.label')
+    group = CddpQuestionGroupSerializer()
+    modified_date = serializers.DateTimeField(required=False)
+    layers = SpatialQueryLayerSerializer(source='spatial_query_layers', many=True, read_only=True)
+
+    class Meta:
+        model = SpatialQueryQuestion
+        #fields = '__all__'
+        fields = (
+          'id',
+          'modified_date',
+          'masterlist_question',
+          'answer_mlq',
+          'group',
+          'other_data',
+          'layers',
         )
         datatables_always_serialize = fields
 
@@ -1499,12 +1506,14 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
                 dict(answer_mlq_id=data.get('answer_mlq_id'))
             )
 
-        [validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        [validated_data.pop(key) for key in ['answer_mlq', 'group']]
+        #import ipdb; ipdb.set_trace()
         return SpatialQueryQuestion.objects.create(
             **validated_data, 
             question_id=data.get('question_id'),
             group_id=data['group'].get('id'),
-            layer_id=data['layer'].get('id')
+            #layer_id=data['layer'].get('id')
         )
 
     def update(self, instance, validated_data):
@@ -1516,14 +1525,15 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
                 dict(answer_mlq_id=data.get('answer_mlq_id'))
             )
 
-        [validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
+        [validated_data.pop(key) for key in ['answer_mlq', 'group']]
+        #import ipdb; ipdb.set_trace()
         return SpatialQueryQuestion.objects.filter(id=instance.id).update(
             **validated_data, 
             question_id=data.get('question_id'),
             group_id=data['group'].get('id'),
-            layer_id=data['layer'].get('id')
+            #layer_id=data['layer'].get('id')
         )
-
 
 #    def get_question(self, obj):
 #        #return obj.question.question if obj.question else None
@@ -1531,30 +1541,35 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 #
 #    def get_answer_mlq(self, obj):
 #        return obj.answer_mlq.label if obj.answer_mlq else None
+#
+#    def _get_allowed_editors(self, obj):
+#        return obj.email
+#
+#    def get_layer_name(self, obj):
+#        return obj.layer.layer_name
 
-    def get_layer_name(self, obj):
-        return obj.layer.layer_name
+#    def get_layers(self, obj):
+#        import ipdb; ipdb.set_trace()
+#        return obj.spatial_query_layers.all()
 
-    def get_layer_url(self, obj):
-        return obj.layer.layer_url
+#    def get_layer_url(self, obj):
+#        return obj.layer.layer_url
 
     def get_masterlist_question(self, obj):
         l = [] 
         qs = MasterlistQuestion.objects.filter(question=obj.question)
-        question_id = qs[0].id if qs.exists() else None
+        _id = qs[0].id if qs.exists() else None
+        question = qs[0].question if qs.exists() else None
         answer_type = qs[0].answer_type if qs.exists() else None
 
         l.append( 
             dict(
-                question_id=question_id,
-                answer_type=answer_type
+                id=_id,
+                question=question,
+                answer_type=answer_type,
             ) 
         )
-
         return l
-
-    def _get_allowed_editors(self, obj):
-        return obj.email
 
 
 class DTSpatialQueryMetricsSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):

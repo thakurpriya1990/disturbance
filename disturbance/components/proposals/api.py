@@ -85,6 +85,7 @@ from disturbance.components.proposals.models import (
     MasterlistQuestion,
     CddpQuestionGroup,
     SpatialQueryQuestion,
+    SpatialQueryLayer,
     SpatialQueryMetrics,
     ProposalUserAction,
 )
@@ -120,6 +121,7 @@ from disturbance.components.proposals.serializers import (
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
     DTSpatialQueryQuestionSerializer,
+    SpatialQueryLayerSerializer,
     DTSpatialQueryMetricsSerializer,
     DTSpatialQueryMetricsDetailsSerializer,
     DTSpatialQueryLayersUsedSerializer,
@@ -4789,6 +4791,36 @@ class SpatialQueryQuestionFilterBackend(DatatablesFilterBackend):
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
+#class SpatialQueryLayerFilterBackend(DatatablesFilterBackend):
+#    """
+#    Custom filters
+#    """
+#    def filter_queryset(self, request, queryset, view):
+#        # Get built-in DRF datatables queryset first to join with search text,
+#        # then apply additional filters.
+#        search_text = request.GET.get('search[value]')
+#        if queryset.model is SpatialQueryLayer:
+#            if search_text:
+#                search_text = search_text.lower()
+#                search_text_masterlist_ids = SpatialQueryQuestion.objects.values(
+#                    'id'
+#                ).filter(question__question__icontains=search_text)
+#
+#                queryset = queryset.filter(
+#                    id__in=search_text_masterlist_ids
+#                ).distinct()
+#        
+#        getter = request.query_params.get
+#        fields = self.get_fields(getter)
+#        ordering = self.get_ordering(getter, fields)
+#        if len(ordering):
+#            queryset = queryset.order_by(*ordering)
+#        total_count = queryset.count()
+#
+#        setattr(view, '_datatables_total_count', total_count)
+#        return queryset
+
+
 class SpatialQueryRenderer(DatatablesRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
         if 'view' in renderer_context and \
@@ -4851,6 +4883,59 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
         response = self.paginator.get_paginated_response(data)
 
         return response
+
+    @list_route(methods=['GET', ])
+    def spatial_query_layer_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/spatial_query_paginated/spatial_query_layer_datatable_list/?format=datatables&draw=1&length=10&sqq_id=225 """
+
+        sqq_id = request.GET.get('sqq_id')
+        queryset = SpatialQueryLayer.objects.filter(spatial_query_question_id=sqq_id)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = SpatialQueryLayerSerializer(
+            result_page, context={'data': request.data, 'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
+
+
+
+#class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
+#    """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Questions' tab """
+#    filter_backends = (DatatablesFilterBackend,)
+#    #filter_backends = (SpatialQueryLayerFilterBackend,)
+#    pagination_class = DatatablesPageNumberPagination
+#    renderer_classes = (SpatialQueryRenderer,)
+#    queryset = SpatialQueryLayer.objects.none()
+#    serializer_class = SpatialQueryLayerSerializer
+#    page_size = 10
+#
+#    def get_queryset(self):
+#        # user = self.request.user
+#        return SpatialQueryLayer.objects.all()
+#
+#    @list_route(methods=['GET', ])
+#    def spatial_query_layer_datatable_list(self, request, *args, **kwargs):
+#        """ http://localhost:8003/api/spatial_query_paginated/spatial_query_layer_datatable_list/?format=datatables&draw=1&length=10 """
+#        import ipdb; ipdb.set_trace()
+#        self.serializer_class = SpatialQueryLayerSerializer
+#        queryset = self.get_queryset()
+#
+#        queryset = self.filter_queryset(queryset)
+#        self.paginator.page_size = queryset.count()
+#        # self.paginator.page_size = 0
+#        result_page = self.paginator.paginate_queryset(queryset, request)
+#        serializer = SpatialQueryLayerSerializer(
+#            result_page, context={'data': request.data, 'request': request}, many=True
+#        )
+#        data = serializer.data
+#
+#        response = self.paginator.get_paginated_response(data)
+#        return response
+
 
 class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
     """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
@@ -5024,14 +5109,14 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             operators = [
                 {
                     'value': a[0], 'label': a[1]
-                } for a in SpatialQueryQuestion.OPERATOR_CHOICES
+                } for a in SpatialQueryLayer.OPERATOR_CHOICES
                 if a[0] not in excl_operator_choices
             ]
 
             how = [
                 {
                     'value': a[0], 'label': a[1]
-                } for a in SpatialQueryQuestion.HOW_CHOICES
+                } for a in SpatialQueryLayer.HOW_CHOICES
                 if a[0] not in excl_how_choices
             ]
 
@@ -5425,6 +5510,45 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
 
+            with transaction.atomic():
+                serializer = DTSpatialQueryQuestionSerializer(
+                    instance, data=request.data, context={'data': request.data}
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {'spatialquery_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            if 'non_field_errors' in ve.get_codes() and 'unique' in ve.get_codes()['non_field_errors']:
+                if any('question' in s for s in ve.detail['non_field_errors']):
+                    raise serializers.ValidationError('CDDP Question and Answer already exist. Must be a unique set')
+            log = '{0} {1}'.format('save_spatialquery()')
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+
+    @detail_route(methods=['POST', ])
+    def _save_spatialquery(self, request, *args, **kwargs):
+        '''
+        Save spatialquery record.
+        '''
+        try:
+            instance = self.get_object()
+
             # check attrs and values exist in layer
             layer_name = request.data['layer']['layer_name']
             url = get_sqs_url(f'layers/get_attributes')
@@ -5506,6 +5630,122 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.exception()
             raise serializers.ValidationError(str(e))
+
+class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
+    """ For the 'New Layer' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
+    queryset = SpatialQueryLayer.objects.all()
+    serializer_class = SpatialQueryLayerSerializer
+
+    @basic_exception_handler
+    def create(self, request, *args, **kwargs):
+#        fields = {'question_id': request.data['question_id']}
+#        if request.data.get('answer_mlq_id'):
+#            fields.update({'answer_mlq_id': request.data.get('answer_mlq_id')})
+
+#        sqq = SpatialQueryQuestion.objects.filter(**fields)
+#        if sqq.exists():
+#            return JsonResponse(
+#                data={'errors': 'This SpatialQuery Question/Answer already exists.'},
+#                status=status.HTTP_400_BAD_REQUEST
+#            )
+        
+        with transaction.atomic():
+            serializer = SpatialQueryLayerSerializer(data=request.data, context={'data': request.data})
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+        return Response(serializer.data)
+
+    @detail_route(methods=['POST', ])
+    def save_spatialquerylayer(self, request, *args, **kwargs):
+        '''
+        Save spatialquery record.
+        '''
+        try:
+            instance = self.get_object()
+
+            # check attrs and values exist in layer
+            layer_name = request.data['layer']['layer_name']
+            url = get_sqs_url(f'layers/get_attributes')
+            resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+            if resp.status_code != 200:
+                logger.error(f'SpatialQuery API call error (get_attributes): {resp.content}')
+                return Response({'errors': resp.content}, status=resp.status_code)
+
+            data = resp.json()
+            layer_attrs = [d['attribute'] for d in data]
+            #attr_values = [d['values'] for d in data if 'LGA_TYPE' in  d['attribute']]
+            #layer_attrs = []
+            #for d in data:
+            #    layer_attrs.append(d['attribute'])
+            #    if 'LGA_TYPE' in d['attribute']:
+            #        attr_values = d['values']
+
+            sqq_column_name = request.data.get('column_name').strip()
+            sqq_answer = request.data.get('answer').strip()
+            sqq_assessor_info = request.data.get('assessor_info').strip()
+
+            proponent_items = request.data.get('proponent_items')
+            proponent_attrs_unavailable = [i['answer'] for i in proponent_items if 'answer' in i and i['answer'] not in layer_attrs]
+
+            assessor_items = request.data.get('assessor_items')
+            assessor_attrs_unavailable = [i['info'] for i in assessor_items if 'info' in i and i['info'] not in layer_attrs]
+
+
+            if sqq_column_name not in layer_attrs:
+                # check column_name in exists layer_attrs
+                return JsonResponse(
+                    data={'errors': f'Column name \'{sqq_column_name}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            #if sqq_answer and (not sqq_answer.startswith('::') or sqq_answer.split('::')[1] not in layer_attrs):
+            if proponent_attrs_unavailable:
+                # check answer (label) in exists layer_attrs
+                return JsonResponse(
+                    data={'errors': f'Answer(s) (Proponent section) \'{proponent_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            #if sqq_assessor_info and (not sqq_assessor_info.startswith('::') or sqq_assessor_info.split('::')[1] not in layer_attrs):
+            if assessor_attrs_unavailable:
+                # check assessor_info (label) exists in layer_attrs
+                return JsonResponse(
+                    data={'errors': f'Info for assessor (Assessor section) \'{assessor_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            with transaction.atomic():
+
+                serializer = DTSpatialQueryQuestionSerializer(
+                    instance, data=request.data, context={'data': request.data}
+                )
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+
+            return Response(
+                {'spatialquery_id': instance.id},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            if 'non_field_errors' in ve.get_codes() and 'unique' in ve.get_codes()['non_field_errors']:
+                if any('question' in s for s in ve.detail['non_field_errors']):
+                    raise serializers.ValidationError('CDDP Question and Answer already exist. Must be a unique set')
+            log = '{0} {1}'.format('save_spatialquery()')
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
 
 
 class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):

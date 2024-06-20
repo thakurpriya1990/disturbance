@@ -74,6 +74,7 @@ module.exports = {
     schema_proposal_type:"/api/schema_proposal_type.json",
     schema_proposal_type_paginated:"/api/schema_proposal_type_paginated/",
     spatial_query:"/api/spatial_query",
+    spatial_query_layer:"/api/spatial_query_layer",
     spatial_query_paginated:"/api/spatial_query_paginated/",
     spatial_query_metrics_paginated:"/api/spatial_query_metrics_paginated/",
     spatial_query_layers_used_paginated:"/api/proposal_paginated/",

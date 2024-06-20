@@ -6027,95 +6027,6 @@ class SectionQuestion(models.Model):
 # --------------------------------------------------------------------------------------
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
-class SpatialQueryLayer(RevisionedMixin):
-    OVERLAPPING = 'Overlapping'
-    OUTSIDE = 'Outside'
-    HOW_CHOICES=(
-        (OVERLAPPING, 'Overlapping'),
-        (OUTSIDE, 'Outside'),
-    )
-                         
-    ALL = 'All'
-    REGION_CHOICES=(
-        (ALL, 'All'),
-    )
-
-    EQUALS = 'Equals'
-    CONTAINS = 'Contains'
-    OR = 'OR'
-    LIKE = 'Like'
-    GREATERTHAN = 'GreaterThan'
-    LESSTHAN = 'LessThan'
-    #ISNULL = 'IsNull'
-    ISNOTNULL = 'IsNotNull'
-    OPERATOR_CHOICES=(
-        (EQUALS, 'Equals'),
-        (CONTAINS, 'Contains'),
-        (OR, 'OR'),
-        (LIKE, 'Like'),
-        (GREATERTHAN, 'Greather than'),
-        (LESSTHAN, 'Less than'),
-    #    (ISNULL, 'Is null'),
-        (ISNOTNULL, 'Is not null'),
-    )
-
-    TEXT = 'Text'
-    MULTISELECT = 'Multi-Select'
-    RADIOBUTTON = 'Radio button'
-    CHECKBOX = 'Checkbox'
-#    WIDGET_TYPE_CHOICES=(
-#        (TEXT, 'Text'),
-#        (MULTISELECT, 'Multi select'),
-#        (RADIOBUTTON, 'Radio button'),
-#        (CHECKBOX, 'Checkbox'),
-#    )
-
-    NONE = '' 
-    TEXT = 'Text'
-    INT = 'Int'
-    FLOAT = 'Float'
-    VALUE_TYPE_CHOICES=(
-        (NONE, ''),
-        (TEXT, 'Text String'),
-        (INT, 'Integer'),
-        (FLOAT, 'Float'),
-    )
-                         
-    layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE) #, blank=True, null=True)
-    expiry = models.DateField('Expiry Date', blank=True, null=True)
-    visible_to_proponent = models.BooleanField(default=False)
-    buffer = models.PositiveIntegerField(blank=True, null=True)
-    how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
-    column_name = models.CharField('Name of layer attribute/field', max_length=100)
-    operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
-    value = models.CharField(max_length=100, blank=True, null=True)
-
-    prefix_answer = models.TextField(blank=True, null=True)
-    no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1, blank=True)
-    answer = models.TextField(blank=True, null=True)
-    prefix_info = models.CharField(max_length=100, blank=True, null=True)
-    no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
-    assessor_info = models.TextField(blank=True, null=True)
-
-    show_add_info_section_prop = models.BooleanField('Show additional info section (Proponent)', default=False)
-    proponent_items = JSONField('Proponent response set', default=[{}])
-    assessor_items = JSONField('Assessor response set', default=[{}])
-
-    regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
-
-    spatial_query_question = models.ForeignKey(SpatialQueryQuestion, related_name='spatial_query_questions', on_delete=models.CASCADE)
-                                
-    class Meta:
-        app_label = 'disturbance'
-        #ordering = ['-id']
-
-    def __str__(self):
-        return f'{self.layer_name}'
-
-    @property
-    def layer_name(self):
-        return self.layer.layer_name
-
 
 class CurrentSpatialQueryQuestionManager(models.Manager):
     ''' Return queryset with non-expired SpatialQueryQuestions '''
@@ -6127,6 +6038,7 @@ class SpatialQueryQuestion(RevisionedMixin):
     question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
     answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
     group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)
+    other_data = JSONField('Additional/Misc Data', blank=True, null=True)
                                
     objects = models.Manager()
     current_questions = CurrentSpatialQueryQuestionManager()
@@ -6158,6 +6070,84 @@ class SpatialQueryQuestion(RevisionedMixin):
     def allowed_editors(self):
         group = self.__cddp_group()
         return group.members.all() if group else []
+
+
+class SpatialQueryLayer(RevisionedMixin):
+    OVERLAPPING = 'Overlapping'
+    OUTSIDE     = 'Outside'
+    HOW_CHOICES=(
+        (OVERLAPPING, 'Overlapping'),
+        (OUTSIDE, 'Outside'),
+    )
+                         
+    ALL = 'All'
+    REGION_CHOICES=(
+        (ALL, 'All'),
+    )
+
+    EQUALS      = 'Equals'
+    CONTAINS    = 'Contains'
+    OR          = 'OR'
+    LIKE        = 'Like'
+    GREATERTHAN = 'GreaterThan'
+    LESSTHAN    = 'LessThan'
+    ISNOTNULL   = 'IsNotNull'
+    #ISNULL = 'IsNull'
+    OPERATOR_CHOICES=(
+        (EQUALS, 'Equals'),
+        (CONTAINS, 'Contains'),
+        (OR, 'OR'),
+        (LIKE, 'Like'),
+        (GREATERTHAN, 'Greather than'),
+        (LESSTHAN, 'Less than'),
+    #    (ISNULL, 'Is null'),
+        (ISNOTNULL, 'Is not null'),
+    )
+
+    NONE  = '' 
+    TEXT  = 'Text'
+    INT   = 'Int'
+    FLOAT = 'Float'
+    VALUE_TYPE_CHOICES=(
+        (NONE, ''),
+        (TEXT, 'Text String'),
+        (INT, 'Integer'),
+        (FLOAT, 'Float'),
+    )
+                         
+    layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE) #, blank=True, null=True)
+    expiry = models.DateField('Expiry Date', blank=True, null=True)
+    visible_to_proponent = models.BooleanField(default=False)
+    buffer = models.PositiveIntegerField(blank=True, null=True)
+    how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
+    column_name = models.CharField('Name of layer attribute/field', max_length=100)
+    operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
+    value = models.CharField(max_length=100, blank=True, null=True)
+
+    prefix_answer = models.TextField(blank=True, null=True)
+    #no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1, blank=True)
+    answer = models.TextField(blank=True, null=True)
+    prefix_info = models.CharField(max_length=100, blank=True, null=True)
+    #no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
+    assessor_info = models.TextField(blank=True, null=True)
+
+    proponent_items = JSONField('Proponent response set', default=[{}])
+    assessor_items = JSONField('Assessor response set', default=[{}])
+
+    #regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
+
+    spatial_query_question = models.ForeignKey(SpatialQueryQuestion, related_name='spatial_query_layers', on_delete=models.CASCADE)
+                                
+    class Meta:
+        app_label = 'disturbance'
+        #ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.layer_name}'
+
+    @property
+    def layer_name(self):
+        return self.layer.layer_name
 
 
 class SpatialQueryMetrics(models.Model):
@@ -6278,6 +6268,7 @@ reversion.register(SectionQuestion)
 
 #CDDP Spatial model
 reversion.register(SpatialQueryQuestion)
+reversion.register(SpatialQueryLayer)
 
 reversion.register(ExportDocument)
 

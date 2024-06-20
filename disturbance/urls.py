@@ -89,6 +89,10 @@ router.register(
     r'spatial_query',
     proposal_api.SpatialQueryQuestionViewSet
 )
+router.register(
+    r'spatial_query_layer',
+    proposal_api.SpatialQueryLayerViewSet
+)
 router.register(r'das_map_proposal',proposal_api.DASMapFilterViewSet)
 
 api_patterns = [
