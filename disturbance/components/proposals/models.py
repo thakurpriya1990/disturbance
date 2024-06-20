@@ -79,7 +79,8 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_ST
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+#private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+private_storage = FileSystemStorage(location="private-media/", base_url='/private-media/')
 
 logger = logging.getLogger(__name__)
 
