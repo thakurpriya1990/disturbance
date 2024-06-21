@@ -32,23 +32,35 @@
                       <form class="form-horizontal" name="personal_form" method="post">
                         <alert v-if="showPersonalError" type="danger" style="color:red"><div v-for="item in errorListPersonal"><strong>{{item}}</strong></div></alert>
                           <div class="form-group">
+                            <div class="col-sm-3"></div>
+                            <div class="col-sm-6">
+                                <p>
+				  <b>To update your account name or MFA(Multi-Factor Authentication) please click <a href="/sso/setting">here:</a></b><br>
+				  Changes will not update until your next login.
+                                </p>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
                             <label for="" class="col-sm-3 control-label">Given name(s)</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="first_name" name="Given name" placeholder="" v-model="profile.first_name" required="">
+                                <input type="text" class="form-control" id="first_name" name="Given name" v-model="profile.first_name" disabled>
                             </div>
                           </div>
                           <div class="form-group">
                             <label for="" class="col-sm-3 control-label" >Surname</label>
                             <div class="col-sm-6">
-                                <input type="text" class="form-control" id="surname" name="Surname" placeholder="" v-model="profile.last_name">
+                                <input type="text" class="form-control" id="surname" name="Surname" v-model="profile.last_name" disabled>
                             </div>
                           </div>
+                          <!--
                           <div class="form-group">
                             <div class="col-sm-12">
                                 <button v-if="!updatingPersonal" class="pull-right btn btn-primary" @click.prevent="updatePersonal()">Update</button>
                                 <button v-else disabled class="pull-right btn btn-primary"><i class="fa fa-spin fa-spinner"></i>&nbsp;Updating</button>
                             </div>
                           </div>
+                          -->
                        </form>
                   </div>
                 </div>
@@ -421,44 +433,45 @@ export default {
                 'exists': false
             };
         },
-        updatePersonal: function() {
-            let vm = this;
-            vm.missing_fields = [];
-            var required_fields=[];
-            vm.errorListPersonal=[];
-            required_fields = $('#first_name, #surname')
-            vm.missing_fields = [];
-            required_fields.each(function() {
-            if (this.value == '') {
-                    //var text = $('#'+id).text()
-                    //console.log(this);
-                    vm.errorListPersonal.push('Value not provided: ' + this.name)
-                    vm.missing_fields.push({id: this.id});
-                }
-            });
 
-            if (vm.missing_fields.length > 0)
-            {
-              vm.showPersonalError = true;
-              //console.log(vm.showPersonalError)
-            }
-            else
-            {
-              vm.showPersonalError = false;
-            vm.updatingPersonal = true;
-            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')),JSON.stringify(vm.profile),{
-                emulateJSON:true
-            }).then((response) => {
-                //console.log(response);
-                vm.updatingPersonal = false;
-                vm.profile = response.body;
-                if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
-            }, (error) => {
-                console.log(error);
-                vm.updatingPersonal = false;
-            });
-          }
-        },
+//        updatePersonal: function() {
+//            let vm = this;
+//            vm.missing_fields = [];
+//            var required_fields=[];
+//            vm.errorListPersonal=[];
+//            required_fields = $('#first_name, #surname')
+//            vm.missing_fields = [];
+//            required_fields.each(function() {
+//            if (this.value == '') {
+//                    //var text = $('#'+id).text()
+//                    //console.log(this);
+//                    vm.errorListPersonal.push('Value not provided: ' + this.name)
+//                    vm.missing_fields.push({id: this.id});
+//                }
+//            });
+//
+//            if (vm.missing_fields.length > 0)
+//            {
+//              vm.showPersonalError = true;
+//              //console.log(vm.showPersonalError)
+//            }
+//            else
+//            {
+//              vm.showPersonalError = false;
+//            vm.updatingPersonal = true;
+//            vm.$http.post(helpers.add_endpoint_json(api_endpoints.users,(vm.profile.id+'/update_personal')),JSON.stringify(vm.profile),{
+//                emulateJSON:true
+//            }).then((response) => {
+//                //console.log(response);
+//                vm.updatingPersonal = false;
+//                vm.profile = response.body;
+//                if (vm.profile.residential_address == null){ vm.profile.residential_address = {}; }
+//            }, (error) => {
+//                console.log(error);
+//                vm.updatingPersonal = false;
+//            });
+//          }
+//        },
 
         updateContact: function() {
             let vm = this;
