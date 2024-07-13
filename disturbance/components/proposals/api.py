@@ -1672,7 +1672,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         geojson=proposal.shapefile_json
 
         # get all masterlist questions
-        masterlist_question_qs_all = SpatialQueryQuestion.current_questions.all()
+        #masterlist_question_qs_all = SpatialQueryQuestion.current_questions.all()
+        masterlist_question_qs_all = SpatialQueryQuestion.objects.all()
         if not masterlist_question_qs_all.exists():
             return JsonResponse(
                 data={'errors': 'There are no CDDP questions in Request. Check if questions exist and are not expired'},
@@ -1702,11 +1703,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #    # schema is empty
         #    return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if mlq.expiry and mlq.expiry < datetime.now().date():
-            return JsonResponse(
-                data = {'errors': f'CDDP question is expired <br/> {mlq.question} <br/> {mlq.expiry}.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+#        if mlq.expiry and mlq.expiry < datetime.now().date():
+#            return JsonResponse(
+#                data = {'errors': f'CDDP question is expired <br/> {mlq.question} <br/> {mlq.expiry}.'},
+#                status=status.HTTP_400_BAD_REQUEST
+#            )
         ''' End Checks '''
 
         if group_mlqs:
@@ -1720,7 +1721,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
             serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
-            question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
+            #question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
+            question_group_list = [dict(question_group=masterlist_question_json[0]['masterlist_question'], questions=masterlist_question_json)]
 
         data = dict(
             proposal=dict(
@@ -1728,7 +1730,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 #schema=proposal.schema,
                 schema=schema,
                 data=proposal.data,
-
             ),
             requester = request.user.email,
             request_type=self.PARTIAL,
@@ -1740,6 +1741,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #url = f'{settings.SQS_APIURL}das/spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/das/spatial_query/'
         url = get_sqs_url('das/spatial_query/')
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+        #import ipdb; ipdb.set_trace()
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
@@ -2502,26 +2504,27 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     proposal.save(version_comment=f'Proposal data cleared for Prefill')
                 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-                    masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+                    #masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+                    masterlist_question_qs = SpatialQueryQuestion.objects.all() # exclude expired questions from SQS Query
                     serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
                     # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
                     schema_questions = get_schema_questions(proposal.schema) 
-                    questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
+                    questions = [i['masterlist_question']['question'] for i in masterlist_questions if i['masterlist_question']['question'] in schema_questions]
                     #questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions and '1.2 In which' in i['question']]
                     unique_questions = list(set(questions))
 
                     # group by question
                     question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+                    #import ipdb; ipdb.set_trace()
                     for question_dict in question_group_list:
                         for sqq_record in masterlist_questions:
                             #print(j['layer_name'])
-                            if question_dict['question_group'] in sqq_record.values():
+                            if question_dict['question_group'] in sqq_record['masterlist_question'].values():
                                 question_dict['questions'].append(sqq_record)
 
-                    #import ipdb; ipdb.set_trace()
                     data = dict(
                         proposal=dict(
                             id=proposal.id,
@@ -2540,6 +2543,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     #url = get_sqs_url('das/spatial_query/')
                     url = get_sqs_url('das/task_queue')
                     #url = get_sqs_url('das_queue/')
+                    #import ipdb; ipdb.set_trace()
                     resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
                     #import ipdb; ipdb.set_trace()
                     resp_data = resp.json()
@@ -5636,6 +5640,54 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
     queryset = SpatialQueryLayer.objects.all()
     serializer_class = SpatialQueryLayerSerializer
 
+    @detail_route(methods=['DELETE', ])
+    def delete_spatialquerylayer(self, request, *args, **kwargs):
+        '''
+        Delete spatialquerylayer record.
+        '''
+        import ipdb; ipdb.set_trace()
+        try:
+            instance = self.get_object()
+
+            with transaction.atomic():
+                instance.delete()
+
+            # get masterlist_question_json, and return to caller js func - allows datatable in nested js modal to be refreshed
+            #sqq_id = request.data['spatial_query_question_id']
+            #masterlist_question = SpatialQueryQuestion.objects.get(id=sqq_id)
+            #serializer = DTSpatialQueryQuestionSerializer(instance, context={}, many=False)
+#            serializer = SpatialQueryLayerSerializer(instance, context={}, many=False)
+#            rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#            layers_json = json.loads(rendered)
+
+            sqq_id = instance.spatial_query_question_id
+            masterlist_question = SpatialQueryQuestion.objects.get(id=sqq_id)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question, context={}, many=False)
+            rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+            masterlist_question_json = json.loads(rendered)
+
+
+            return Response(
+                {'spatialquery_id': instance.id, 'data': masterlist_question_json},
+                status=status.HTTP_200_OK
+            )
+
+        except serializers.ValidationError as ve:
+            log = '{0} {1}'.format('delete_spatialquery()', ve)
+            logger.exception(log)
+            raise
+
+        except ValidationError as e:
+            if hasattr(e, 'error_dict'):
+                raise serializers.ValidationError(repr(e.error_dict))
+            else:
+                raise serializers.ValidationError(repr(e[0]))
+
+        except Exception as e:
+            logger.exception()
+            raise serializers.ValidationError(str(e))
+
+
     @basic_exception_handler
     def create(self, request, *args, **kwargs):
 #        fields = {'question_id': request.data['question_id']}
@@ -5649,18 +5701,31 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
 #                status=status.HTTP_400_BAD_REQUEST
 #            )
         
+        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             serializer = SpatialQueryLayerSerializer(data=request.data, context={'data': request.data})
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
-        return Response(serializer.data)
+        sqq_id = request.data['spatial_query_question_id']
+        masterlist_question = SpatialQueryQuestion.objects.get(id=sqq_id)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question, context={}, many=False)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        masterlist_question_json = json.loads(rendered)
+
+        return Response(
+            {'spatialquerylayer_id': serializer.data['id'], 'data': masterlist_question_json},
+            status=status.HTTP_200_OK
+        )
+
+        #return Response(serializer.data)
 
     @detail_route(methods=['POST', ])
     def save_spatialquerylayer(self, request, *args, **kwargs):
         '''
         Save spatialquery record.
         '''
+        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
 
@@ -5686,10 +5751,10 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
             sqq_assessor_info = request.data.get('assessor_info').strip()
 
             proponent_items = request.data.get('proponent_items')
-            proponent_attrs_unavailable = [i['answer'] for i in proponent_items if 'answer' in i and i['answer'] not in layer_attrs]
+            proponent_attrs_unavailable = [i['answer'] for i in proponent_items if 'answer' in i and i['answer'].strip() and i['answer'] not in layer_attrs]
 
             assessor_items = request.data.get('assessor_items')
-            assessor_attrs_unavailable = [i['info'] for i in assessor_items if 'info' in i and i['info'] not in layer_attrs]
+            assessor_attrs_unavailable = [i['info'] for i in assessor_items if 'info' in i and i['info'].strip() and i['info'] not in layer_attrs]
 
 
             if sqq_column_name not in layer_attrs:
@@ -5717,14 +5782,24 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
 
             with transaction.atomic():
 
-                serializer = DTSpatialQueryQuestionSerializer(
+                #serializer = DTSpatialQueryQuestionSerializer(
+                serializer = SpatialQueryLayerSerializer(
                     instance, data=request.data, context={'data': request.data}
                 )
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
 
+            # get masterlist_question_json, and return to caller js func - allows datatable in nested js modal to be refreshed
+            sqq_id = request.data['spatial_query_question_id']
+            masterlist_question = SpatialQueryQuestion.objects.get(id=sqq_id)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question, context={}, many=False)
+            rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+            masterlist_question_json = json.loads(rendered)
+
+            #import ipdb; ipdb.set_trace()
             return Response(
-                {'spatialquery_id': instance.id},
+                    #{'spatialquery_id': instance.id, 'layers': masterlist_question_json['layers']},
+                    {'spatialquery_id': instance.id, 'data': masterlist_question_json},
                 status=status.HTTP_200_OK
             )
 
@@ -5745,7 +5820,6 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.exception()
             raise serializers.ValidationError(str(e))
-
 
 
 class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):

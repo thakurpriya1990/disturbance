@@ -1534,6 +1534,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                #import ipdb; ipdb.set_trace()
                 result = subprocess.run(f'{OGR2OGR} -t_srs EPSG:4326 -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 shp_json = json.loads(result.stdout)
                 shapefile_json=None
@@ -6028,10 +6029,10 @@ class SectionQuestion(models.Model):
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
 
-class CurrentSpatialQueryQuestionManager(models.Manager):
-    ''' Return queryset with non-expired SpatialQueryQuestions '''
-    def get_queryset(self):
-        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
+#class CurrentSpatialQueryQuestionManager(models.Manager):
+#    ''' Return queryset with non-expired SpatialQueryQuestions '''
+#    def get_queryset(self):
+#        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
 
 class SpatialQueryQuestion(RevisionedMixin):
                         
@@ -6041,7 +6042,7 @@ class SpatialQueryQuestion(RevisionedMixin):
     other_data = JSONField('Additional/Misc Data', blank=True, null=True)
                                
     objects = models.Manager()
-    current_questions = CurrentSpatialQueryQuestionManager()
+#    current_questions = CurrentSpatialQueryQuestionManager()
 
     class Meta:
         app_label = 'disturbance'
@@ -6070,6 +6071,12 @@ class SpatialQueryQuestion(RevisionedMixin):
     def allowed_editors(self):
         group = self.__cddp_group()
         return group.members.all() if group else []
+
+
+class CurrentSpatialQueryLayerManager(models.Manager):
+    ''' Return queryset with non-expired SpatialQueryLayer's '''
+    def get_queryset(self):
+        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
 
 
 class SpatialQueryLayer(RevisionedMixin):
@@ -6137,6 +6144,9 @@ class SpatialQueryLayer(RevisionedMixin):
     #regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
 
     spatial_query_question = models.ForeignKey(SpatialQueryQuestion, related_name='spatial_query_layers', on_delete=models.CASCADE)
+
+    objects = models.Manager()
+    #current_layers = CurrentSpatialQueryLayerManager()
                                 
     class Meta:
         app_label = 'disturbance'

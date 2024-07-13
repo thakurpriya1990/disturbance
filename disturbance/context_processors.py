@@ -32,4 +32,5 @@ def apiary_url(request):
         'KMI_SERVER_URL': KMI_SERVER_URL,
         'SQS_APIURL': SQS_APIURL,
         'SHOW_DAS_MAP': settings.SHOW_DAS_MAP,
+        'MAX_LAYERS_PER_SQQ': settings.MAX_LAYERS_PER_SQQ,
     }

@@ -52,7 +52,7 @@ KB_API_URL=env("KMI_URL", 'https://kaartdijin-boodja.dbca.wa.gov.au/')
 KB_LAYER_URL = env('KB_LAYER_URL', 'https://kaartdijin-boodja.dbca.wa.gov.au/api/catalogue/entries/{{layer_name}}/layer/')
 SHOW_DAS_MAP = env('SHOW_DAS_MAP', True)
 SHOW_ROOT_API = env('SHOW_ROOT_API', False)
-
+MAX_LAYERS_PER_SQQ = env('MAX_LAYERS_PER_SQQ', 6)
 
 INSTALLED_APPS += [
     'reversion_compare',
