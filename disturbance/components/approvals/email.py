@@ -464,7 +464,6 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
 
 #approval renewal notice
 def send_approval_renewal_email_notification(approval):
-    #import ipdb; ipdb.set_trace()
     if approval.apiary_approval:
         email = ApiaryApprovalRenewalNotificationEmail()
     else:

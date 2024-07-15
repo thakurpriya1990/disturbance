@@ -122,7 +122,6 @@ def is_authorised_to_modify(request, instance):
         raise serializers.ValidationError('You are not authorised to modify this application.')
 
 def is_authorised_to_modify_draft(request, instance):
-    #import ipdb; ipdb.set_trace()
     return True
     authorised = True
 

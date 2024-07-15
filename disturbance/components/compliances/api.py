@@ -94,7 +94,6 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
         start_date_from = request.GET.get('start_date_from')
         start_date_to = request.GET.get('start_date_to')
-        #import ipdb; ipdb.set_trace()
         if start_date_from:
             queryset = queryset.filter(approval__start_date__gte=start_date_from)
         if start_date_to:
@@ -102,7 +101,6 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
         due_date_from = request.GET.get('due_date_from')
         due_date_to = request.GET.get('due_date_to')
-        #import ipdb; ipdb.set_trace()
         if due_date_from:
             queryset = queryset.filter(due_date__gte=due_date_from)
         if due_date_to:
@@ -110,7 +108,6 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
-        #import ipdb; ipdb.set_trace()
         ordering = self.get_ordering(getter, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
@@ -131,7 +128,6 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
 
 #class ComplianceRenderer(DatatablesRenderer):
 #    def render(self, data, accepted_media_type=None, renderer_context=None):
-#        #import ipdb; ipdb.set_trace()
 #        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
 #            data['recordsTotal'] = renderer_context['view']._datatables_total_count
 #            #data.pop('recordsTotal')
@@ -148,7 +144,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
     serializer_class = ComplianceSerializer
 
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
             #return Compliance.objects.all()
             return Compliance.objects.all().exclude(processing_status='discarded')
@@ -179,7 +174,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def compliances_external(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         """
         Paginated serializer for datatables - used by the external dashboard
 
@@ -193,7 +187,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
            template_group = 'apiary'
         else:
            template_group = 'das'
-        #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
             qs = self.get_queryset().filter(
@@ -228,7 +221,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     queryset = Compliance.objects.none()
 
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
             #return Compliance.objects.all()
             return Compliance.objects.all().exclude(processing_status='discarded')
@@ -251,7 +243,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         return Compliance.objects.none()
 
     #def get_queryset(self):
-    #    #import ipdb; ipdb.set_trace()
     #    if is_internal(self.request):
     #        return Compliance.objects.all().exclude(processing_status='discarded')
     #    elif is_customer(self.request):
@@ -286,7 +277,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the external dashboard filters """
-        #import ipdb; ipdb.set_trace()
         region_qs =  self.get_queryset().filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
         activity_qs =  self.get_queryset().filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
         data = dict(
@@ -328,7 +318,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 #
 #        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
 #        """
-#        #import ipdb; ipdb.set_trace()
 #        queryset = self.get_queryset().exclude(processing_status='future')
 #        paginator = DatatablesPageNumberPagination()
 #        paginator.page_size = queryset.count()

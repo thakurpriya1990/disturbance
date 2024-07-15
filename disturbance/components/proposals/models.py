@@ -1534,7 +1534,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 #result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
-                #import ipdb; ipdb.set_trace()
                 result = subprocess.run(f'{OGR2OGR} -t_srs EPSG:4326 -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
                 shp_json = json.loads(result.stdout)
                 shapefile_json=None
@@ -3533,7 +3532,6 @@ def get_search_geojson(proposal_lodgement_numbers,request):
                         shp_json=json.loads(shp_json)
                     else:
                         shp_json=shp_json
-                    #import ipdb; ipdb.set_trace()
                     features=shp_json.get('features',[])
                     updated_features=add_properties_to_feature(features, proposal, request)
                     combined_features.extend(updated_features)

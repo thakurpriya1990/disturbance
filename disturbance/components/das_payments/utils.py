@@ -134,7 +134,6 @@ def delete_session_site_transfer_application_invoice(session):
 
 
 def create_fee_lines_site_transfer(proposal):
-    #import ipdb;ipdb.set_trace()
     now = datetime.now().strftime('%Y-%m-%d %H:%M')
     today_local = datetime.now(pytz.timezone(TIME_ZONE)).date()
     #MIN_NUMBER_OF_SITES_TO_APPLY = 5

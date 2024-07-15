@@ -1404,7 +1404,6 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
 
     def create(self, validated_data):
         data = self.context['data']
-        #import ipdb; ipdb.set_trace()
 
         [validated_data.pop(key) for key in ['layer']]
         return SpatialQueryLayer.objects.create(
@@ -1415,7 +1414,6 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
 
     def update(self, instance, validated_data):
         #data = self.context['request'].data
-        #import ipdb; ipdb.set_trace()
         data = self.context['data']
 
         #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
@@ -1518,7 +1516,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 
         #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
         [validated_data.pop(key) for key in ['answer_mlq', 'group']]
-        #import ipdb; ipdb.set_trace()
         return SpatialQueryQuestion.objects.create(
             **validated_data, 
             question_id=data.get('question_id'),
@@ -1537,7 +1534,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 
         #[validated_data.pop(key) for key in ['question', 'answer_mlq', 'layer', 'group']]
         [validated_data.pop(key) for key in ['answer_mlq', 'group']]
-        #import ipdb; ipdb.set_trace()
         return SpatialQueryQuestion.objects.filter(id=instance.id).update(
             **validated_data, 
             question_id=data.get('question_id'),
@@ -1559,7 +1555,6 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 #        return obj.layer.layer_name
 
 #    def get_layers(self, obj):
-#        import ipdb; ipdb.set_trace()
 #        return obj.spatial_query_layers.all()
 
 #    def get_layer_url(self, obj):

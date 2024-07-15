@@ -1741,7 +1741,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         #url = f'{settings.SQS_APIURL}das/spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/das/spatial_query/'
         url = get_sqs_url('das/spatial_query/')
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-        #import ipdb; ipdb.set_trace()
         if resp.status_code != 200:
             logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
@@ -2505,7 +2504,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
                     #masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='2.0 What is the land tenur') # checkbox
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.4.2 Are these planned dates') # radio
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.2b Select widget question?') # select
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.2 In which') # multi-select
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.1 Proposal purpose and description') # text-area
+
                     masterlist_question_qs = SpatialQueryQuestion.objects.all() # exclude expired questions from SQS Query
+
                     serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
@@ -2518,7 +2524,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
                     # group by question
                     question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
-                    #import ipdb; ipdb.set_trace()
                     for question_dict in question_group_list:
                         for sqq_record in masterlist_questions:
                             #print(j['layer_name'])
@@ -2543,9 +2548,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     #url = get_sqs_url('das/spatial_query/')
                     url = get_sqs_url('das/task_queue')
                     #url = get_sqs_url('das_queue/')
-                    #import ipdb; ipdb.set_trace()
                     resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-                    #import ipdb; ipdb.set_trace()
                     resp_data = resp.json()
                     if 'errors' in resp_data:
                         logger.error(f'Error: {resp_data["errors"]}')
@@ -4924,7 +4927,6 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 #    @list_route(methods=['GET', ])
 #    def spatial_query_layer_datatable_list(self, request, *args, **kwargs):
 #        """ http://localhost:8003/api/spatial_query_paginated/spatial_query_layer_datatable_list/?format=datatables&draw=1&length=10 """
-#        import ipdb; ipdb.set_trace()
 #        self.serializer_class = SpatialQueryLayerSerializer
 #        queryset = self.get_queryset()
 #
@@ -5645,7 +5647,6 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
         '''
         Delete spatialquerylayer record.
         '''
-        import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
 
@@ -5701,7 +5702,6 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
 #                status=status.HTTP_400_BAD_REQUEST
 #            )
         
-        #import ipdb; ipdb.set_trace()
         with transaction.atomic():
             serializer = SpatialQueryLayerSerializer(data=request.data, context={'data': request.data})
             serializer.is_valid(raise_exception=True)
@@ -5725,7 +5725,6 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
         '''
         Save spatialquery record.
         '''
-        #import ipdb; ipdb.set_trace()
         try:
             instance = self.get_object()
 
@@ -5796,7 +5795,6 @@ class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
 
-            #import ipdb; ipdb.set_trace()
             return Response(
                     #{'spatialquery_id': instance.id, 'layers': masterlist_question_json['layers']},
                     {'spatialquery_id': instance.id, 'data': masterlist_question_json},

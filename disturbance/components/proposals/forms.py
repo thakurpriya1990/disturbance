@@ -193,7 +193,6 @@ class SectionQuestionAdminForm(forms.ModelForm):
         #if self.instance:
             #queryset_option=QuestionOption.objects.none()
             #self.fields['parent_question'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
-            #import ipdb; ipdb.set_trace()
             #self.fields['parent_question_another'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
 
 

@@ -38,7 +38,6 @@ class BaseProposalSerializer(serializers.ModelSerializer):
     get_history = serializers.ReadOnlyField()
 
 #    def __init__(self, *args, **kwargs):
-#        import ipdb; ipdb.set_trace()
 #        user = kwargs['context']['request'].user
 #
 #        super(BaseProposalSerializer, self).__init__(*args, **kwargs)

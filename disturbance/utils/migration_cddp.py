@@ -63,13 +63,11 @@ class CDDPLayerReader():
         df = df.drop(columns=['attribute_table'])
         df = df.drop(columns=['unnamed_9', 'unnamed_17'])
 
-        #import ipdb; ipdb.set_trace()
         # cast date str to datetime object
         df['expiry'] = pd.to_datetime(df['expiry'], format='%d-%m-%Y')
         df["expiry"] = df['expiry'].astype(str).where(df['expiry'].notnull(),'')
         df['visible_to_proponent'] = df['visible_to_proponent'].map(dict(Yes=True, yes=True, No=False, no=False))
         df.fillna('', inplace=True)
-        #import ipdb; ipdb.set_trace()
 
         # drop the blank columns from the excel spreadsheet (those mapped to 'N/A')
         #df.drop('N/A', axis=1, inplace=True)  
@@ -79,7 +77,6 @@ class CDDPLayerReader():
         # Iterate through the dataframe and insert into each row into model
         user_errors = []
         for index, row in self.df.iterrows():
-            #import ipdb; ipdb.set_trace()
             try:
                 group_name = row.cddp_group
                 users = row.group_members.split(',')
@@ -92,7 +89,6 @@ class CDDPLayerReader():
                         group.members.add(user)
 
             except Exception as e:
-                import ipdb; ipdb.set_trace()
                 user_errors.append(f'{row.to_dict()} {NL} {e} {NL}{NL}')
  
         print(f'Errors: {user_errors}')
@@ -124,7 +120,6 @@ class CDDPLayerReader():
                             answer_mlq = QuestionOption.objects.get(label=option.label)
 
 #                    if '2.0 What' in question.question:
-#                        import ipdb; ipdb.set_trace()
 
                     if answer_mlq:
                         m = SpatialQueryQuestion(
@@ -152,7 +147,6 @@ class CDDPLayerReader():
                         m.save()
 
             except Exception as e:
-                #import ipdb; ipdb.set_trace()
                 logger.error(e)
                 errors.append(f'{row.to_dict()} {NL} {e} {NL}{NL}')
  

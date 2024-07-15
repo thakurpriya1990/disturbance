@@ -146,7 +146,6 @@ class ApplicationFeeView(TemplateView):
                     set_session_application_invoice(request.session, application_fee)
                 lines, db_processes_after_success = create_fee_lines(proposal)
 
-                #import ipdb; ipdb.set_trace()
                 # Store site remainders data in this session, which is retrieved once payment success (ref: ApplicationFeeSuccessView below)
                 # then based on that, site remainders data is updated
 
@@ -264,7 +263,6 @@ class SiteTransferApplicationFeeSuccessView(TemplateView):
                     return render(request, self.template_name, context)
 
         except Exception as e:
-            #import ipdb; ipdb.set_trace()
             if ('site_transfer_last_app_invoice' in request.session) and ApplicationFee.objects.filter(id=request.session['site_transfer_last_app_invoice']).exists():
                 application_fee = ApplicationFee.objects.get(id=request.session['site_transfer_last_app_invoice'])
                 proposal = application_fee.proposal
@@ -637,7 +635,6 @@ class ConfirmationPDFView(View):
         organisation = proposal.applicant.organisation.organisation_set.all()[0]
         if self.check_owner(organisation):
             response = HttpResponse(content_type='application/pdf')
-            #import ipdb; ipdb.set_trace()
             response.write(create_confirmation_pdf_bytes('confirmation.pdf',invoice, application_fee))
             return response
         raise PermissionDenied

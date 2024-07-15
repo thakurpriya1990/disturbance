@@ -258,7 +258,6 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     #list_filter=('system',)
 
     def get_queryset(self, request):
-        #import ipdb;ipdb.set_trace()
         # filter based on membership of Apiary Admin or Disturbance Admin
         qs = super(ProposalStandardRequirementAdmin, self).get_queryset(request)
         if request.user.is_superuser or is_das_apiary_admin(request):

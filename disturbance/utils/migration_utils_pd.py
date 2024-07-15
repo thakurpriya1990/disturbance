@@ -151,14 +151,12 @@ class ApiaryLicenceReader():
         df.replace({np.NaN: ''}, inplace=True)
 
         # check excel column names are the same column_mappings
-        #import ipdb; ipdb.set_trace()
         if df.columns.values.tolist() != [*COLUMN_MAPPING.values()]:
             raise Exception('Column Names have changed!')
 
         # add extra column
         df['licencee_type'] = df['abn'].apply(lambda x: 'organisation' if x else 'individual')
 
-        #import ipdb; ipdb.set_trace()
         #return df[:500]
         return df
 
@@ -171,7 +169,6 @@ class ApiaryLicenceReader():
         self.create_organisations()
         #except Exception as e:
          #   print(e)
-          #  import ipdb; ipdb.set_trace()
         # t0_end = time.time()
         # print('TIME TAKEN (Orgs and Users): {}'.format(t0_end - t0_start))
 
@@ -181,7 +178,6 @@ class ApiaryLicenceReader():
         approvals_affected = self.create_licences()
         #except Exception as e:
          #   print(e)
-          #  import ipdb; ipdb.set_trace()
         # t1_end = time.time()
         # print('TIME TAKEN (Create License Models): {}'.format(t1_end - t1_start))
 
@@ -191,7 +187,6 @@ class ApiaryLicenceReader():
             self.create_licence_pdf(approvals_affected)
         except Exception as e:
             print(e)
-            # import ipdb; ipdb.set_trace()
         # t2_end = time.time()
         # print('TIME TAKEN (Create License PDFs): {}'.format(t2_end - t2_start))
 
@@ -202,7 +197,6 @@ class ApiaryLicenceReader():
         for index, row in self.df.groupby('email').first().iterrows():
             #if row.status != 'Vacant':
             try:
-                #    import ipdb; ipdb.set_trace()
                 #first_name = data['first_name'] if not pd.isnull(data['first_name']) else 'No First Name'
                 #last_name = data['last_name'] if not pd.isnull(data['last_name']) else 'No Last Name'
                 #email = df['email']
@@ -219,16 +213,12 @@ class ApiaryLicenceReader():
                     )
                     print('EmailUser: {} has been created.'.format(user.email))
             except Exception as e:
-                # import ipdb; ipdb.set_trace()
                 logger.error(f'user: {row.name}   *********** 1 *********** FAILED. {e}')
 
     def create_organisations(self):
-        #import ipdb; ipdb.set_trace()
         count = 0
         for index, row in self.df.groupby('abn').first().iterrows():
-            #import ipdb; ipdb.set_trace()
             #if count == 87:
-            #    import ipdb; ipdb.set_trace()
 
             #if row.status != 'Vacant':
             if not row.name:
@@ -236,7 +226,6 @@ class ApiaryLicenceReader():
             try: 
                 lo = ledger_organisation.objects.filter(abn=row.name)
             except Exception as e:
-                # import ipdb; ipdb.set_trace()
                 logger.error('{}'.format(e))
             try:
 
@@ -278,7 +267,6 @@ class ApiaryLicenceReader():
                     user = EmailUser.objects.get(email=row.email)
                     delegate = UserDelegation.objects.get_or_create(organisation=org, user=user)
             except Exception as e:
-                # import ipdb; ipdb.set_trace()
                 print(e)
                 logger.error('{}'.format(e))
             count += 1
@@ -310,7 +298,6 @@ class ApiaryLicenceReader():
                 ).first()
         except Exception as e:
             print(e)
-            # import ipdb; ipdb.set_trace()
             logger.error('{}'.format(e))
 
         return oa
@@ -340,7 +327,6 @@ class ApiaryLicenceReader():
         except Exception as e:
             print('Org Contact: {}'.format(row))
             print(e)
-            # import ipdb; ipdb.set_trace()
             logger.error('{}'.format(e))
 
     def create_licences(self):
@@ -370,7 +356,6 @@ class ApiaryLicenceReader():
 
                         #if row.status != 'Vacant' and index>4474:
                         #if row.status != 'Vacant':
-                            #import ipdb; ipdb.set_trace()
                         approval_affected = None
                         if row.licencee_type == 'organisation':
                             org = Organisation.objects.get(organisation__abn=row.abn)
@@ -405,11 +390,9 @@ class ApiaryLicenceReader():
 
                 except ValueError as e:
                     print(f'ERROR: SITE NUMBER {site_number} - SKIPPING')
-                    # import ipdb; ipdb.set_trace()
                     raise e
                 except Exception as e:
                     print(e)
-                    # import ipdb; ipdb.set_trace()
                     raise e
 
         print(f'Duplicate Site Numbers: {duplicate_site_numbers}')
@@ -422,11 +405,9 @@ class ApiaryLicenceReader():
         approval_affected = None
         approval_created = False
         from disturbance.components.approvals.models import Approval
-        #import ipdb; ipdb.set_trace()
         try:
             site_number = int(data.permit_number) if data.permit_number else int(data.licensed_site)
         except Exception as e:
-            # import ipdb; ipdb.set_trace()
             print('ERROR: There is no site_number - Must provide a site number in migration spreadsheeet. {e}')
 
         try:
@@ -436,12 +417,10 @@ class ApiaryLicenceReader():
             site_status = 'not_to_be_reissued' if data['status'].lower().strip() == 'not to be reissued' else data['status'].lower().strip()
 
         except Exception as e:
-            # import ipdb; ipdb.set_trace()
             print(e)
 
         try:
 
-            #import ipdb; ipdb.set_trace()
             if applicant:
                 proposal, p_created = Proposal.objects.get_or_create(
                                 application_type=self.application_type,
@@ -466,7 +445,6 @@ class ApiaryLicenceReader():
                 if approval_created:
                     print('Approval: {} created'.format(approval))
             else:
-                # import ipdb; ipdb.set_trace()
                 pass
 
             #if 'PM' not in proposal.lodgement_number:
@@ -495,7 +473,6 @@ class ApiaryLicenceReader():
             # create apiary sites and intermediate table entries
             #geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
             geometry = GEOSGeometry('POINT(' + str(data['latitude']) + ' ' + str(data['longitude']) + ')', srid=4326)
-            #import ipdb; ipdb.set_trace()
             apiary_site = ApiarySite.objects.create(
                     id=site_number,
                     is_vacant=True if site_status=='vacant' else False
@@ -520,7 +497,6 @@ class ApiaryLicenceReader():
                                             #dra_permit=data['dra_permit'],
                                             site_status=site_status,
                                             )
-            #import ipdb; ipdb.set_trace()
             pa, pa_created = ProposalApiary.objects.get_or_create(proposal=proposal)
 
             intermediary_proposal_site = ApiarySiteOnProposal.objects.create(
@@ -547,7 +523,6 @@ class ApiaryLicenceReader():
                                             site_status=site_status,
                                             #dra_permit=data['dra_permit'],
                                             )
-            #import ipdb; ipdb.set_trace()
 
             apiary_site.latest_approval_link=intermediary_approval_site
             apiary_site.latest_proposal_link=intermediary_proposal_site
@@ -559,7 +534,6 @@ class ApiaryLicenceReader():
 
         except Exception as e:
             logger.error('{}'.format(e))
-            # import ipdb; ipdb.set_trace()
             return None
 
         return approval_affected

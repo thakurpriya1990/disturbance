@@ -559,7 +559,6 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
 
 def send_proposal_approval_email_notification(proposal,request):
-    #import ipdb; ipdb.set_trace()
     if proposal.apiary_group_application_type:
         email = ApiaryProposalApprovalSendNotificationEmail()
     else:
@@ -766,7 +765,6 @@ def _log_proposal_referral_email(email_message, referral, sender=None):
 def _log_proposal_email(email_message, proposal, sender=None):
     from disturbance.components.proposals.models import ProposalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        #import ipdb; ipdb.set_trace()
         # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject

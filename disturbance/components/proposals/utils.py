@@ -2223,8 +2223,6 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
     logger.info(f'create_shapefile: 1 - {t1 - t0}')
     gdf_concat.set_crs = settings.CRS
 
-    #import ipdb; ipdb.set_trace()
-
     if geojson:
         # The .shz extension allows the GeoJSON file to be downloaded (rather than opened in browser)
         filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.geojson.shz'
@@ -2303,8 +2301,6 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
 #    t1 = time.time()
 #    logger.info(f'create_shapefile: 1 - {t1 - t0}')
 #    gdf_concat.set_crs = settings.CRS
-#
-#    import ipdb; ipdb.set_trace()
 #
 #    if geojson:
 #        # The .shz extension allows the GeoJSON file to be downloaded (rather than opened in browser)
