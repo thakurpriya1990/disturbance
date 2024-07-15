@@ -257,7 +257,6 @@
                       'clear_all': 'Clear all Proposal data',
                     }
                 }).then(async (result) => {
-                    console.log("Result: " + result);
                     if (!result) {
                         swal(
                             'Please select an option',
@@ -287,7 +286,7 @@
                         resp_proposal=res['body']['proposal']
                         //vm.$emit('refreshFromResponse',res);
                         vm.$emit('refreshFromResponseProposal',resp_proposal);
-                        console.log('URL:' + helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal'))
+                        //console.log('URL:' + helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal'))
                         //console.log('RES:' + JSON.stringify(res))
                         let title = res['body']['message'].includes('updated') ? "Processing Proposal (UPDATED)" : "Processing Proposal"
                         let queue_position = res['body']['position']

@@ -167,6 +167,7 @@ class ApplicationType(models.Model):
     DISTURBANCE = 'Disturbance'
     DISTURBANCE_UAT = 'Disturbance Training'
     DISTURBANCE_DEMO = 'Disturbance Demo'
+    DISTURBANCE_ECOLOGICAL = 'Ecological Thinning'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
     APIARY = 'Apiary'
     TEMPORARY_USE = 'Temporary Use'
@@ -177,6 +178,7 @@ class ApplicationType(models.Model):
         (DISTURBANCE, 'Disturbance'),
         (DISTURBANCE_UAT, 'Disturbance Training'),
         (DISTURBANCE_DEMO, 'Disturbance Demo'),
+        (DISTURBANCE_ECOLOGICAL, 'Ecological Thinning'),
         (POWERLINE_MAINTENANCE, 'Powerline Maintenance'),
         (APIARY, 'Apiary'),
         (TEMPORARY_USE, 'Temporary Use'),

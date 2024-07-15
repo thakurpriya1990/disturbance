@@ -827,7 +827,7 @@ export default {
              }
              else{
                 if((!vm.proposal.region) || (!vm.proposal.district) || (vm.proposal.approval_level=='')) {
-                    if((vm.proposal.management_area=='') && (vm.proposal.sub_activity_level1='')) {
+                    if((vm.proposal.management_area=='') && (vm.proposal.sub_activity_level1=='')) {
                         blank_fields.push('Region or District or Category/Sub Activity cannot be blank')
                     }
                 }
@@ -1073,6 +1073,7 @@ export default {
             let vm = this;
             vm.original_proposal = helpers.copyObject(new_proposal);
             vm.proposal = helpers.copyObject(new_proposal);
+            vm.setdata(vm.proposal.readonly);
             this.incrementProposalComponentMapKey();
             // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
             

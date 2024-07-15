@@ -32,7 +32,8 @@ from django_countries.fields import CountryField
 #TODO: improvable - these three lines are repeated throughout the models and ought to be set in one place
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+#private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+private_storage = FileSystemStorage(location="private-media/", base_url='/private-media/')
 
 import logging
 logger = logging.getLogger(__name__)
