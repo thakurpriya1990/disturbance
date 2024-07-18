@@ -14,6 +14,7 @@ from disturbance.components.proposals.views import ExternalProposalTemporaryUseS
 from disturbance.components.users import api as users_api
 from disturbance.components.organisations import api as org_api
 from disturbance.components.proposals import api as proposal_api
+from disturbance.components.proposals.sqs_utils import api as proposal_sqs_api
 from disturbance.components.approvals import api as approval_api
 from disturbance.components.compliances import api as compliances_api
 from disturbance.components.main import api as main_api
@@ -32,6 +33,7 @@ router.include_root_view = settings.SHOW_ROOT_API
 
 router.register(r'organisations',org_api.OrganisationViewSet,"organisations")
 router.register(r'proposal',proposal_api.ProposalViewSet,"proposal")
+router.register(r'proposal_sqs',proposal_sqs_api.ProposalSqsViewSet,"proposal_sqs")
 router.register(r'proposal_apiary', proposal_api.ProposalApiaryViewSet,"proposal_apiary")
 router.register(r'on_site_information', proposal_api.OnSiteInformationViewSet,"on_site_information")
 router.register(r'apiary_site', proposal_api.ApiarySiteViewSet,"apiary_site")
@@ -82,16 +84,16 @@ router.register(r'map_layers', main_api.MapLayerViewSet,"map_layers")
 router.register(r'das_map_layers', main_api.DASMapLayerViewSet)
 
 router.register(
-    r'spatial_query_paginated', proposal_api.SpatialQueryQuestionPaginatedViewSet)
+    r'spatial_query_paginated', proposal_sqs_api.SpatialQueryQuestionPaginatedViewSet)
 router.register(
-    r'spatial_query_metrics_paginated', proposal_api.SpatialQueryMetricsPaginatedViewSet)
+    r'spatial_query_metrics_paginated', proposal_sqs_api.SpatialQueryMetricsPaginatedViewSet)
 router.register(
     r'spatial_query',
-    proposal_api.SpatialQueryQuestionViewSet
+    proposal_sqs_api.SpatialQueryQuestionViewSet
 )
 router.register(
     r'spatial_query_layer',
-    proposal_api.SpatialQueryLayerViewSet
+    proposal_sqs_api.SpatialQueryLayerViewSet
 )
 router.register(r'das_map_proposal',proposal_api.DASMapFilterViewSet)
 

@@ -73,11 +73,15 @@ module.exports = {
     //schema_proposal_type:"/api/schema_proposal_type/",
     schema_proposal_type:"/api/schema_proposal_type.json",
     schema_proposal_type_paginated:"/api/schema_proposal_type_paginated/",
+
+    // SQS
+    proposals_sqs:"/api/proposal_sqs.json",
     spatial_query:"/api/spatial_query",
     spatial_query_layer:"/api/spatial_query_layer",
     spatial_query_paginated:"/api/spatial_query_paginated/",
     spatial_query_metrics_paginated:"/api/spatial_query_metrics_paginated/",
     spatial_query_layers_used_paginated:"/api/proposal_paginated/",
+
     schema_group:"/api/schema_group/",
     schema_group_paginated:"/api/schema_group_paginated/",
     //schema_question:"/api/schema_question/",
