@@ -1,7 +1,9 @@
 import logging
 from django.utils import timezone
 from django.http import JsonResponse
+
 from rest_framework import serializers, status
+from django.db.models import Q
 
 from ledger.payments.models import Invoice
 import collections
@@ -1368,7 +1370,7 @@ class CddpQuestionGroupSerializer(serializers.ModelSerializer):
 #        fields = ('id', 'label', 'value')
 
 class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
-    queryset = SpatialQueryLayer.objects.filter(expiry__isnull=False)
+    #queryset = SpatialQueryLayer.current_layers.filter()
     expiry = serializers.DateField(allow_null=True, required=False)
     buffer = serializers.IntegerField(allow_null=True, required=False)
     layer = DASMapLayerSqsSerializer()
@@ -1441,8 +1443,6 @@ class SpatialQueryLayerSerializer(UniqueFieldsMixin, WritableNestedModelSerializ
     def get_layer_url(self, obj):
         return obj.layer.layer_url
 
-
-#class SpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSerializer):
 #    '''
 #    Serializer for Datatable SpatialQueryQuestion.
 #    '''
@@ -1479,13 +1479,12 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
     '''
     Serializer for Datatable SpatialQueryQuestion.
     '''
-    #question = serializers.CharField(source='question.question')
     masterlist_question = serializers.SerializerMethodField(read_only=True)
     answer_mlq = serializers.CharField(allow_null=True, source='answer_mlq.label')
     group = CddpQuestionGroupSerializer()
     modified_date = serializers.DateTimeField(required=False)
-    layers = SpatialQueryLayerSerializer(source='spatial_query_layers', many=True, read_only=True)
-    #layers = serializers.SerializerMethodField(read_only=True)
+    #layers = SpatialQueryLayerSerializer(source='spatial_query_layers', many=True, read_only=True)
+    layers = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = SpatialQueryQuestion
@@ -1504,6 +1503,15 @@ class DTSpatialQueryQuestionSerializer(UniqueFieldsMixin, WritableNestedModelSer
 #    def _get_modified_date(self, obj):
 #        dt = timezone.make_aware(datetime.now(),timezone.get_default_timezone())
 #        return datetime.strftime(dt, '%Y-%m-%dT%H:%M:%S%z')
+
+    def get_layers(self, obj):
+        qs = obj.spatial_query_layers.all()
+        if self.context.get('filter_expired'):
+            #qs = qs.filter(expiry__gt=datetime.now().date())
+            qs = qs.filter(Q(expiry__gt=datetime.now().date()) | Q(expiry__isnull=True))
+            
+        serializer = SpatialQueryLayerSerializer(instance=qs, source='spatial_query_layers', many=True)
+        return serializer.data
 
     def create(self, validated_data):
         #data = self.context['request'].data

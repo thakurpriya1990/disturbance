@@ -62,7 +62,7 @@
     </div>
 
     <!-- <div v-show="showQuestionModal"> -->
-    <modal :showModal="isQuestionModalOpen" modal_id="showQuestionModal" transition="modal fade" @ok="ok()" title="Spatial Query Question" :force="true"> 
+    <modal :showModal="showQuestionModal" modal_id="showQuestionModal-id" transition="modal fade" @ok="ok()" title="Spatial Query Question" :force="true"> 
         <div class="container-fluid">
 <!--
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -206,7 +206,7 @@
     <div v-show="showLayerModal">
     <modal id="showLayerModal" transition="modal fade" @ok="ok()" title="Spatial Query Layer">
 -->
-    <modal :showModal="isLayerModalOpen" modal_id="showLayerModal" transition="modal fade" @ok="ok()" title="Spatial Query Layer" :force="true">
+    <modal :showModal="showLayerModal" modal_id="showLayerModal-id" transition="modal fade" @ok="ok()" title="Spatial Query Layer" :force="true">
         <div class="container-fluid">
 <!--
             <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -372,6 +372,11 @@
 					    </div>
 					    <div class="col-md-3">
 						<label class="control-label pull-left" >Operator</label><label class="superscript">*</label>
+                                                <!--
+						<span>
+						    <a @click="show_operator_help" href="#"><i class="fa fa-lg fa-question-circle" style="color: blue;" title="* - matches everything\n ? - ">&nbsp;</i></a>
+						</span>
+                                                -->
 					    </div>
 					    <div class="col-md-3" v-if="showValue()">
 						<label class="control-label pull-left" >Value</label><label class="superscript">*</label>
@@ -431,6 +436,7 @@
 						<label for="visible_to_proponent_no">No</label>
 					    </div>
 					</div>
+                                        {{spatialquerylayer.visible_to_proponent}}
 					<div class="row" v-if="showQuestionModal && has_no_editable_groups()">
 					    <div class="col-md-1"></div>
 					    <div  class="col-md-3">
@@ -635,7 +641,7 @@
     <div v-show="showLayerAttrsModal">
       <modal id="layer-attr-id"  @ok.prevent="ok()" title="Layer Attributes" large>
 -->
-      <modal :showModal="showLayerAttrsModal" modal_id="showLayerAttrsModal" transition="modal fade" @ok="ok()" title="Layer Attributes" :force="true">
+      <modal :showModal="showLayerAttrsModal" modal_id="showLayerAttrsModal-id" transition="modal fade" @ok="ok()" title="Layer Attributes" :force="true">
         <div class="container-fluid">
           <textarea id="output" cols="100" rows="35" v-model="sqs_attrs_response"></textarea>
         </div> 
@@ -652,7 +658,7 @@
     <div v-show="showLayerAttrValuesModal">
       <modal id="layer-attr-id"  @ok.prevent="ok()" title="Layer Attributes" large>
 -->
-      <modal :showModal="showLayerAttrValuesModal" modal_id="showLayerAttrValuesModal" transition="modal fade" @ok="ok()" title="Layer Attribute Values" :force="true">
+      <modal :showModal="showLayerAttrValuesModal" modal_id="showLayerAttrValuesModal-id" transition="modal fade" @ok="ok()" title="Layer Attribute Values" :force="true">
         <div class="container-fluid">
           <textarea id="output" cols="100" rows="35" v-model="sqs_attr_vals_response"></textarea>
         </div> 
@@ -665,6 +671,54 @@
     </div>
 -->
 
+      <modal :showModal="showOperatorHelpModal" modal_id="showOperatorHelpModal-id" transition="modal fade" @ok="ok()" title="Operator Help" :force="true">
+        <div class="container-fluid">
+          <table>
+	    <thead>
+  	    </thead>
+	    <tbody>
+	      <tr>
+	        <td>1</td>
+	        <td>Apple</td>
+	        <td>2</td>
+	      </tr>
+	      <tr>
+	        <td>2</td>
+	        <td>Mango</td>
+	        <td>2</td>
+	      </tr>
+	      <tr>
+	        <td>3</td>
+	        <td>Orange</td>
+	        <td>1</td>
+	      </tr>
+	    </tbody>
+	    <tfoot>
+	      <tr>
+	        <td></td>
+	        <td>Total</td>
+	        <td>5</td>
+	      </tr>
+	    </tfoot>
+	  </table>
+
+    <table style="width:100%">
+        <tr>
+            <th>LIKE</th>
+            <th>*</th>
+	    <th>matches everything</th>
+            <th>*roos*, *r*o*</th>
+        </tr>
+        <tr>
+            <th>idd</th>
+            <th>?</th>
+	    <th>matches any single character</th>
+            <th>K?ngar*, *ro?s*</th>
+        </tr>
+    </table>
+        </div> 
+
+      </modal>
 
 
   </div>
@@ -741,6 +795,7 @@ export default {
             showTestModal: false,
             showLayerAttrsModal: false,
             showLayerAttrValuesModal: false,
+            showOperatorHelpModal: false,
             showTestJsonResponse: false,
             sqs_response: false,
             sqs_attrs_response: false,
@@ -754,8 +809,8 @@ export default {
             sq_questions: [],
             is_admin: false,
 
-	    isQuestionModalOpen: false,
-	    isLayerModalOpen: false,
+	    //isQuestionModalOpen: false,
+	    //isLayerModalOpen: false,
 
 //	    proponent_items: [
 //	      {
@@ -1502,14 +1557,17 @@ export default {
 //                self.num_questions = null;
 //                self.num_layers_utilised = null;
 
-		if (modal_id=='showQuestionModal') { 
-		    self.isQuestionModalOpen=false ;
+		if (modal_id=='showQuestionModal-id') { 
+		    //self.isQuestionModalOpen=false ;
+		    self.showQuestionModal=false ;
 		    self.spatialquerylayer.spatial_query_layer_id = '';
 		}
-		if (modal_id=='showLayerModal') { self.isLayerModalOpen=false }
+		//if (modal_id=='showLayerModal-id') { self.isLayerModalOpen=false }
+		if (modal_id=='showLayerModal-id') { self.showLayerModal=false }
 		if (modal_id=='test-id') { self.showTestModal=false }
-		if (modal_id=='showLayerAttrsModal') { self.showLayerAttrsModal=false }
+		if (modal_id=='showLayerAttrsModal-id') { self.showLayerAttrsModal=false }
 		if (modal_id=='showLayerAttrValuesModal-id') { self.showLayerAttrValuesModal=false }
+		if (modal_id=='showOperatorHelpModal-id') { self.showOperatorHelpModal=false }
 
             }
         },
@@ -1691,7 +1749,8 @@ export default {
             }
             this.isNewEntry = false;
 	    //this.isQuestionModalOpen = false;
-	    this.isLayerModalOpen = false;
+	    //this.isLayerModalOpen = false;
+	    this.showLayerModal = false;
             //this.$refs.spatial_query_layer_table.vmDataTable.ajax.reload();
             //this.$refs.spatial_query_layer_table.vmDataTable.draw();
             //this.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
@@ -1787,6 +1846,9 @@ export default {
         },
 
 
+        show_operator_help: function() {
+            this.showOperatorHelpModal = true;
+        },
         show_layer_attrs: function() {
             /* for given layer, show all attributes only */
             const self = this;
@@ -2087,7 +2149,8 @@ export default {
 		this.filterMasterlistQuestion
 		this.masterlistQuestionOptions
 		$(this.$refs.select_question).val(null).trigger('change');
-		this.isQuestionModalOpen = true;
+		//this.isQuestionModalOpen = true;
+		this.showQuestionModal = true;
         },
 
         clearTableEntry: async function() {
@@ -2141,7 +2204,8 @@ export default {
 		//this.masterlistQuestionOptions = null;
 		$(this.$refs.select_question).val(null).trigger('change');
 
-		this.isLayerModalOpen = true;
+		//this.isLayerModalOpen = true;
+		this.showLayerModal = true;
 
                 //this.has_missing_layers();
         },
@@ -2207,7 +2271,8 @@ export default {
 
                     /* end of data setup for 'spatial_query_layer' dialog */
 
-		    self.isQuestionModalOpen = true;
+		    //self.isQuestionModalOpen = true;
+		    self.showQuestionModal = true;
 		    $(self.$refs.select_question).val(self.spatialquery.question).trigger('change');
 		},err=>{
 		    swal(
@@ -2231,42 +2296,43 @@ export default {
 //		    self.spatialquery.other_data = self.$refs.spatial_query_question_table.row_of_data.data().other_data;
 //		    self.spatialquery.layers = self.$refs.spatial_query_question_table.row_of_data.data().layers;
 
-		    self.spatialquery.layer = '';
-		    self.spatialquery.expiry = null;
-		    self.spatialquery.visible_to_proponent = null;
-		    self.spatialquery.buffer = 0;
-		    self.spatialquery.how = '';
-		    self.spatialquery.column_name = '';
-		    self.spatialquery.operator = '';
-		    self.spatialquery.value = '';
-		    self.spatialquery.show_add_info_section_prop = '';
-		    self.spatialquery.proponent_items = [{'': '', '': ''}];
-		    self.spatialquery.assessor_items = [{'': '', '': ''}];
-		    self.spatialquery.other_data = {'show_add_info_section_prop': false};
+		    self.spatialquerylayer.layer = '';
+		    self.spatialquerylayer.expiry = null;
+		    self.spatialquerylayer.visible_to_proponent = true;
+		    self.spatialquerylayer.buffer = 0;
+		    self.spatialquerylayer.how = '';
+		    self.spatialquerylayer.column_name = '';
+		    self.spatialquerylayer.operator = '';
+		    self.spatialquerylayer.value = '';
+		    self.spatialquerylayer.show_add_info_section_prop = '';
+		    self.spatialquerylayer.proponent_items = [{'': '', '': ''}];
+		    self.spatialquerylayer.assessor_items = [{'': '', '': ''}];
+		    //self.spatialquery.other_data = {'show_add_info_section_prop': false};
 
-		    self.spatialquery.prefix_answer = '';
-		    self.spatialquery.answer = '';
-		    self.spatialquery.prefix_info = '';
-		    self.spatialquery.assessor_info = '';
+		    //self.spatialquery.prefix_answer = '';
+		    //self.spatialquery.answer = '';
+		    //self.spatialquery.prefix_info = '';
+		    //self.spatialquery.assessor_info = '';
 
 		    self.filterMasterlistQuestion = self.spatialquery.question
 		    self.filterMasterlistOption = self.spatialquery.answer_mlq
-		    self.filterCddpOperator = self.spatialquery.operator
+		    self.filterCddpOperator = self.spatialquerylayer.operator
 
 		    self.addedOptions = self.$refs.spatial_query_question_table.row_of_data.data().options;
 		    self.addedHeaders = self.$refs.spatial_query_question_table.row_of_data.data().headers;       
 		    self.addedExpanders = self.$refs.spatial_query_question_table.row_of_data.data().expanders;
 
-		    self.isModalOpen = true;
-		    self.showQuestionModal = false;
+		    //self.isModalOpen = true;
+		    //self.showQuestionModal = false;
 		    self.showLayerModal = true;
-		    self.showTestModal = false;
-		    self.showLayerAttrsModal = false;
-		    self.showTestJsonResponse = false;
+		    //self.showTestModal = false;
+		    //self.showLayerAttrsModal = false;
+		    //self.showTestJsonResponse = false;
 
               	    self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
               	    self.$refs.spatial_query_layer_table.vmDataTable.ajax.reload();
-		    self.isLayerModalOpen = true;
+		    //self.isLayerModalOpen = true;
+		    self.showLayerModal = true;
 
 		    $(self.$refs.select_question).val(self.spatialquery.question).trigger('change');
 
@@ -2297,7 +2363,8 @@ export default {
 		    self.spatialquerylayer.assessor_items = self.$refs.spatial_query_layer_table.row_of_data.data().assessor_items;
 
 		    self.filterCddpOperator = self.spatialquerylayer.operator
-		    self.isLayerModalOpen = true;
+		    //self.isLayerModalOpen = true;
+		    self.showLayerModal = true;
 
 		    $(self.$refs.select_question).val(self.spatialquery.question).trigger('change');
             });

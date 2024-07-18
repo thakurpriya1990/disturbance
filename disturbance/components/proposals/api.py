@@ -1597,20 +1597,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         geojson=proposal.shapefile_json
 
-        masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+        #masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+        masterlist_question_qs = SpatialQueryQuestion.objects.all() # exclude expired questions from SQS Query
         if not masterlist_question_qs.exists():
             return Response(
                 {'errors': 'There are no CDDP questions in Request. Check if CDDP questions exist and are not expired'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data, 'filter_expired': True}, many=True)
         rendered = JSONRenderer().render(serializer.data).decode('utf-8')
         masterlist_questions = json.loads(rendered)
 
         # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
         schema_questions = get_schema_questions(proposal.schema) 
-        questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
+        questions = [i['masterlist_question']['question'] for i in masterlist_questions if i['masterlist_question']['question'] in schema_questions]
         unique_questions = list(set(questions))
 
         # group by question
@@ -1618,8 +1619,16 @@ class ProposalViewSet(viewsets.ModelViewSet):
         for question_dict in question_group_list:
             for sqq_record in masterlist_questions:
                 #logger.info(sqq_record['layer']['layer_name'])
-                if question_dict['question_group'] in sqq_record.values():
+                #if question_dict['question_group'] in sqq_record.values():
+                if question_dict['question_group'] in sqq_record['masterlist_question'].values() and len(sqq_record['layers'])>0:
                     question_dict['questions'].append(sqq_record)
+
+        if len(question_dict['questions']) == 0:
+            return Response(
+                data={'errors': f'Questions do not appear to have any associated GIS layers: {unique_questions}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 
         data = dict(
             proposal=dict(
@@ -1676,11 +1685,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
         masterlist_question_qs_all = SpatialQueryQuestion.objects.all()
         if not masterlist_question_qs_all.exists():
             return JsonResponse(
-                data={'errors': 'There are no CDDP questions in Request. Check if questions exist and are not expired'},
+                data={'errors': 'There are no SpatialQuery questions in Request. Check if questions exist and/or are layers are not expired'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'data': request.data}, many=True)
+        serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs_all, context={'data': request.data, 'filter_expired': True}, many=True)
         rendered_all = JSONRenderer().render(serializer_all.data).decode('utf-8')
         masterlist_questions_all = json.loads(rendered_all)
 
@@ -1695,19 +1704,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         schema, _found = search_label(proposal.schema, mlq.question.question)
         if _found is not True or all(not d for d in schema):
             # schema is empty
-            return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(data={'errors': f'SpatialQuery Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check question exists in proposal.schema
-        #schema_questions = get_schema_questions(proposal.schema)
-        #if mlq.question not in schema_questions:
-        #    # schema is empty
-        #    return JsonResponse(data={'errors': f'CDDP Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
-
-#        if mlq.expiry and mlq.expiry < datetime.now().date():
-#            return JsonResponse(
-#                data = {'errors': f'CDDP question is expired <br/> {mlq.question} <br/> {mlq.expiry}.'},
-#                status=status.HTTP_400_BAD_REQUEST
-#            )
         ''' End Checks '''
 
         if group_mlqs:
@@ -1715,14 +1713,33 @@ class ProposalViewSet(viewsets.ModelViewSet):
             for question_dict in question_group_list:
                 for sqq_record in masterlist_questions_all:
                     #print(j['layer_name'])
-                    if question_dict['question_group'] in sqq_record.values():
+                    #if question_dict['question_group'] in sqq_record.values():
+                    if question_dict['question_group'] in sqq_record['masterlist_question'].values() and len(sqq_record['layers'])>0:
+                        ''' question belongs to question_group AND has associated GIS layers to allow SQS query '''
                         question_dict['questions'].append(sqq_record)
+
+            if len(question_dict['questions']) == 0:
+                question = masterlist_question_qs[0].question.question
+                return Response(
+                    data={'errors': f'Question does not have any associated GIS layers: \'{question}\'.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         else:
-            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
+            serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data, 'filter_expired': True}, many=True)
             rendered = JSONRenderer().render(serializer.data).decode('utf-8')
             masterlist_question_json = json.loads(rendered)
-            #question_group_list = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
-            question_group_list = [dict(question_group=masterlist_question_json[0]['masterlist_question'], questions=masterlist_question_json)]
+
+            # remove/filter questions where there are no layers (or expired layers)
+            masterlist_question_json = [mlq for mlq in masterlist_question_json if len(mlq['layers'])>0]
+            if len(masterlist_question_json) == 0:
+                question = masterlist_question_qs[0].question.question
+                return Response(
+                    data={'errors': f'Question does not have any associated GIS layers: \'{question}\'.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            question_group_list = [dict(question_group=masterlist_question_json[0]['masterlist_question']['question'], questions=masterlist_question_json)]
 
         data = dict(
             proposal=dict(
@@ -1750,6 +1767,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return Response(resp.json())
 
+    def filter_expired_questions(self, spatial_query_question_list):
+        '''  remove/filter questions where there are no layers (or expired layers) '''
+        filtered_question_list = [mlq for mlq in spatial_query_question_list if len(mlq['layers'])>0]
+        if len(filtered_question_list) == 0:
+            mlq = masterlist_question_qs[0]
+            question = spatial_query_question_list[0]['masterlist_question']['question']
+            return Response(
+                data={'errors': f'Question does not have any associated GIS layers: \'{question}\'.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
     @detail_route(methods=['POST',])
     @api_exception_handler
     def refresh(self, request, *args, **kwargs):
@@ -1768,22 +1796,36 @@ class ProposalViewSet(viewsets.ModelViewSet):
         geojson=proposal.shapefile_json
         # serialize masterlist question
         masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question=mlq_label)
+        #masterlist_question_qs = SpatialQueryQuestion.current_layers.filter(question__question=mlq_label)
         if not masterlist_question_qs.exists():
             return JsonResponse(
-                data={'errors': 'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}'},
+                data={'errors': f'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        elif masterlist_question_qs[0].expiry and masterlist_question_qs[0].expiry < datetime.now().date():
-            mlq = masterlist_question_qs[0]
+#        elif masterlist_question_qs[0].expiry and masterlist_question_qs[0].expiry < datetime.now().date():
+#            mlq = masterlist_question_qs[0]
+#            return Response(
+#                date={'errors': 'CDDP question is expired {mlq.question}: {mlq.expired}.'},
+#                status=status.HTTP_400_BAD_REQUEST
+#            )
+
+        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data, 'filter_expired': True}, many=True)
+        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+        masterlist_question_json = json.loads(rendered)
+
+        #masterlist_question_json = self.filter_expired_questions(masterlist_question_json)
+        # remove/filter questions where there are no layers (or expired layers)
+        masterlist_question_json = [mlq for mlq in masterlist_question_json if len(mlq['layers'])>0]
+        if len(masterlist_question_json) == 0:
+            question = masterlist_question_qs[0].question.question
+            #question = masterlist_question_json[0]['masterlist_question']['question']
             return Response(
-                date={'errors': 'CDDP question is expired {mlq.question}: {mlq.expired}.'},
+                data={'errors': f'Question does not have any associated GIS layers: \'{question}\'.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
-        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-        masterlist_question_json = json.loads(rendered)
-        masterlist_question = [dict(question_group=masterlist_question_json[0]['question'], questions=masterlist_question_json)]
+        masterlist_question = [dict(question_group=masterlist_question_json[0]['masterlist_question']['question'], questions=masterlist_question_json)]
+
 
         data = dict(
             proposal=dict(
@@ -2509,10 +2551,11 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.2b Select widget question?') # select
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.2 In which') # multi-select
                     #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.1 Proposal purpose and description') # text-area
+                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question__icontains='1.0 Proposal title') # text
 
                     masterlist_question_qs = SpatialQueryQuestion.objects.all() # exclude expired questions from SQS Query
 
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
+                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data, 'filter_expired': True}, many=True)
                     rendered = JSONRenderer().render(serializer.data).decode('utf-8')
                     masterlist_questions = json.loads(rendered)
 
@@ -2574,148 +2617,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             logger.error(f'{traceback.print_exc()}')
-            raise serializers.ValidationError(str(e))
-
-    @detail_route(methods=['post'])
-    @renderer_classes((JSONRenderer,))
-    def __prefill_proposal(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            if instance.apiary_group_application_type:
-                pass
-            else:
-                if instance.shapefile_json:
-                    start_time = time.time()
-
-                    proposal = instance
-                    # current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
-                    if proposal.prefill_timestamp:
-                        current_ts= proposal.prefill_timestamp.strftime('%Y-%m-%dT%H:%M:%S')
-                    else:
-                        current_ts = proposal.prefill_timestamp
-                    geojson=proposal.shapefile_json
-
-                    #masterlist_question_qs = SpatialQueryQuestion.objects.filter()
-                    masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
-                    serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
-                    rendered = JSONRenderer().render(serializer.data).decode('utf-8')
-                    masterlist_questions = json.loads(rendered)
-
-                    # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
-                    schema_questions = get_schema_questions(proposal.schema) 
-                    questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
-                    #questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions and '1.2 In which' in i['question']]
-                    unique_questions = list(set(questions))
-
-                    # group by question
-                    question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
-                    for question_dict in question_group_list:
-                        for sqq_record in masterlist_questions:
-                            #print(j['layer_name'])
-                            if question_dict['question_group'] in sqq_record.values():
-                                question_dict['questions'].append(sqq_record)
-
-                    data = dict(
-                        proposal=dict(
-                            id=proposal.id,
-                            current_ts=current_ts,
-                            schema=proposal.schema,
-                            data=proposal.data,
-                        ),
-                        request_type=self.FULL,
-                        system=settings.SYSTEM_NAME_SHORT,
-                        masterlist_questions = question_group_list,
-                        geojson = geojson,
-                    )
-
-                    cached_data = cache.get(f'sqs_response_{proposal.id}')
-
-                    def in_cache():
-                        if cached_data:
-                            logger.info(f'SpatialQuery API - SQS cache exists: Proposal ID {proposal.id}')
-                            _data = json.loads(cached_data)
-                            if not DeepDiff(question_group_list, _data['masterlist_questions']) and not DeepDiff(geojson, _data['geojson']):
-                                logger.info(f'SpatialQuery API - SQS cache data changed: Proposal ID {proposal.id}')
-                                # masterlist_questions and shape_file has not changed
-                                return True
-                        return False
-
-                    #url = f'{settings.SQS_APIURL}spatial_query/' if f'{settings.SQS_APIURL}'.endswith('/') else f'{settings.SQS_APIURL}/spatial_query/'
-                    if not in_cache():
-                        response_cached = False
-                        url = get_sqs_url('das/spatial_query/')
-                        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-                        if resp.status_code != 200:
-                            logger.error(f'SpatialQuery API call error: {resp.content}')
-                            try:
-                                return Response(resp.json(), status=resp.status_code)
-                            except:
-                                return Response({'errors': resp.content}, status=resp.status_code)
-                        resp=resp.json()
-                        if resp and resp['data']:
-                            instance.data=resp['data']
-                        if resp and resp['layer_data']:
-                            instance.layer_data=resp['layer_data']
-                        if resp and resp['add_info_assessor']:
-                            instance.history_add_info_assessor=instance.get_history_add_info_assessor()
-                            print(instance.history_add_info_assessor)
-                            instance.add_info_assessor= resp['add_info_assessor']
-                        if resp and 'when' in resp and resp['when']:
-                            when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
-                            instance.prefill_timestamp=when
-                        else:
-                            # set this to prevent SQS cache looping indefinitely
-                            when = datetime.now().replace(tzinfo=pytz.utc)
-                            instance.prefill_timestamp=when
-                        instance.save()
-
-                        resp_cache = dict(
-                            id=proposal.id,
-                            request_type=self.FULL,
-                            system=settings.SYSTEM_NAME_SHORT,
-                            masterlist_questions = question_group_list,
-                            geojson = geojson,
-                            sqs_response=resp,
-                        )
-
-                        cache.set(f'sqs_response_{proposal.id}', json.dumps(resp_cache), settings.SQS_RESPONSE_CACHE_TIMEOUT)
-
-                    else:
-                        response_cached = True
-                        resp = json.loads(cached_data)['sqs_response']
-                        when = datetime.strptime(resp['when'], '%Y-%m-%dT%H:%M:%S').replace(tzinfo=pytz.utc)
-                        logger.info(f'SpatialQuery API - SQS response retrieved from cache: Proposal ID {proposal.id}')
-                else:
-                    raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
-
-#            # set Region and District
-#            lon = instance.get_lonlat().x 
-#            lat = instance.get_lonlat().y 
-#            url = get_sqs_url('point_query/lonlat_attrs/')
-#
-#            payload = (('layer_name', 'cddp:dpaw_districts'), ('layer_attrs', 'district'), ('lon', lon), ('lat', lat))
-#            r = requests.get(url=url, params=payload)
-#            district_gis = r.json()['res']['district'] if r.status_code==status.HTTP_200_OK else logger.error('Error Getting district from SQS\n{r.content}')
-#
-#            payload = (('layer_name', 'cddp:dpaw_regions'), ('layer_attrs', 'region'), ('lon', lon), ('lat', lat))
-#            r = requests.get(url=url, params=payload)
-#            region_gis = r.json()['res']['region'] if r.status_code==status.HTTP_200_OK else logger.error('Error Getting region from SQS\n{r.content}')
-#
-#            instance.gis_info.update(dict(region_gis=region_gis, district_gis=district_gis))
-
-            instance.save(version_comment='Prefill Proposal')
-            instance.log_user_action(ProposalUserAction.ACTION_PREFILL_PROPOSAL.format(instance.lodgement_number), request)
-            instance.log_metrics(when, resp, time.time()-start_time, response_cached)
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-            #return redirect(reverse('external'))
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            handle_validation_error(e)
-        except Exception as e:
-            print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['GET',])
@@ -5546,96 +5447,95 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             logger.exception()
             raise serializers.ValidationError(str(e))
 
-
-    @detail_route(methods=['POST', ])
-    def _save_spatialquery(self, request, *args, **kwargs):
-        '''
-        Save spatialquery record.
-        '''
-        try:
-            instance = self.get_object()
-
-            # check attrs and values exist in layer
-            layer_name = request.data['layer']['layer_name']
-            url = get_sqs_url(f'layers/get_attributes')
-            resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
-            if resp.status_code != 200:
-                logger.error(f'SpatialQuery API call error (get_attributes): {resp.content}')
-                return Response({'errors': resp.content}, status=resp.status_code)
-
-            data = resp.json()
-            layer_attrs = [d['attribute'] for d in data]
-            #attr_values = [d['values'] for d in data if 'LGA_TYPE' in  d['attribute']]
-            #layer_attrs = []
-            #for d in data:
-            #    layer_attrs.append(d['attribute'])
-            #    if 'LGA_TYPE' in d['attribute']:
-            #        attr_values = d['values']
-
-            sqq_column_name = request.data.get('column_name').strip()
-            sqq_answer = request.data.get('answer').strip()
-            sqq_assessor_info = request.data.get('assessor_info').strip()
-
-            proponent_items = request.data.get('proponent_items')
-            proponent_attrs_unavailable = [i['answer'] for i in proponent_items if 'answer' in i and i['answer'] not in layer_attrs]
-
-            assessor_items = request.data.get('assessor_items')
-            assessor_attrs_unavailable = [i['info'] for i in assessor_items if 'info' in i and i['info'] not in layer_attrs]
-
-
-            if sqq_column_name not in layer_attrs:
-                # check column_name in exists layer_attrs
-                return JsonResponse(
-                    data={'errors': f'Column name \'{sqq_column_name}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            #if sqq_answer and (not sqq_answer.startswith('::') or sqq_answer.split('::')[1] not in layer_attrs):
-            if proponent_attrs_unavailable:
-                # check answer (label) in exists layer_attrs
-                return JsonResponse(
-                    data={'errors': f'Answer(s) (Proponent section) \'{proponent_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            #if sqq_assessor_info and (not sqq_assessor_info.startswith('::') or sqq_assessor_info.split('::')[1] not in layer_attrs):
-            if assessor_attrs_unavailable:
-                # check assessor_info (label) exists in layer_attrs
-                return JsonResponse(
-                    data={'errors': f'Info for assessor (Assessor section) \'{assessor_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            with transaction.atomic():
-
-                serializer = DTSpatialQueryQuestionSerializer(
-                    instance, data=request.data, context={'data': request.data}
-                )
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
-
-            return Response(
-                {'spatialquery_id': instance.id},
-                status=status.HTTP_200_OK
-            )
-
-        except serializers.ValidationError as ve:
-            if 'non_field_errors' in ve.get_codes() and 'unique' in ve.get_codes()['non_field_errors']:
-                if any('question' in s for s in ve.detail['non_field_errors']):
-                    raise serializers.ValidationError('CDDP Question and Answer already exist. Must be a unique set')
-            log = '{0} {1}'.format('save_spatialquery()')
-            logger.exception(log)
-            raise
-
-        except ValidationError as e:
-            if hasattr(e, 'error_dict'):
-                raise serializers.ValidationError(repr(e.error_dict))
-            else:
-                raise serializers.ValidationError(repr(e[0]))
-
-        except Exception as e:
-            logger.exception()
-            raise serializers.ValidationError(str(e))
+#    @detail_route(methods=['POST', ])
+#    def _save_spatialquery(self, request, *args, **kwargs):
+#        '''
+#        Save spatialquery record.
+#        '''
+#        try:
+#            instance = self.get_object()
+#
+#            # check attrs and values exist in layer
+#            layer_name = request.data['layer']['layer_name']
+#            url = get_sqs_url(f'layers/get_attributes')
+#            resp = requests.get(url=url, params={'layer_name':layer_name}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#            if resp.status_code != 200:
+#                logger.error(f'SpatialQuery API call error (get_attributes): {resp.content}')
+#                return Response({'errors': resp.content}, status=resp.status_code)
+#
+#            data = resp.json()
+#            layer_attrs = [d['attribute'] for d in data]
+#            #attr_values = [d['values'] for d in data if 'LGA_TYPE' in  d['attribute']]
+#            #layer_attrs = []
+#            #for d in data:
+#            #    layer_attrs.append(d['attribute'])
+#            #    if 'LGA_TYPE' in d['attribute']:
+#            #        attr_values = d['values']
+#
+#            sqq_column_name = request.data.get('column_name').strip()
+#            sqq_answer = request.data.get('answer').strip()
+#            sqq_assessor_info = request.data.get('assessor_info').strip()
+#
+#            proponent_items = request.data.get('proponent_items')
+#            proponent_attrs_unavailable = [i['answer'] for i in proponent_items if 'answer' in i and i['answer'] not in layer_attrs]
+#
+#            assessor_items = request.data.get('assessor_items')
+#            assessor_attrs_unavailable = [i['info'] for i in assessor_items if 'info' in i and i['info'] not in layer_attrs]
+#
+#
+#            if sqq_column_name not in layer_attrs:
+#                # check column_name in exists layer_attrs
+#                return JsonResponse(
+#                    data={'errors': f'Column name \'{sqq_column_name}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+#                    status=status.HTTP_400_BAD_REQUEST
+#                )
+#
+#            #if sqq_answer and (not sqq_answer.startswith('::') or sqq_answer.split('::')[1] not in layer_attrs):
+#            if proponent_attrs_unavailable:
+#                # check answer (label) in exists layer_attrs
+#                return JsonResponse(
+#                    data={'errors': f'Answer(s) (Proponent section) \'{proponent_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+#                    status=status.HTTP_400_BAD_REQUEST
+#                )
+#
+#            #if sqq_assessor_info and (not sqq_assessor_info.startswith('::') or sqq_assessor_info.split('::')[1] not in layer_attrs):
+#            if assessor_attrs_unavailable:
+#                # check assessor_info (label) exists in layer_attrs
+#                return JsonResponse(
+#                    data={'errors': f'Info for assessor (Assessor section) \'{assessor_attrs_unavailable}\' not available in Layer {layer_name}.<br><br>Attributes available are<br>{layer_attrs}'},
+#                    status=status.HTTP_400_BAD_REQUEST
+#                )
+#
+#            with transaction.atomic():
+#
+#                serializer = DTSpatialQueryQuestionSerializer(
+#                    instance, data=request.data, context={'data': request.data}
+#                )
+#                serializer.is_valid(raise_exception=True)
+#                serializer.save()
+#
+#            return Response(
+#                {'spatialquery_id': instance.id},
+#                status=status.HTTP_200_OK
+#            )
+#
+#        except serializers.ValidationError as ve:
+#            if 'non_field_errors' in ve.get_codes() and 'unique' in ve.get_codes()['non_field_errors']:
+#                if any('question' in s for s in ve.detail['non_field_errors']):
+#                    raise serializers.ValidationError('CDDP Question and Answer already exist. Must be a unique set')
+#            log = '{0} {1}'.format('save_spatialquery()')
+#            logger.exception(log)
+#            raise
+#
+#        except ValidationError as e:
+#            if hasattr(e, 'error_dict'):
+#                raise serializers.ValidationError(repr(e.error_dict))
+#            else:
+#                raise serializers.ValidationError(repr(e[0]))
+#
+#        except Exception as e:
+#            logger.exception()
+#            raise serializers.ValidationError(str(e))
 
 class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
     """ For the 'New Layer' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """

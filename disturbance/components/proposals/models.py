@@ -6145,7 +6145,7 @@ class SpatialQueryLayer(RevisionedMixin):
     spatial_query_question = models.ForeignKey(SpatialQueryQuestion, related_name='spatial_query_layers', on_delete=models.CASCADE)
 
     objects = models.Manager()
-    #current_layers = CurrentSpatialQueryLayerManager()
+    current_layers = CurrentSpatialQueryLayerManager()
                                 
     class Meta:
         app_label = 'disturbance'
