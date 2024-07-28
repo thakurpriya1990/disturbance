@@ -54,7 +54,7 @@ data: function() {
             let url = '/refresh'
             vm.isRefreshing=true;
             var found=null;
-            await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,this.proposal_id + url),JSON.stringify(mlq_data),{
+            await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals_sqs,this.proposal_id + url),JSON.stringify(mlq_data),{
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;

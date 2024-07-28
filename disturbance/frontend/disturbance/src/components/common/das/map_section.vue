@@ -65,15 +65,19 @@
                                 />
                             </span>
                         </div>
-                        <div class="col-sm-2">
+                        <div class="col-sm-2 prefill-btn">
                             <input
                                 :disabled="prefill_button_disabled"
                                 @click="prefill_proposal"
                                 type="button"
-                                value="Prefill"
+                                :value=prefill_button_text
                                 class="btn btn-primary w-100"
                                 :title=prefill_timestamp
                             />
+                                <!--:style=prefill_button_color-->
+                        </div>
+                        <div v-if="proposal.in_prefill_queue" class="col-sm-4 prefill-btn">
+                            <label class="control-label pull-left" :style=prefill_button_color>Prefill Processing ...</label>
                         </div>
                     </div>
                 </div>
@@ -197,6 +201,19 @@
                 }
                 return true;
             },
+            prefill_button_text: function(){
+                //if (this.proposal.in_prefill_queue) {
+		//    return 'Prefill (processing ..)'
+                //}
+                return 'Prefill'
+            },
+            prefill_button_color: function(){
+                if (this.proposal.in_prefill_queue) {
+                    return "color: red; opacity: 0.8;"
+                }
+                return ""
+            },
+
             shapefile_info_url: function(){
                 let vm=this;
                 if(vm.global_settings){
@@ -277,7 +294,7 @@
                     })
                     var data={};
                     data.option = result;
-                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal'), JSON.stringify(data),{
+                    await vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals_sqs,vm.proposal.id+'/prefill_proposal'), JSON.stringify(data),{
                         emulateJSON:true
                     }).then(res=>{
                         swal.hideLoading();
@@ -310,7 +327,7 @@
 
                 });
                 
-//                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,vm.proposal.id+'/prefill_proposal')).then(res=>{
+//                vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals_sqs,vm.proposal.id+'/prefill_proposal')).then(res=>{
 //                    //vm.proposal = res.body;
 //                    //vm.refreshFromResponse(res);
 //                    vm.$emit('refreshFromResponse',res);

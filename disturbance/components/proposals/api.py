@@ -65,7 +65,7 @@ from disturbance.components.main.utils import (
 
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
-from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer, TaskMonitor
+from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
@@ -120,18 +120,19 @@ from disturbance.components.proposals.serializers import (
     SelectSchemaMasterlistSerializer,
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
-    DTSpatialQueryQuestionSerializer,
-    SpatialQueryLayerSerializer,
-    DTSpatialQueryMetricsSerializer,
-    DTSpatialQueryMetricsDetailsSerializer,
-    DTSpatialQueryLayersUsedSerializer,
-    #SpatialQueryQuestionSerializer,
-    CddpQuestionGroupSerializer,
     SchemaMasterlistOptionSerializer,
     DASMapFilterSerializer,
     SearchGeoJsonSerializer,
     SearchProposalTypeSerializer,
 )
+#from disturbance.components.proposals.sqs_utils.serializers import (
+#    DTSpatialQueryQuestionSerializer,
+#    SpatialQueryLayerSerializer,
+#    DTSpatialQueryMetricsSerializer,
+#    DTSpatialQueryMetricsDetailsSerializer,
+#    DTSpatialQueryLayersUsedSerializer,
+#    CddpQuestionGroupSerializer,
+#)
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
     ApiaryInternalProposalSerializer,

@@ -28,6 +28,7 @@ class EmailUserSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
 class BaseProposalSerializer(serializers.ModelSerializer):
+    in_prefill_queue = serializers.SerializerMethodField(read_only=True)
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
     proposal_type = serializers.SerializerMethodField()
@@ -72,6 +73,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'modified_date',
                 'documents',
                 'requirements',
+                'in_prefill_queue',
                 'readonly',
                 'can_user_edit',
                 'can_user_view',
@@ -94,6 +96,9 @@ class BaseProposalSerializer(serializers.ModelSerializer):
 
     def get_documents_url(self,obj):
         return '/private-media/proposals/{}/documents/'.format(obj.id)
+
+    def get_in_prefill_queue(self,obj):
+        return obj.in_prefill_queue
 
     def get_readonly(self,obj):
         return False

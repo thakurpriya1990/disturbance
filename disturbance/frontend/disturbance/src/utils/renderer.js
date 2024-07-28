@@ -71,6 +71,14 @@ module.exports = {
         var add_info_assessor_val = (addInfoAssessor) ? (addInfoAssessor[c.name]) ? addInfoAssessor[c.name] : null : null;
         var history_info_assessor_val = (historyAddInfoAssessor) ? (historyAddInfoAssessor[c.name]) ? historyAddInfoAssessor[c.name] : null : null;
         var comment_val= null;
+	var show_add_info_proponent = true;
+        if(layer_val){
+  	    try {
+	        show_add_info_proponent = layer_val.sqs_data.other_data.show_add_info_section_prop	
+	    } catch (ex) {
+	        show_add_info_proponent = true;
+	    }
+        }
         if(commentData){
             if(commentData.constructor != Object){
                     comment_val = commentData.find(at => at.name == c.name)
@@ -296,7 +304,7 @@ module.exports = {
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,boxes);
         }
-        if (layer_val && $.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
+        if (layer_val && show_add_info_proponent && $.inArray(c.type,['declaration','group','section','label', 'checkbox']) == -1){
             var applicant_boxes = this.generateAddInfoApplicantTextBoxes(h,c,val,assessorLevel,orig_readonly, add_info_applicant_val);
             // Merge assessor boxes to _elements array
             Array.prototype.push.apply(_elements,applicant_boxes);

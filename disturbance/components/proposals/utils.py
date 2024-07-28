@@ -2195,10 +2195,13 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
     t0 = time.time()
     logger.info('create_shapefile: 0')
 
+    columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','assocprop','proptype','propurl','prop_activ','geometry']
     gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry")
     for p in qs:
         try: 
             gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)
+            gdf.set_crs = settings.CRS
+            #gdf['geometry'] = gdf['geometry']
 
             gdf['org']        = p.applicant.name if p.applicant else None
             gdf['app_no']     = p.approval.lodgement_number if p.approval else None
@@ -2213,8 +2216,8 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
             gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
             gdf['prop_activ'] = p.activity
 
-            gdf.set_crs = settings.CRS
-            gdf_concat = pd.concat([gdf_concat, gdf], ignore_index=True)
+            #gdf.set_crs = settings.CRS
+            gdf_concat = pd.concat([gdf_concat, gdf[columns]], ignore_index=True)
 
         except Exception as ge:
             logger.error(f'Cannot append proposal {p} to shapefile: {ge}')
@@ -2247,6 +2250,7 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
     logger.info(f'create_shapefile: 3 - {t3 - t2}')
 
     return filename
+
 
 #def gen_shapefile_sql(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=False):
 #    '''

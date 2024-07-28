@@ -25,151 +25,53 @@ from reversion.models import Version
 from django.core.cache import cache
 
 from django.http import HttpResponse, JsonResponse #, Http404
+from disturbance.components.proposals.email import (
+    send_proposal_prefill_request_sent_email_notification,
+)
 from disturbance.components.approvals.email import (
     send_contact_licence_holder_email,
     send_on_site_notification_email,
 )
-from disturbance.components.approvals.serializers_apiary import (
-    ApiarySiteOnApprovalGeometrySerializer,
-    ApiarySiteOnApprovalMinimalGeometrySerializer,
-    ApiarySiteOnApprovalMinGeometrySerializer,
-)
+#from disturbance.components.approvals.serializers_apiary import (
+#    ApiarySiteOnApprovalGeometrySerializer,
+#    ApiarySiteOnApprovalMinimalGeometrySerializer,
+#    ApiarySiteOnApprovalMinGeometrySerializer,
+#)
+from disturbance.utils import search_label, get_schema_questions
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
-from disturbance.components.proposals.utils import (
-    save_proponent_data,
-    save_assessor_data,
-    save_apiary_assessor_data, 
-    update_proposal_apiary_temporary_use,
-    search_schema,
-    gen_shapefile,
-)
-from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
-    OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
-    ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, ExportDocument, search_sections, get_search_geojson, private_storage
-from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
-    SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
-from disturbance.utils import search_tenure, search_label, get_schema_questions
-from disturbance.components.main.utils import (
-    check_db_connection,
-    get_template_group,
-    get_qs_vacant_site,
-    get_qs_proposal,
-    get_qs_approval,
-    handle_validation_error, get_qs_pending_site, get_qs_denied_site, get_qs_current_site,
-    get_qs_not_to_be_reissued_site, get_qs_suspended_site, get_qs_discarded_site,
-    #get_questions_grouped_by_layers
-)
 
-from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
-from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer, TaskMonitor
+from disturbance.components.main.models import ApplicationType, DASMapLayer, TaskMonitor
 from disturbance.components.proposals.models import (
-    ProposalType,
     Proposal,
-    Referral,
-    ProposalRequirement,
-    ProposalStandardRequirement,
-    AmendmentRequest,
-    AmendmentReason,
-    AmendmentRequestDocument,
-    ApiaryReferralGroup,
-    ProposalApiary,
-    ApiaryReferral,
-    SiteTransferApiarySite,
-    ApiarySiteFee,
-    ProposalTypeSection,
-    SectionQuestion,
+    ProposalUserAction,
     MasterlistQuestion,
     CddpQuestionGroup,
     SpatialQueryQuestion,
     SpatialQueryLayer,
     SpatialQueryMetrics,
-    ProposalUserAction,
 )
+from disturbance.components.main.serializers import DASMapLayerSqsSerializer
 from disturbance.components.proposals.serializers import (
-    SendReferralSerializer,
-    ProposalTypeSerializer,
     ProposalSerializer,
-    InternalProposalSerializer,
-    SaveProposalSerializer,
-    ProposalUserActionSerializer,
-    ProposalLogEntrySerializer,
-    DTReferralSerializer,
-    ReferralSerializer,
-    ProposalRequirementSerializer,
-    ProposalStandardRequirementSerializer,
-    ProposedApprovalSerializer,
-    ProposedApprovalSiteTransferSerializer,
-    PropedDeclineSerializer,
-    AmendmentRequestSerializer,
-    SearchReferenceSerializer,
-    SearchKeywordSerializer,
-    ListProposalSerializer,
-    AmendmentRequestDisplaySerializer,
-    SaveProposalRegionSerializer,
-    ProposalWrapperSerializer,
-    ReferralWrapperSerializer,
-    ProposalTypeSectionSerializer,
-    DTSchemaQuestionSerializer,
-    SchemaMasterlistSerializer,
-    DTSchemaMasterlistSerializer,
-    SchemaQuestionSerializer,
-    SelectSchemaMasterlistSerializer,
-    DTSchemaProposalTypeSerializer,
-    SchemaProposalTypeSerializer,
+    SchemaMasterlistOptionSerializer,
+)
+from disturbance.components.proposals.sqs_utils.serializers import (
     DTSpatialQueryQuestionSerializer,
     SpatialQueryLayerSerializer,
     DTSpatialQueryMetricsSerializer,
     DTSpatialQueryMetricsDetailsSerializer,
     DTSpatialQueryLayersUsedSerializer,
-    #SpatialQueryQuestionSerializer,
     CddpQuestionGroupSerializer,
-    SchemaMasterlistOptionSerializer,
-    DASMapFilterSerializer,
-    SearchGeoJsonSerializer,
-    SearchProposalTypeSerializer,
 )
-from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiaryTypeSerializer,
-    ApiaryInternalProposalSerializer,
-    ProposalApiarySerializer,
-    SaveProposalApiarySerializer,
-    CreateProposalApiarySiteTransferSerializer,
-    ProposalApiaryTemporaryUseSerializer,
-    OnSiteInformationSerializer,
-    ApiaryReferralGroupSerializer,
-    ApiarySiteSerializer,
-    SendApiaryReferralSerializer,
-    ApiaryReferralSerializer,
-    TemporaryUseApiarySiteSerializer,
-    DTApiaryReferralSerializer,
-    FullApiaryReferralSerializer,
-    ProposalHistorySerializer,
-    UserApiaryApprovalSerializer,
-    ApiarySiteOnProposalProcessedGeometrySerializer,
-    ApiarySiteOnProposalProcessedMinimalGeometrySerializer,
-    ApiarySiteOnProposalDraftMinimalGeometrySerializer,
-    ApiarySiteFeeSerializer,
-    ApiarySiteOnProposalVacantDraftMinimalGeometrySerializer,
-    ApiarySiteOnProposalVacantProcessedMinimalGeometrySerializer, ApiarySiteOnProposalDraftGeometrySerializer,
-)
-from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
-from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
-from disturbance.components.compliances.models import Compliance
-from disturbance.components.main.serializers import DASMapLayerSqsSerializer
-
-from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
-from django.core.files.base import ContentFile
-from rest_framework.pagination import PageNumberPagination
+from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
-from disturbance.components.main.process_document import (
-        process_generic_document, 
-        )
 
-
+from disturbance.components.main.utils import (
+    check_db_connection,
+)
 import logging
 logger = logging.getLogger(__name__)
 
@@ -209,7 +111,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
     def get_object(self):
         check_db_connection()
         try:
-            obj = super(ProposalViewSet, self).get_object()
+            obj = super(ProposalSqsViewSet, self).get_object()
         except Exception as e:
             # because current queryset excludes migrated licences
             #obj = get_object_or_404(Proposal, id=self.kwargs['id'])
@@ -688,8 +590,9 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
                         logger.error(f'Error: {resp_data["errors"]}')
                         raise serializers.ValidationError(f'Error: {resp_data["errors"]}')                   
                     
+                    sqs_task_id = resp_data['data']['task_id']
                     task, created = TaskMonitor.objects.get_or_create(
-                            task_id=resp_data['data']['task_id'], 
+                            task_id=sqs_task_id, 
                             defaults={
                                 'proposal': proposal,
                                 'requester': request.user,
@@ -701,6 +604,10 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
                         task.requester = request.user
                     serializer = self.get_serializer(proposal)
                     resp_data['proposal']=serializer.data
+
+                    send_proposal_prefill_request_sent_email_notification(proposal, request.user)
+                    action = ProposalUserAction.ACTION_SEND_PREFILL_REQUEST_TO.format(proposal.lodgement_number, task.id, sqs_task_id, resp_data['position'])
+                    ProposalUserAction.log_action(proposal, action, request.user)
 
                     return Response(resp_data, status=resp.status_code)
                 else:
@@ -1333,7 +1240,10 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             url='http://localhost:8002/api/v1/add_layer'
             resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         ''' 
-        data = json.dumps({'layer_details': request.data.get('layer'), 'system': settings.SYSTEM_NAME_SHORT})
+        #data = json.dumps({'layer_details': request.data.get('layer'), 'system': settings.SYSTEM_NAME_SHORT})
+        layer_name = request.data.get('layer').get('layer_name')
+        layer_url = request.data.get('layer').get('layer_url')
+        data = {'layer_name': layer_name, 'layer_url': layer_url, 'system': settings.SYSTEM_NAME_SHORT}
         url = get_sqs_url(f'add_layer/')
         resp = requests.post(url=url, data=data, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False, timeout=settings.REQUEST_TIMEOUT)
         if resp.status_code != 200:

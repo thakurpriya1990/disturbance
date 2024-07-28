@@ -3,14 +3,13 @@ from django.utils import timezone
 from django.conf import settings
 
 from ledger.accounts.models import EmailUser
-from disturbance.components.proposals.api import get_sqs_url
+from disturbance.components.proposals.sqs_utils.api import get_sqs_url
 from disturbance.components.main.models import TaskMonitor
-from disturbance.components.proposals.models import Proposal
+from disturbance.components.proposals.models import Proposal, ProposalUserAction
 from disturbance.components.proposals.email import (
     send_proposal_prefill_completed_email_notification,
     send_proposal_prefill_error_email_notification,
     )
-
 
 from datetime import datetime
 import pytz
@@ -79,14 +78,26 @@ class Command(BaseCommand):
                                 logger.warn(msg)
                                 update_retries(msg)
                             else:
-                                proposal = self.update_proposal(sqs_task)
+                                proposal, metrics_obj = self.update_proposal(sqs_task)
                                 if proposal:
                                     task.status = TaskMonitor.STATUS_COMPLETED
                                     task.save()
-                                    user = send_proposal_prefill_completed_email_notification(proposal)
+
+                                    user = EmailUser.objects.get(id=task.requester_id)
+                                    send_proposal_prefill_completed_email_notification(proposal, user)
+
+                                    action = ProposalUserAction.ACTION_SEND_PREFILL_COMPLETED_TO.format(proposal.lodgement_number, task.id, metrics_obj.id, task.task_id)
+                                    ProposalUserAction.log_action(proposal, action, user)
                                 else:
                                     msg = f'Unable to update proposal, task_id {task_id}'
                                     update_retries(msg)
+
+                        elif sqs_task['status'] == TaskMonitor.STATUS_RUNNING and task.status != TaskMonitor.STATUS_RUNNING:
+                            # update to running, if not already updated
+                            task.status = sqs_task['status']
+                            task.save()
+                            msg = f'task_id {task_id} - current status \'{sqs_task["status"]}\' on SQS'
+                            logger.info(msg)
 
                         elif sqs_task['status'] in [TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]:
                             msg = f'task_id {task_id} - current status \'{sqs_task["status"]}\' on SQS'
@@ -144,11 +155,11 @@ class Command(BaseCommand):
                 proposal.prefill_timestamp=when
 
             proposal.save(version_comment='Prefill Proposal')
-            proposal.log_metrics(when, res, proposal.id)
-            return proposal
+            spatial_query_metrics_obj = proposal.log_metrics(when, res, proposal.id)
+            return proposal, spatial_query_metrics_obj
         except PollSqsTasksException as e: 
             raise PollSqsTasksException(e)
 
-        return None
+        return None, None
 
 

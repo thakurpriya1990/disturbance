@@ -754,7 +754,7 @@ export default {
                             if (full.group.can_user_edit) {
                                 column = `<a class="edit-row" data-rowid=\"__ROWID__\">Edit</a><br/>`;
                                 //column += `<a class="check-row" data-rowid=\"__ROWID__\" title="Check if the Question exists in Propasal Schema">Check_Question</a><br/>`;
-                                column += `<a class="update-row" data-rowid=\"__ROWID__\" title="Check/Create/Update Layer exists in SQS">Check_Layer</a><br/>`;
+                                //column += `<a class="update-row" data-rowid=\"__ROWID__\" title="Check/Create/Update Layer exists in SQS">Check_Layer</a><br/>`;
                                 column += `<a class="delete-row" data-rowid=\"__ROWID__\">Delete</a><br/>`;
                             } else {
                                 column = `<a href="/" onclick="return false;" style="color: grey;" title="You are not a member of Spatial Question Group '${full.group.name}'">Edit</a><br/>`;
@@ -1439,7 +1439,7 @@ export default {
 	    let self = this;
 	    const data = {}
 	    data['csrfmiddlewaretoken'] = self.csrf_token;
-	    data['layer'] = self.spatialquery.layer;
+	    data['layer'] = self.spatialquerylayer.layer;
 
 	    swal({
 		title: "Check Spatialquery Layer",
@@ -1463,12 +1463,12 @@ export default {
 		}
 
 		if (result=='check_layer') {
-		    let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer');
+		    let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquerylayer.layer.layer_name+'/check_sqs_layer');
 		    self.check_sqs_layer(url)
 
 		}
 		else if (result=='reload_layer') {
-		    let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer');
+		    let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquerylayer.layer.layer_name + '/create_or_update_sqs_layer');
 		    self.create_or_update_sqs_layer(url, data)
 
 		}
@@ -1479,7 +1479,7 @@ export default {
 
 
         check_sqs_layer: async function(url) {
-            //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer'))
+            //await self.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquerylayer.layer.layer_name+'/check_sqs_layer'))
             const self = this;
             self.show_spinner = true;
             await self.$http.get(url)
@@ -1504,7 +1504,7 @@ export default {
             const self = this;
             self.show_spinner = true;
 
-            //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer'),JSON.stringify(data),{
+            //await self.$http.post(helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquerylayer.layer.layer_name + '/create_or_update_sqs_layer'),JSON.stringify(data),{
             await self.$http.post(url ,JSON.stringify(data),{
                 emulateJSON:true,
             }).then((response)=>{
@@ -1930,54 +1930,53 @@ export default {
                 console.log('layer_id: '+ self.proposal.layer_id)
             });
 
-
-            self.$refs.spatial_query_question_table.vmDataTable.on('click','.update-row', function(e) {
-                e.preventDefault();
-                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
-                self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
-                self.spatialquery.layer = self.$refs.spatial_query_question_table.row_of_data.data().layer;
-
-                let vm = this;
-                const data = {}
-                data['csrfmiddlewaretoken'] = self.csrf_token;
-                data['layer'] = self.spatialquery.layer;
-
-                swal({
-                    title: "Check Spatialquery Layer",
-                    //text: "Input Proposal Lodgement Number",
-                    type: "question",
-                    showCancelButton: true,
-                    confirmButtonText: 'OK',
-                    input: 'radio',
-                    inputOptions: {
-                      'check_layer':  'Check Layer Exists on SQS',
-                      'reload_layer': 'Create/Update Layer in SQS',
-                    }
-                }).then(async (result) => {
-                    console.log("Result: " + result);
-                    if (!result) {
-                        swal(
-                            'Please select an option',
-                            null,
-                            'warning'
-                        )
-                        return;
-                    }
-
-                    if (result=='check_layer') {
-                        let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer');
-                        self.check_sqs_layer(url)
-
-                    }
-                    else if (result=='reload_layer') {
-                        let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer');
-                        self.create_or_update_sqs_layer(url, data)
-
-                    }
-                },(error) => {
-                    //
-                });                
-            });
+//            self.$refs.spatial_query_question_table.vmDataTable.on('click','.update-row', function(e) {
+//                e.preventDefault();
+//                self.$refs.spatial_query_question_table.row_of_data = self.$refs.spatial_query_question_table.vmDataTable.row('#'+$(this).attr('data-rowid'));
+//                self.spatialquery.id = self.$refs.spatial_query_question_table.row_of_data.data().id;
+//                self.spatialquery.layer = self.$refs.spatial_query_question_table.row_of_data.data().layer;
+//
+//                let vm = this;
+//                const data = {}
+//                data['csrfmiddlewaretoken'] = self.csrf_token;
+//                data['layer'] = self.spatialquery.layer;
+//
+//                swal({
+//                    title: "Check Spatialquery Layer",
+//                    //text: "Input Proposal Lodgement Number",
+//                    type: "question",
+//                    showCancelButton: true,
+//                    confirmButtonText: 'OK',
+//                    input: 'radio',
+//                    inputOptions: {
+//                      'check_layer':  'Check Layer Exists on SQS',
+//                      'reload_layer': 'Create/Update Layer in SQS',
+//                    }
+//                }).then(async (result) => {
+//                    console.log("Result: " + result);
+//                    if (!result) {
+//                        swal(
+//                            'Please select an option',
+//                            null,
+//                            'warning'
+//                        )
+//                        return;
+//                    }
+//
+//                    if (result=='check_layer') {
+//                        let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name+'/check_sqs_layer');
+//                        self.check_sqs_layer(url)
+//
+//                    }
+//                    else if (result=='reload_layer') {
+//                        let url = helpers.add_endpoint_json(api_endpoints.spatial_query, self.spatialquery.layer.layer_name + '/create_or_update_sqs_layer');
+//                        self.create_or_update_sqs_layer(url, data)
+//
+//                    }
+//                },(error) => {
+//                    //
+//                });                
+//            });
 
 //            self.$refs.spatial_query_question_table.vmDataTable.on('click','.check-row', function(e) {
 //                e.preventDefault();

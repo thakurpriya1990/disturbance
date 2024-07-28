@@ -549,9 +549,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
     shapefile_json = JSONField('Source/Submitter (multi) polygon geometry', blank=True, null=True)
-    proposal_geom = MultiPolygonField(srid=4326, null=True, blank=True)
+    shapefile_geom = MultiPolygonField('Source/Submitter gdf.exploded (multi) polygon geometry', srid=4326, blank=True, null=True) # for 'pgsql2shp' from KB
     reissued = models.BooleanField(default=False)
-
 
     class Meta:
         app_label = 'disturbance'
@@ -582,12 +581,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
             self.save(version_comment=f'processing_status: {self.processing_status}')
+#            das_geom, created = DASGeometry.objects.update_or_create(
+#               
+#           )
+
         elif self.assessor_data != original_assessor_data:
             # Although the status hasn't changed we add the text 'processing_status'
             # So we can filter based on it later (for both assessor_data and comment_data)
             self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
         elif self.comment_data != original_comment_data:
             self.save(version_comment='comment_data: Has changed - tagging with processing_status')
+
+#    def save_geom(self):
+#        columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','assocprop','proptype','propurl','prop_activ','geometry']
+#        gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry") 
+#        gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)
+#
+#       das_geom, created = DASGeometry.objects.update_or_create(
+#           proposal = models.ForeignKey(Proposal, unique=True),
+#           org = self.applicant.name if p.applicant else None,
+#           app_no = self.approval.lodgement_number if p.approval else None,
+#           prop_title = self.title,
+#           appissdate = self.approval.issue_date.strftime("%Y-%d-%d") if p.approval else None,
+#           appstadate = self.approval.start_date.strftime("%Y-%d-%d") if p.approval else None,
+#           appexpdate = self.approval.expiry_date.strftime("%Y-%d-%d") if p.approval else None,
+#           appstatus = self.approval.status if p.approval else None,
+#           assocprop = list(Proposal.objects.filter(approval__lodgement_number=self.approval.lodgement_number).values_list('lodgement_number', flat=True)) if self.approval else None,
+#           proptype = self.proposal_type,
+#           propurl = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': self.id}),
+#           prop_activ = self.activity,
+#           geometry = GeometryField(srid=4326)
+#       )
+
 
     @property
     def fee_paid(self):
@@ -1556,13 +1581,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 else:
                     raise ValidationError('Please upload a valid shapefile')
 
-                # Set proposal_geom field for shapefile export sql query (from KB)
-                geoms = []         
-                for ft in self.shapefile_json['features']:
-                    # geom_str = json.dumps(ft['geometry'])      
-                    geom = GEOSGeometry(json.dumps(ft['geometry']))        
-                    geoms.append(geom)       
-                self.proposal_geom = MultiPolygon(geoms)
+
+#                # Explode multi-part geometries into multiple single geometries. 'pgsql2shp' cannot handle multi-part geometries (mix of Polygon and MultiPolygon Geometries)
+#                gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
+#                exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
+#                # Set proposal_geom field for shapefile export sql query (from KB)
+#                geoms = []         
+#                #for ft in self.shapefile_json['features']:
+#                for ft in exploded_shapefile['features']:
+#                    geom = GEOSGeometry(json.dumps(ft['geometry']))        
+#                    geoms.append(geom)       
+#                self.shapefile_geom = MultiPolygon(geoms)
+
+                # Explode multi-part geometries into multiple single geometries.
+                self.set_shapefile_geom()
 
                 self.save(version_comment='New Shapefile JSON saved.')
                 # else:
@@ -1581,8 +1613,33 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         document.hidden=True
                         document.save()
             self.shapefile_json=None
+            self.shapefile_exp_json=None
             self.save(version_comment='Shapefile json cleared as invalid shapefile uploaded.')
             raise ValidationError(f'Please upload a valid shapefile. \n{e}')
+
+
+    def set_shapefile_geom(self):
+        ''' Explode multi-part geometries into multiple single geometries. 
+            pgsql2shp cannot handle multi-part geometries (mix of Polygon and MultiPolygon Geometries)
+            
+            Test:
+                pgsql2shp -f DAS_WA -h localhost -u <username> -p 5432 -P <passwd> db_name  'select p.lodgement_number AS app_no, p.shapefile_geom AS geometry from disturbance_proposal p where p.id=<p.id>;'
+        '''
+        import geopandas as gpd
+        if self.shapefile_geom:
+            return self.shapefile_geom
+
+        gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
+        #exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
+        exploded_shapefile = self.shapefile_json
+        geoms = []         
+        #for ft in self.shapefile_json['features']:
+        for ft in exploded_shapefile['features']:
+            geom = GEOSGeometry(json.dumps(ft['geometry']))        
+            geoms.append(geom)       
+
+        self.shapefile_geom = MultiPolygon(geoms)
+
 
     def get_lonlat(self):
        ''' Get longitude and latitude from centroid of polygon
@@ -1632,7 +1689,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     
     def get_layers_info():
         import geopandas as gpd
-        import requests
 
         qs=DASMapLayer.objects.filter(layer_url__isnull=False)
         gdf = gpd.GeoDataFrame()
@@ -1654,7 +1710,6 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
     def combine_shapefile_json():
         import geopandas as gpd
-        import requests
 
         qs=Proposal.objects.filter(shapefile_json__isnull=False)
         gdf = gpd.GeoDataFrame()
@@ -2989,8 +3044,6 @@ class ProposalUserAction(UserAction):
     ACTION_APPROVAL_LEVEL_DOCUMENT = "Assign Approval level document {}"
     ACTION_APPROVAL_LEVEL_COMMENT = "Save Approval level comment {}"
     ACTION_VIEW_PROPOSAL = "View Proposal {}"
-    ACTION_PREFILL_PROPOSAL = "Prefill Proposal {}"
-    ACTION_REFRESH_PROPOSAL = "Refresh data for Proposal {}"
     # Assessors
     ACTION_SAVE_ASSESSMENT_ = "Save assessment {}"
     ACTION_CONCLUDE_ASSESSMENT_ = "Conclude assessment {}"
@@ -3026,6 +3079,12 @@ class ProposalUserAction(UserAction):
     APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
     APIARY_REFERRAL_ASSIGN_TO_ASSESSOR = "Assign Referral {} of application {} to {} as the assessor"
     APIARY_REFERRAL_UNASSIGN_ASSESSOR = "Unassign assessor from Referral {} of application {}"
+    # SQS
+    ACTION_PREFILL_PROPOSAL = "Prefill Proposal {}"
+    ACTION_REFRESH_PROPOSAL = "Refresh data for Proposal {}"
+    ACTION_SEND_PREFILL_REQUEST_TO = "Prefill request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
+    ACTION_SEND_PREFILL_COMPLETED_TO = "Prefill for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
+    ACTION_SEND_PREFILL_ERROR_TO = "Send referral {} for proposal {} to {}"
 
     class Meta:
         app_label = 'disturbance'
@@ -3519,7 +3578,6 @@ def get_search_geojson(proposal_lodgement_numbers,request):
     combined_geojson=None
     try:
         import geopandas as gpd
-        import requests
 
         qs=Proposal.objects.filter(lodgement_number__in=proposal_lodgement_numbers, shapefile_json__isnull=False)
         combined_features=[]
@@ -6222,6 +6280,29 @@ class SpatialQueryMetrics(models.Model):
 
         except Exception as e:
             logger.error(f'Total Query Time not found in sqs_response: {e}')
+
+
+#class DASGeometry(models.Model):
+#    #proposal = models.ForeignKey(Proposal, unique=True)
+#    org = models.CharField(max_length=128)
+#    app_no = models.CharField(max_length=9)
+#    prop_title = models.CharField(max_length=255)
+#    appissdate = models.CharField(max_length=10)
+#    appstadate = models.CharField(max_length=10)
+#    appexpdate = models.CharField(max_length=10)
+#    appstatus = models.CharField(max_length=30)
+#    assocprop = models.CharField(max_length=512)
+#    proptype = models.CharField(max_length=64)
+#    propurl = models.CharField(max_length=512)
+#    prop_activ = models.CharField(max_length=255)
+#    geometry = GeometryField(srid=4326)
+#
+#    class Meta:
+#        app_label = 'disturbance'
+#
+#    def __str__(self):
+#        return f'{self.app_no}'
+
 
 
 

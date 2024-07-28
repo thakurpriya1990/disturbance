@@ -57,6 +57,22 @@ def search2(dictionary, search_list):
 
     return result
 
+def search_data(proposal_data, search_list):
+    """
+    Search proposal data component answer given name (section key)
+    To run:
+        from disturbance.utils import search_data
+        search3(dictionary, ['BRM', 'J 1'])
+        Eg.
+        search3(p.data, ['Section1-0'])
+        --> [{'1ProposalSummary1.Section1-0': 'JM Test'}]
+    """
+    flat_dict = flatten(proposal_data)
+    for k, v in flat_dict.items():
+        name = k.split('.')[-1]
+        if any(x.lower()==name.lower() for x in search_list):
+            return v
+    return None
 
 def search_approval(approval, searchWords):
     qs=[]
