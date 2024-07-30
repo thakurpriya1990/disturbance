@@ -1541,6 +1541,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def validate_map_files(self, request):
         import geopandas as gpd
         try:
+            import ipdb; ipdb.set_trace()
             shp_file_qs=self.map_documents.filter(name__endswith='.shp')
             MAX_NO_POLYGONS=15
             try:
@@ -1594,6 +1595,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 #                self.shapefile_geom = MultiPolygon(geoms)
 
                 # Explode multi-part geometries into multiple single geometries.
+                import ipdb; ipdb.set_trace()
                 self.set_shapefile_geom()
 
                 self.save(version_comment='New Shapefile JSON saved.')
@@ -1630,8 +1632,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             return self.shapefile_geom
 
         gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
-        #exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
-        exploded_shapefile = self.shapefile_json
+        exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
+        #exploded_shapefile = self.shapefile_json
         geoms = []         
         #for ft in self.shapefile_json['features']:
         for ft in exploded_shapefile['features']:

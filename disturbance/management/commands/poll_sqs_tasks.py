@@ -48,16 +48,18 @@ class Command(BaseCommand):
             return None
 
         def update_retries(msg):
-            task.retries = task.retries + 1
-            if task.retries == settings.SQS_POLLING_MAX_RETRIES:
-                task.status = TaskMonitor.STATUS_MAX_RETRIES_REACHED
-                task.info = f'Retry {task.retries}: {msg}.'
-                send_proposal_prefill_error_email_notification(task.proposal, task.id)
-            task.save()
+            if task is not None:
+                task.retries = task.retries + 1
+                if task.retries == settings.SQS_POLLING_MAX_RETRIES:
+                    task.status = TaskMonitor.STATUS_MAX_RETRIES_REACHED
+                    task.info = f'Retry {task.retries}: {msg}.'
+                    send_proposal_prefill_error_email_notification(task.proposal, task.id)
+                task.save()
 
         msg = None
+        task = None
         try:
-            task_ids = list(TaskMonitor.queued_jobs.all().values_list('task_id', flat=True))
+            task_ids = list(TaskMonitor.objects.filter(status__in=[TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]).values_list('task_id', flat=True))
             
             if len(task_ids) > 0:
                 task_ids_str = ','.join(map(str, task_ids))
@@ -69,7 +71,7 @@ class Command(BaseCommand):
 
                 sqs_tasks = resp_tasks.json()
                 for task_id in task_ids:
-                    task = TaskMonitor.queued_jobs.get(task_id=task_id)
+                    task = TaskMonitor.objects.get(task_id=task_id)
                     sqs_task = get_sqs_task(task_id)
                     if sqs_task:
                         if sqs_task['status'] == TaskMonitor.STATUS_COMPLETED:
