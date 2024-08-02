@@ -1629,16 +1629,20 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         if self.shapefile_geom:
             return self.shapefile_geom
 
-        gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
-        exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
-        #exploded_shapefile = self.shapefile_json
         geoms = []         
-        #for ft in self.shapefile_json['features']:
-        for ft in exploded_shapefile['features']:
-            geom = GEOSGeometry(json.dumps(ft['geometry']))        
-            geoms.append(geom)       
+        try:
+            gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
+            exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
+            #exploded_shapefile = self.shapefile_json
+            #for ft in self.shapefile_json['features']:
+            for ft in exploded_shapefile['features']:
+                geom = GEOSGeometry(json.dumps(ft['geometry']))        
+                geoms.append(geom)       
 
-        self.shapefile_geom = MultiPolygon(geoms)
+            self.shapefile_geom = MultiPolygon(geoms)
+        except Exception as e:
+            logger.error(geoms)
+            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
 
 
     def get_lonlat(self):

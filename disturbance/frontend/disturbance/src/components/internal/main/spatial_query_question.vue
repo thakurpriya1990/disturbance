@@ -135,14 +135,16 @@
                         <div class="row">
                             <div class="col-md-1"></div>
                             <div class="col-md-4">
-                                <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group" :disabled="sqq_is_disabled()">
+                                <!-- <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group" :disabled="sqq_is_disabled()"> -->
+                                <select class="form-control" ref="select_group" name="select-group" v-model="spatialquery.group">
                                     <option v-if="group.can_user_edit" v-for="group in spatialquery_selects.cddp_groups" :value="group" >{{group.name}}</option>
                                 </select>     
                             </div>
                             <div class="col-md-1"></div>
-                            <div class="col-md-5">
-			        <input type="checkbox" :value="false" v-model="spatialquery.other_data.show_add_info_section_prop" :disabled="sqq_is_disabled()">&nbsp;&nbsp;&nbsp;
-				    <label>Show additional info section? jm1</label>
+                            <div v-if="is_text_component()" class="col-md-5">
+			        <!-- <input type="checkbox" :value="false" v-model="spatialquery.other_data.show_add_info_section_prop" :disabled="sqq_is_disabled()">&nbsp;&nbsp;&nbsp; -->
+			        <input type="checkbox" :value="false" v-model="spatialquery.other_data.show_add_info_section_prop">&nbsp;&nbsp;&nbsp;
+				    <label>Show additional info section?</label>
 				</input>
                             </div>
 
@@ -186,6 +188,7 @@
         </div>
         <div slot="footer">
             <span v-if="sqq_is_disabled()">
+                <button type="button" class="btn btn-primary" @click="saveSpatialquery()">Update Question</button>
                 <button type="button" class="btn btn-primary" @click.prevent="addLayerEntry()" name="add-spatialquerylayer">Add Layer</button>
             </span>
             <span v-else>
@@ -281,7 +284,7 @@
 					    <div class="col-md-1"></div>
 					    <div class="col-md-10">
 						<select class="form-control" ref="select_layer" name="select-layer" v-model="spatialquerylayer.layer">
-						    <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer" >{{layer.layer_name}}</option>
+						    <option v-for="layer in spatialquery_selects.das_map_layers" :value="layer" >{{layer.display_name}}</option>
 						</select>     
 					    </div>
 					    <span v-if="spatialquerylayer.layer">
@@ -1007,6 +1010,9 @@ export default {
         },
         sqq_is_disabled: function() {
             return !this.spatialquery.id=='';
+        },
+        is_text_component: function() {
+            return this.spatialquery.answer_type=='text' | this.spatialquery.answer_type=='text_area'
         },
         didSubmitForm(e) {
             /* https://codepen.io/sirthxalot-1471782131/pen/wvByQbz */

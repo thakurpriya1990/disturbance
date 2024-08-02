@@ -195,6 +195,7 @@ class DASMapLayerSqsSerializer(DASMapLayerSerializer):
         fields = (
             'id',
             'layer_name',
+            'display_name',
             'layer_url',
             #'available_on_sqs',
             #'active_on_sqs',
