@@ -258,6 +258,7 @@ class OrganisationRequestCommsSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganisationRequestLogEntry
         fields = '__all__'
+
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 
@@ -272,9 +273,13 @@ class OrganisationRequestCommsSerializer(serializers.ModelSerializer):
 #         return [[d.name,d._file.url] for d in obj.documents.all()]    
 
 class OrganisationCommsSerializer(serializers.ModelSerializer):
+    documents = serializers.SerializerMethodField()
     class Meta:
         model = OrganisationLogEntry
         fields = '__all__'
+
+    def get_documents(self,obj):
+        return [[d.name,d._file.url] for d in obj.documents.all()]
 
 class OrganisationLogEntrySerializer(CommunicationLogEntrySerializer):
     documents = serializers.SerializerMethodField()

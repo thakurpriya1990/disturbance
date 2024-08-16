@@ -144,8 +144,8 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             else:
                 raise('Object type is wrong')
 
-            print(path)
             path = private_storage.save(path_format_string.format(settings.MEDIA_APIARY_DIR, id_number, filename), ContentFile(_file.read()))
+            print(path)
             document._file = path
             document.save()
 

@@ -141,7 +141,8 @@
                                 </select>     
                             </div>
                             <div class="col-md-1"></div>
-                            <div v-if="is_text_component()" class="col-md-5">
+                            <!--<div v-if="is_text_component()" class="col-md-5">-->
+                            <div class="col-md-5">
 			        <!-- <input type="checkbox" :value="false" v-model="spatialquery.other_data.show_add_info_section_prop" :disabled="sqq_is_disabled()">&nbsp;&nbsp;&nbsp; -->
 			        <input type="checkbox" :value="false" v-model="spatialquery.other_data.show_add_info_section_prop">&nbsp;&nbsp;&nbsp;
 				    <label>Show additional info section?</label>
@@ -1011,9 +1012,9 @@ export default {
         sqq_is_disabled: function() {
             return !this.spatialquery.id=='';
         },
-        is_text_component: function() {
-            return this.spatialquery.answer_type=='text' | this.spatialquery.answer_type=='text_area'
-        },
+//        is_text_component: function() {
+//            return this.spatialquery.answer_type=='text' | this.spatialquery.answer_type=='text_area'
+//        },
         didSubmitForm(e) {
             /* https://codepen.io/sirthxalot-1471782131/pen/wvByQbz */
   	    e.preventDefault();
