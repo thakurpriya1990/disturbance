@@ -6143,9 +6143,11 @@ class CurrentSpatialQueryLayerManager(models.Manager):
 class SpatialQueryLayer(RevisionedMixin):
     OVERLAPPING = 'Overlapping'
     OUTSIDE     = 'Outside'
+    INSIDE      = 'Inside'
     HOW_CHOICES=(
         (OVERLAPPING, 'Overlapping'),
         (OUTSIDE, 'Outside'),
+        (INSIDE, 'Inside'),
     )
                          
     ALL = 'All'
@@ -6187,7 +6189,7 @@ class SpatialQueryLayer(RevisionedMixin):
     expiry = models.DateField('Expiry Date', blank=True, null=True)
     visible_to_proponent = models.BooleanField(default=False)
     buffer = models.PositiveIntegerField(blank=True, null=True)
-    how = models.CharField('Overlapping/Outside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
+    how = models.CharField('Overlapping/Outside/Inside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
     column_name = models.CharField('Name of layer attribute/field', max_length=100)
     operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
     value = models.CharField(max_length=100, blank=True, null=True)

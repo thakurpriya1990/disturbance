@@ -532,11 +532,11 @@
                         <div v-if="is_admin">
 			    <div class="col-md-2">
 				<label class="control-label pull-right">Grouped MLQ's</label>
-				<label class="control-label pull-right">All MLQ's</label>
+				<!--<label class="control-label pull-right">All MLQ's</label>-->
 			    </div>
 			    <div class="col-md-1">
 				<input class="med" type="checkbox" id="group_mlqs" name="group_mlqs" title="Request non-expired Grouped MasterList Questions (grouped by Radiobutton, Checkbox, Select, Multiselect)" v-model="proposal.group_mlqs"><br>
-				<input class="med" type="checkbox" id="all_mlqs" name="all_mlqs" title="Request with all non-expired MasterList Questions" v-model="proposal.all_mlqs">
+				<!--<input class="med" type="checkbox" id="all_mlqs" name="all_mlqs" title="Request with all non-expired MasterList Questions" v-model="proposal.all_mlqs">-->
 			    </div>
                         </div>
                         <div v-if="request_time" class="col-md-4">

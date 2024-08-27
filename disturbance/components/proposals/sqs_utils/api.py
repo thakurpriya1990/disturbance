@@ -280,6 +280,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
         mlq_id = request.data.get('masterlist_question_id')
         lodgement_number = request.data.get('lodgement_number')
         proposal = Proposal.objects.get(lodgement_number=lodgement_number)
+        layer_id = request.data.get('layer_id')
 
         geojson=proposal.shapefile_json
 
@@ -334,7 +335,12 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
             masterlist_question_json = json.loads(rendered)
 
             # remove/filter questions where there are no layers (or expired layers)
-            masterlist_question_json = [mlq for mlq in masterlist_question_json if len(mlq['layers'])>0]
+            #masterlist_question_json[0]['layers'][idx]['id']
+            for mlq in masterlist_question_json:
+                for layer in mlq['layers']:
+                    if layer['id'] == layer_id:
+                        mlq['layers'] = [layer]
+
             if len(masterlist_question_json) == 0:
                 question = masterlist_question_qs[0].question.question
                 return Response(
