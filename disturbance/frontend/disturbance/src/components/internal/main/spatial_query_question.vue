@@ -311,7 +311,7 @@
 					<div class="row">
 					    <div class="col-md-1"></div>
 					    <div class="col-md-3">
-						<label class="control-label pull-left" style="font-weight:normal !important;">Expiry</label>
+						<label class="control-label pull-left" style="font-weight:normal !important;">Ignore layer after</label>
 					    </div>
 					    <div class="col-md-3">
 						<label class="control-label pull-left" style="font-weight:normal !important;">Buffer (metres)</label>
