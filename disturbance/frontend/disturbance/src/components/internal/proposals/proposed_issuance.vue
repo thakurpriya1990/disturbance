@@ -78,7 +78,7 @@
                                 </div>
 
                             </div>
-                            <div v-if="processing_status != 'With Approver'" class="form-group">
+                            <div v-if="processing_status != 'With Approver' || !approval.confirmation" class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
                                         <label>

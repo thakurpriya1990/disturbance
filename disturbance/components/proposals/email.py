@@ -1,4 +1,7 @@
 import logging
+from email.mime.text import MIMEText
+import json
+from datetime import datetime
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -204,6 +207,38 @@ class ProposalPrefillErrorSendNotificationEmail(TemplateEmailBase):
     subject = 'ERROR: Proposal prefill'
     html_template = 'disturbance/emails/proposals/proposal_prefill_error_notification.html'
     txt_template = 'disturbance/emails/proposals/proposal_prefill_error_notification.txt'
+
+class ProposalRefreshRequestSentSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal refresh request has been sent.'
+    html_template = 'disturbance/emails/proposals/proposal_refresh_request_sent_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_refresh_request_sent_notification.txt'
+
+class ProposalRefreshCompletedSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal refresh has completed.'
+    html_template = 'disturbance/emails/proposals/proposal_refresh_completed_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_refresh_completed_notification.txt'
+
+class ProposalRefreshErrorSendNotificationEmail(TemplateEmailBase):
+    subject = 'ERROR: Proposal refresh'
+    html_template = 'disturbance/emails/proposals/proposal_refresh_error_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_refresh_error_notification.txt'
+
+class ProposalTestSqqRequestSentSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal TEST SQQ request has been sent.'
+    html_template = 'disturbance/emails/proposals/proposal_test_sqq_request_sent_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_test_sqq_request_sent_notification.txt'
+
+class ProposalTestSqqCompletedSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal TEST SQQ has completed.'
+    html_template = 'disturbance/emails/proposals/proposal_test_sqq_completed_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_test_sqq_completed_notification.txt'
+
+class ProposalTestSqqErrorSendNotificationEmail(TemplateEmailBase):
+    subject = 'ERROR: Proposal TEST SQQ'
+    html_template = 'disturbance/emails/proposals/proposal_test_sqq_error_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_test_sqq_error_notification.txt'
+
+
 
 def send_referral_email_notification(referral,request,reminder=False):
     email = ReferralSendNotificationEmail()
@@ -743,6 +778,162 @@ def send_proposal_prefill_error_email_notification(proposal, task_id):
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_refresh_request_sent_email_notification(proposal, user):
+    email = ProposalRefreshRequestSentSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+    }
+
+    all_ccs = []
+    #if cc_list:
+    #    all_ccs = cc_list.split(',')
+
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
+        # if proposal.applicant.email:
+        all_ccs.append(proposal.applicant.email)
+
+    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_refresh_completed_email_notification(proposal, user):
+    email = ProposalRefreshCompletedSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+    }
+
+    all_ccs = []
+    #if cc_list:
+    #    all_ccs = cc_list.split(',')
+
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
+        # if proposal.applicant.email:
+        all_ccs.append(proposal.applicant.email)
+
+    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_refresh_error_email_notification(proposal, task_id):
+    email = ProposalRefreshErrorSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'task_id': task_id,
+        'greeting': 'Assessor',
+        'url': url,
+    }
+
+    all_ccs = []
+    #if cc_list:
+    #    all_ccs = cc_list.split(',')
+
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
+        # if proposal.applicant.email:
+        all_ccs.append(proposal.applicant.email)
+
+    msg = email.send(proposal.assessor_recipients, context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_test_sqq_request_sent_email_notification(proposal, user, task_id):
+    email = ProposalTestSqqRequestSentSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+        'task_id': task_id,
+    }
+
+    all_ccs = []
+    #if cc_list:
+    #    all_ccs = cc_list.split(',')
+
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
+        # if proposal.applicant.email:
+        all_ccs.append(proposal.applicant.email)
+
+    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_test_sqq_completed_email_notification(proposal, user, task_id, data):
+    email = ProposalTestSqqCompletedSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+        'task_id': task_id,
+    }
+
+    all_ccs = []
+    #if cc_list:
+    #    all_ccs = cc_list.split(',')
+
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
+        # if proposal.applicant.email:
+        all_ccs.append(proposal.applicant.email)
+
+    dt = datetime.now().strftime('%Y%m%dT%H%M%S')
+    filename = f'TEST_SQQ_{proposal.lodgement_number}_{dt}.json'
+    attachment = MIMEText(json.dumps(data, indent=4))
+    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+
+    msg = email.send(user.email, bcc=all_ccs, attachments=[attachment], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_test_sqq_error_email_notification(proposal, task_id):
+    email = ProposalTestSqqErrorSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'task_id': task_id,
+        'greeting': 'Assessor',
+        'url': url,
+    }
+
+    all_ccs = []
+    #if cc_list:
+    #    all_ccs = cc_list.split(',')
+
+    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
+        # if proposal.applicant.email:
+        all_ccs.append(proposal.applicant.email)
+
+    msg = email.send(proposal.assessor_recipients, context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
 
 
 def _log_proposal_referral_email(email_message, referral, sender=None):

@@ -46,7 +46,7 @@ from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
-    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca, DASMapLayer, TaskMonitor
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca, DASMapLayer, TaskMonitor, RequestTypeEnum
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification,
@@ -3088,7 +3088,13 @@ class ProposalUserAction(UserAction):
     ACTION_REFRESH_PROPOSAL = "Refresh data for Proposal {}"
     ACTION_SEND_PREFILL_REQUEST_TO = "Prefill request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
     ACTION_SEND_PREFILL_COMPLETED_TO = "Prefill for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
-    ACTION_SEND_PREFILL_ERROR_TO = "Send referral {} for proposal {} to {}"
+    ACTION_SEND_PREFILL_ERROR_TO = "ERROR: Prefill for proposal {}"
+    ACTION_SEND_REFRESH_REQUEST_TO = "Refresh request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
+    ACTION_SEND_REFRESH_COMPLETED_TO = "Refresh for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
+    ACTION_SEND_REFRESH_ERROR_TO = "ERROR: Refresh for proposal {}"
+    ACTION_SEND_TEST_SQQ_REQUEST_TO = "Test SQQ request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
+    ACTION_SEND_TEST_SQQ_COMPLETED_TO = "Test SQQ for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
+    ACTION_SEND_TEST_SQQ_ERROR_TO = "ERROR: TEST SQQ for proposal {}"
 
     class Meta:
         app_label = 'disturbance'
@@ -6224,19 +6230,11 @@ class SpatialQueryLayer(RevisionedMixin):
 
 
 class SpatialQueryMetrics(models.Model):
-    FULL = 'FULL'
-    PARTIAL = 'PARTIAL'
-    SINGLE = 'SINGLE'
-    REQUEST_TYPE_CHOICES = (
-        (FULL, 'FULL'),
-        (PARTIAL, 'PARTIAL'),
-        (SINGLE, 'SINGLE'),
-    )
                          
     proposal = models.ForeignKey(Proposal, related_name='metrics', on_delete=models.PROTECT)
     when = models.DateTimeField()
     system = models.CharField('Application System Name', max_length=64)
-    request_type = models.CharField(max_length=40, choices=REQUEST_TYPE_CHOICES)
+    request_type = models.CharField(max_length=40, choices=RequestTypeEnum.REQUEST_TYPE_CHOICES)
     sqs_response = JSONField('Response from SQS', default=[{}])
     time_taken = models.DecimalField('Total time for request/response', max_digits=9, decimal_places=3)
     response_cached = models.NullBooleanField()

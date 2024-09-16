@@ -11,6 +11,7 @@ from disturbance.components.main.models import DASMapLayer
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
+logger_stats = logging.getLogger('request_stats')
 
 def belongs_to(user, group_name):
     """
@@ -169,5 +170,11 @@ def get_proxy_cache():
 
         cache.set('utils_cache.get_proxy_cache()', proxy_cache_array, 86400)
     else:
-       proxy_cache_array =  proxy_cache_dumped_data
+        proxy_cache_array =  proxy_cache_dumped_data
     return proxy_cache_array
+
+def log_request(msg=''):
+    if settings.LOG_REQUEST_STATS:
+        logger_stats.info(msg)
+
+

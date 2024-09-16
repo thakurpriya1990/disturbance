@@ -65,14 +65,15 @@ class TaskMonitorAdmin(admin.ModelAdmin):
     list_display = [
         'task_id',
         'status',
+        'request_type',
         'retries',
         'proposal',
         'requester',
         'created',
     ]
-    list_filter = ["status"]
+    list_filter = ['status', 'request_type']
     readonly_fields = ['info',]
-    search_fields = ['task_id', 'status', 'proposal__lodgement_number', 'requester__email']
+    search_fields = ['task_id', 'status', 'request_type', 'proposal__lodgement_number', 'requester__email']
 
 
 #    def get_urls(self):

@@ -1,0 +1,9 @@
+{%  extends 'disturbance/emails/base_email.html' %}
+
+{%  block content %}
+       	<p>Refresh request for proposal <strong>{{proposal.lodgement_number}}</strong> has been queued for processing.</p>
+
+	<p>You can access this Proposal to review, using the following link:</p>
+	<a href="{{url}}">Access Proposal</a>
+	
+{%  endblock %}

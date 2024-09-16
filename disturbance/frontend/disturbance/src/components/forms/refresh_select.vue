@@ -113,42 +113,58 @@ data: function() {
             mlq_data.name=vm.parent_name;
             let url = '/refresh'
             vm.isRefreshing=true;
-            await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,this.proposal_id + url),JSON.stringify(mlq_data),{
+            await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals_sqs,this.proposal_id + url),JSON.stringify(mlq_data),{
                     emulateJSON:true,
             }).then((response)=>{
-                //self.isModalOpen = true;
-                console.log(response);
-                var val=response.body.value;
-                if(!vm.isMultiple)
-                {
-                    ele.value=val;
-                }
-                else if(vm.isMultiple){
-                    var found_options=[]
-                    for (const op of ele.options){
-                        for (const value of val){
-                            if(op.label.toLowerCase() == value){
-                                // console.log('op value', op.value.toLowerCase())
-                                // console.log('value', value)
-                                op.selected=true;
-                                found_options.push(op);                    
-                            }
-                        }
-                    }
-                    //Uncheck all the options which are not in response value
-                    for( const selected_option of ele.selectedOptions){
-                        if(!(found_options.includes(selected_option))){
-                            selected_option.selected=false;
-                        }
-                    }
-                }
-                if(ele){
-                    var e = document.createEvent('HTMLEvents');
-                    e.initEvent('change', true, true);
-                    ele.dispatchEvent(e);
-                }
-                vm.refresh_time= response.body.sqs_timestamp;
-                vm.isRefreshing= false;   
+//                //self.isModalOpen = true;
+//                console.log(response);
+//                var val=response.body.value;
+//                if(!vm.isMultiple)
+//                {
+//                    ele.value=val;
+//                }
+//                else if(vm.isMultiple){
+//                    var found_options=[]
+//                    for (const op of ele.options){
+//                        for (const value of val){
+//                            if(op.label.toLowerCase() == value){
+//                                // console.log('op value', op.value.toLowerCase())
+//                                // console.log('value', value)
+//                                op.selected=true;
+//                                found_options.push(op);                    
+//                            }
+//                        }
+//                    }
+//                    //Uncheck all the options which are not in response value
+//                    for( const selected_option of ele.selectedOptions){
+//                        if(!(found_options.includes(selected_option))){
+//                            selected_option.selected=false;
+//                        }
+//                    }
+//                }
+//                if(ele){
+//                    var e = document.createEvent('HTMLEvents');
+//                    e.initEvent('change', true, true);
+//                    ele.dispatchEvent(e);
+//                }
+//                vm.refresh_time= response.body.sqs_timestamp;
+//                vm.isRefreshing= false;   
+
+          	swal.close();
+		var resp_proposal=null;
+		resp_proposal=response['body']['proposal']
+		vm.$emit('refreshFromResponseProposal',resp_proposal);
+		let title = response['body']['message'].includes('updated') ? "Processing refresh request (UPDATED)" : "Processing refresh request"
+		let queue_position = response['body']['position']
+		swal({
+		    //title: "Processing Proposal",
+		    title: title,
+		    html: '<p><strong>The question is in the process of being refreshed.</strong><br>' +
+			  '<span style="font-size:0.8em">You can close your browser and come back later. You will receive an email when it is complete. (' + queue_position+ ')</span>' +
+			  '</p>',
+		})
+
+
             },(error)=>{
                 swal(
                     'Error',

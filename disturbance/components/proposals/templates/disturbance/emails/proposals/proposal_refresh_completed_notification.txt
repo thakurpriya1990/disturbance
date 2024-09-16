@@ -1,0 +1,6 @@
+{%  extends 'disturbance/emails/base_email.txt' %}
+
+{%  block content %}
+       	Refresh for proposal {{proposal.lodgement_number}} has been completed. 
+        Please click {{url}} to review and submit.
+{%  endblock %}

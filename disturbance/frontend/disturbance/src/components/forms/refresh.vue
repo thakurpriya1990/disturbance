@@ -53,12 +53,27 @@ data: function() {
             await this.$http.post(helpers.add_endpoint_json(api_endpoints.proposals_sqs,this.proposal_id + url),JSON.stringify(mlq_data),{
                     emulateJSON:true,
             }).then((response)=>{
-                //self.isModalOpen = true;
-                console.log(response);
-                ele.value=response.body.value;
-                vm.refresh_time= response.body.sqs_timestamp
-                vm.isRefreshing=false;
+//                //self.isModalOpen = true;
+//                console.log(response);
+//                ele.value=response.body.value;
+//                vm.refresh_time= response.body.sqs_timestamp
+//                vm.isRefreshing=false;
                 
+		//swal.hideLoading();
+		swal.close();
+		var resp_proposal=null;
+		resp_proposal=response['body']['proposal']
+		vm.$emit('refreshFromResponseProposal',resp_proposal);
+		let title = response['body']['message'].includes('updated') ? "Processing refresh request (UPDATED)" : "Processing refresh request"
+		let queue_position = response['body']['position']
+		swal({
+		    //title: "Processing Proposal",
+		    title: title,
+		    html: '<p><strong>The question is in the process of being refreshed.</strong><br>' +
+			  '<span style="font-size:0.8em">You can close your browser and come back later. You will receive an email when it is complete. (' + queue_position+ ')</span>' +
+			  '</p>',
+		})
+
             },(error)=>{
                 swal(
                     'Error',

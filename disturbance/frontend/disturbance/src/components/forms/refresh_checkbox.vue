@@ -58,20 +58,35 @@ data: function() {
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;
-                var values=response.body.value;
-                if(values && typeof(values)=='object'){
-                    for (const val of values){
-                        for (const op of checkboxes){
-                            console.log('options', op.name, 'value', val)
-                            if(op.labels && op.labels[0] && op.labels[0].innerText== val){
-                                op.checked=true;
-                            }
-                        }
-                    }
-                }
-                vm.refresh_time= response.body.sqs_timestamp
-                vm.isRefreshing=false;
-                
+//                var values=response.body.value;
+//                if(values && typeof(values)=='object'){
+//                    for (const val of values){
+//                        for (const op of checkboxes){
+//                            console.log('options', op.name, 'value', val)
+//                            if(op.labels && op.labels[0] && op.labels[0].innerText== val){
+//                                op.checked=true;
+//                            }
+//                        }
+//                    }
+//                }
+//                vm.refresh_time= response.body.sqs_timestamp
+//                vm.isRefreshing=false;
+
+          	swal.close();
+		var resp_proposal=null;
+		resp_proposal=response['body']['proposal']
+		vm.$emit('refreshFromResponseProposal',resp_proposal);
+		let title = response['body']['message'].includes('updated') ? "Processing refresh request (UPDATED)" : "Processing refresh request"
+		let queue_position = response['body']['position']
+		swal({
+		    //title: "Processing Proposal",
+		    title: title,
+		    html: '<p><strong>The question is in the process of being refreshed.</strong><br>' +
+			  '<span style="font-size:0.8em">You can close your browser and come back later. You will receive an email when it is complete. (' + queue_position+ ')</span>' +
+			  '</p>',
+		})
+
+
             },(error)=>{
                 swal(
                     'Error',

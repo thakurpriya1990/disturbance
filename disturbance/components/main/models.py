@@ -472,6 +472,25 @@ class ActiveTaskMonitorManager(models.Manager):
         return super().get_queryset().filter(status=TaskMonitor.STATUS_CREATED, created__gte=earliest_date)
 
 
+class RequestTypeEnum():
+    FULL = 'FULL'
+    PARTIAL = 'PARTIAL'
+    SINGLE = 'SINGLE'
+    REFRESH_PARTIAL = 'REFRESH_PARTIAL'
+    REFRESH_SINGLE = 'REFRESH_SINGLE'
+    TEST_GROUP = 'TEST_GROUP'
+    TEST_SINGLE = 'TEST_SINGLE'
+    REQUEST_TYPE_CHOICES = (
+        (FULL, 'FULL'),
+        (PARTIAL, 'PARTIAL'),
+        (SINGLE, 'SINGLE'),
+        (REFRESH_PARTIAL, 'REFRESH_PARTIAL'),
+        (REFRESH_SINGLE, 'REFRESH_SINGLE'),
+        (TEST_GROUP, 'TEST_GROUP'),
+        (TEST_SINGLE, 'TEST_SINGLE'),
+    )
+ 
+
 #class TaskMonitor(RevisionedMixin):
 class TaskMonitor(models.Model):
     STATUS_FAILED = 'failed'
@@ -500,6 +519,7 @@ class TaskMonitor(models.Model):
     info = models.TextField(blank=True, null=True)
     requester = models.ForeignKey(EmailUser, blank=False, null=False, related_name='+')
     created = models.DateTimeField(default=timezone.now, editable=False)
+    request_type = models.CharField(max_length=40, choices=RequestTypeEnum.REQUEST_TYPE_CHOICES)
     
     objects = models.Manager()
     queued_jobs = ActiveTaskMonitorManager()

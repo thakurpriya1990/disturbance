@@ -15,7 +15,7 @@ class ProxyModelWarning(Warning):
 class Command(BaseCommand):
     '''
         ## Create JSON Fixture from Masterlist related models
-        Check the Admin --> ProposalType records to find the latest-1 (penultimate version of the latest ProposalType)) and update the adhoc_dumpdata.py script with that records PK:w
+        Check the Admin --> ProposalType records to find the latest-1 (penultimate version of the latest ProposalType)) and update the adhoc_dumpdata.py script with that records PK
 
         ```
         # FROM das-test
@@ -29,6 +29,12 @@ class Command(BaseCommand):
         ## Update to new PK
         vi /folder/pt_das-test_05Jun2024.json
 
+        1. check latest version in Admin: (proposal_type_pk: 25, version 16, replaced_by 15_ 
+           https://das-test-internal.dbca.wa.gov.au/ledger/admin/disturbance/proposaltype/
+              --> proposal_type pk 25 (https://das-test-internal.dbca.wa.gov.au/ledger/admin/disturbance/proposaltype/25/change/)
+              --> replaced_by will then be 25
+              --> next version will be 17
+
         1. disturbance.proposaltype PK --> 30, say
         2. disturbance.proposaltype version --> 30, say
         3. :%s/proposal_type": 20/proposal_type": 30/g
@@ -38,9 +44,10 @@ class Command(BaseCommand):
         QuestionOption.objects.all().delete()
         SectionQuestion.objects.all().delete()
         ProposalTypeSection.objects.all().delete()
-        SpatialQueryQuestion.objects.all().delete()
         MasterlistQuestion.objects.all().delete()
+
         SpatialQueryQuestion.objects.all().delete()
+        SpatialQueryLayer.objects.all().delete()
         SpatialQueryMetrics.objects.all().delete()
         DASMapLayer.objects.all().delete()
         CddpQuestionGroup.objects.all().delete()

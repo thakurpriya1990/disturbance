@@ -58,32 +58,45 @@ data: function() {
                     emulateJSON:true,
             }).then((response)=>{
                 //self.isModalOpen = true;
-                var val=response.body.value;
-                //if(val){
-                    for (const el of ele){
-                      if(val){
-                        if(el.value == val){
-                            el.checked=true;
-                            found=el;                    
-                        }
-                        //if(el.labels && el.labels[0] && el.labels[0].innerText== val){
-                        //    el.checked=true;
-                        //    found=el;                    
-                        //}
-                      } else {
-			el.checked=false;
-                        found=el;                    
-                      }
-                    }
-                    if(found){
-                        var e = document.createEvent('HTMLEvents');
-                        e.initEvent('change', true, true);
-                        found.dispatchEvent(e);
-                    }
-                //}
-                vm.refresh_time= response.body.sqs_timestamp
-                vm.isRefreshing=false;
-                
+//                var val=response.body.value;
+//                //if(val){
+//                    for (const el of ele){
+//                      if(val){
+//                        if(el.value == val){
+//                            el.checked=true;
+//                            found=el;                    
+//                        }
+//                        //if(el.labels && el.labels[0] && el.labels[0].innerText== val){
+//                        //    el.checked=true;
+//                        //    found=el;                    
+//                        //}
+//                      } else {
+//			el.checked=false;
+//                        found=el;                    
+//                      }
+//                    }
+//                    if(found){
+//                        var e = document.createEvent('HTMLEvents');
+//                        e.initEvent('change', true, true);
+//                        found.dispatchEvent(e);
+//                    }
+//                //}
+//                vm.refresh_time= response.body.sqs_timestamp
+//                vm.isRefreshing=false;
+           	swal.close();
+		var resp_proposal=null;
+		resp_proposal=response['body']['proposal']
+		vm.$emit('refreshFromResponseProposal',resp_proposal);
+		let title = response['body']['message'].includes('updated') ? "Processing refresh request (UPDATED)" : "Processing refresh request"
+		let queue_position = response['body']['position']
+		swal({
+		    //title: "Processing Proposal",
+		    title: title,
+		    html: '<p><strong>The question is in the process of being refreshed.</strong><br>' +
+			  '<span style="font-size:0.8em">You can close your browser and come back later. You will receive an email when it is complete. (' + queue_position+ ')</span>' +
+			  '</p>',
+		})
+               
             },(error)=>{
                 swal(
                     'Error',

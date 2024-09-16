@@ -1,0 +1,9 @@
+{%  extends 'disturbance/emails/base_email.html' %}
+
+{%  block content %}
+<p>TEST SQQ request for proposal <strong>{{proposal.lodgement_number}}</strong> has been queued for processing (task_id {{task_id}}).</p>
+
+	<p>You can access this Proposal to view, using the following link:</p>
+	<a href="{{url}}">Access Proposal</a>
+	
+{%  endblock %}

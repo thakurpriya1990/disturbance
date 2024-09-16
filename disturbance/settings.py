@@ -195,6 +195,7 @@ TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
 MAX_QUEUE_TIME = env('MAX_QUEUE_TIME', 7) # Days
 MAX_TASK_HISTORY = env('MAX_TASK_HISTORY', 60) # Days
+LOG_REQUEST_STATS = env('LOG_REQUEST_STATS', False)
 
 CLEAR_AFTER_DAYS_FILE_EXPORT = env('CLEAR_AFTER_DAYS_FILE_EXPORT', 7) # Days
 GEO_EXPORT_FOLDER = env('GEO_EXPORT_FOLDER', 'geo_exports') # Days
@@ -277,9 +278,24 @@ LOGGING['handlers']['file_apiary'] = {
     'formatter': 'verbose',
     'maxBytes': 5242880
 }
+
+# Add a handler
+LOGGING['handlers']['request_stats'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'requests.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+
+
 # define logger
 LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
+    'level': 'INFO'
+}
+LOGGING['loggers']['request_stats'] = {
+    'handlers': ['request_stats'],
     'level': 'INFO'
 }
 

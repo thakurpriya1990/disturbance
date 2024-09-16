@@ -1359,6 +1359,11 @@ export default {
                     if (!sqs_response_basic.answer) { delete sqs_response_basic.answer }
 		    self.sqs_response = JSON.stringify(sqs_response_basic, null, 4);
                 }
+                //swal(
+                //    'Request Queued on Spatial Query Server',
+                //    'Task ID: ' + self.sqs_response['data']['task_id'] + 'Created: ' + self.sqs_response['data']['task_created'] + '\n' + self.sqs_response['message'],
+                //    'info'
+                //)
                 self.isModalOpen = true;
                 //self.close();
                 self.requesting = false;
@@ -1567,7 +1572,7 @@ export default {
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
                 //vm.$http.get(api_endpoints.proposals_sqs + '/layers_used/')
-                vm.$http.get('/api/proposal/layers_used/')
+                vm.$http.get('/api/proposal_sqs/layers_used/')
                 .then((response) => {
                     var FileSaver = require('file-saver');
                     const blob = new Blob([response.body], {type: 'text/csv'});
@@ -2058,15 +2063,15 @@ export default {
                 )
             });
 
-            await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_sqs_layers')).then(res=>{
-                    this.available_sqs_layers = res.body
-            },err=>{
-                swal(
-                    'Get Application Selects Error',
-                    helpers.apiVueResourceError(err),
-                    'error'
-                )
-            });
+//            await this.$http.get(helpers.add_endpoint_json(api_endpoints.spatial_query,'get_sqs_layers')).then(res=>{
+//                    this.available_sqs_layers = res.body
+//            },err=>{
+//                swal(
+//                    'Get Application Selects Error',
+//                    helpers.apiVueResourceError(err),
+//                    'error'
+//                )
+//            });
 
            this.initQuestionSelector();
         },        
