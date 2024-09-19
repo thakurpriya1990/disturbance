@@ -62,12 +62,12 @@ class Command(BaseCommand):
                     task.info = f'Retry {task.retries}: {msg}.'
 
 #                    if request_type in [RequestTypeEnum.REFRESH_SINGLE, RequestTypeEnum.REFRESH_PARTIAL]:
-#                        send_proposal_refresh_error_email_notification(task.proposal, task.id)
+#                        send_proposal_refresh_error_email_notification(task.proposal, user, task.id)
 #                    elif request_type in [RequestTypeEnum.TEST_SINGLE, RequestTypeEnum.TEST_GROUP]:
-#                        send_proposal_test_sqq_error_email_notification(task.proposal, task.id)
+#                        send_proposal_test_sqq_error_email_notification(task.proposal, user, task.id)
 #                    else:
 #                        send_proposal_prefill_error_email_notification(task.proposal, task.id)
-                    send_proposal_prefill_error_email_notification(task.proposal, task.id)
+                    send_proposal_prefill_error_email_notification(task.proposal, user, task.id)
                 task.save()
 
         msg = None
