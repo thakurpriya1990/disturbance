@@ -2,5 +2,4 @@
 
 {%  block content %}
 	There was an error processing your Disturbance proposal TEST SQQ request {{proposal.lodgement_number}}. (TaskID: {{task_id}}).
-       	Please click {{url}} to review the proposal
 {%  endblock %}

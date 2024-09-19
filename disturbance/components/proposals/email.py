@@ -715,15 +715,7 @@ def send_proposal_prefill_request_sent_email_notification(proposal, user):
         'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
@@ -739,21 +731,13 @@ def send_proposal_prefill_completed_email_notification(proposal, user):
         'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
-def send_proposal_prefill_error_email_notification(proposal, task_id):
+def send_proposal_prefill_error_email_notification(proposal, user, task_id):
     email = ProposalPrefillErrorSendNotificationEmail()
     #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
     #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
@@ -765,15 +749,7 @@ def send_proposal_prefill_error_email_notification(proposal, task_id):
         'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(proposal.assessor_recipients, context=context)
+    msg = email.send(user.email, context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
@@ -789,15 +765,7 @@ def send_proposal_refresh_request_sent_email_notification(proposal, user):
         'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
@@ -813,21 +781,13 @@ def send_proposal_refresh_completed_email_notification(proposal, user):
         'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
-def send_proposal_refresh_error_email_notification(proposal, task_id):
+def send_proposal_refresh_error_email_notification(proposal, user, task_id):
     email = ProposalRefreshErrorSendNotificationEmail()
     #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
     #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
@@ -839,15 +799,7 @@ def send_proposal_refresh_error_email_notification(proposal, task_id):
         'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(proposal.assessor_recipients, context=context)
+    msg = email.send(user.email, context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
@@ -855,24 +807,12 @@ def send_proposal_refresh_error_email_notification(proposal, task_id):
 
 def send_proposal_test_sqq_request_sent_email_notification(proposal, user, task_id):
     email = ProposalTestSqqRequestSentSendNotificationEmail()
-    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
-    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
-    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
     context = {
         'proposal': proposal,
-        'url': url,
         'task_id': task_id,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
@@ -880,29 +820,13 @@ def send_proposal_test_sqq_request_sent_email_notification(proposal, user, task_
 
 def send_proposal_test_sqq_completed_email_notification(proposal, user, task_id, data):
     email = ProposalTestSqqCompletedSendNotificationEmail()
-    #url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
-
-    url = settings.SITE_URL if settings.SITE_URL else ''
-    url += reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id})
-    if "-internal" not in url:
-        # add it. This email is for internal staff (assessors)
-        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
-
     sqs_response = json.dumps(data, indent=4)
     context = {
         'proposal': proposal,
-        'url': url,
+        #'url': url,
         'task_id': task_id,
         'sqs_response': sqs_response,
     }
-
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
 
      # for attachment
 #    dt = datetime.now().strftime('%Y%m%dT%H%M%S')
@@ -911,33 +835,21 @@ def send_proposal_test_sqq_completed_email_notification(proposal, user, task_id,
 #    attachment = sqs_response
 #    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
 
-    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
 
-def send_proposal_test_sqq_error_email_notification(proposal, task_id):
+def send_proposal_test_sqq_error_email_notification(proposal, user, task_id):
     email = ProposalTestSqqErrorSendNotificationEmail()
-    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
-    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
-    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
     context = {
         'proposal': proposal,
         'task_id': task_id,
         'greeting': 'Assessor',
-        'url': url,
     }
 
-    all_ccs = []
-    #if cc_list:
-    #    all_ccs = cc_list.split(',')
-
-    if proposal.applicant and proposal.applicant.email != proposal.submitter.email and proposal.applicant.email:
-        # if proposal.applicant.email:
-        all_ccs.append(proposal.applicant.email)
-
-    msg = email.send(proposal.assessor_recipients, context=context)
+    msg = email.send(user.email, context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:
