@@ -73,7 +73,7 @@
                 </ul>
             </div>
 -->
-            {{ spatialquery }}
+            <!--{{ spatialquery }}-->
             <div>
                 <form class="form-horizontal" name="spatial_query_question">
 
@@ -91,7 +91,7 @@
                                 <select class="form-control" ref="select_question" name="select-question" v-model="filterMasterlistQuestion" :disabled="sqq_is_disabled()">
                                     <option v-for="(m, mid) in masterlist_questions" :value="m.question" v-bind:key="`question_${mid}`">{{m.question}}</option>
                                 </select>                         
-                                <i>{{spatialquery.answer_type}}</i>
+                                <i>{{spatialquery.answer_type}} - sqq_id: {{spatialquery.question_id}}</i>
                             </div>
                         </div>
                     </div>
@@ -1639,6 +1639,8 @@ export default {
 		this.spatialquery.group = '';
 		this.spatialquery.id = '';
 		this.spatialquery.other_data = {'show_add_info_section_prop': false};
+                this.filterMasterlistQuestion = ''
+
 		//this.addedHeaders = [];
 		//this.addedExpanders = [];
         },
