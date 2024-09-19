@@ -1,9 +1,16 @@
 {%  extends 'disturbance/emails/base_email.html' %}
 
 {%  block content %}
-<p>TEST SQQ for proposal <strong>{{proposal.lodgement_number}}</strong> has been completed. (task id {{task_id}})</p>
+    <div>
+        <p>TEST SQQ for proposal <strong>{{proposal.lodgement_number}}</strong> has been completed. (task id {{task_id}})</p>
 
-	<p>You can access this Proposal using the following link:</p>
-	<a href="{{url}}">Access Proposal</a>
+	<!--
+        <p>You can access this Proposal using the following link:</p>
+        <a href="{{url}}">Access Proposal</a>
+	-->
+    </div>
 	
+    <div>
+	    <pre><textarea id="output" cols="100" rows="35">{{sqs_response}}</textarea></pre>
+    </div>
 {%  endblock %}

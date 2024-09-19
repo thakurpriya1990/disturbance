@@ -39,7 +39,7 @@ class FileListView(TemplateView):
         if is_internal(self.request):
             return ExportDocument.objects.filter(requester=user).order_by('-created')
         elif is_customer(self.request):
-            return ExportDocument.objects.filter(requester=request.user).order_by('-created')
+            return ExportDocument.objects.filter(requester=user).order_by('-created')
         return ExportDocument.objects.none()
 
     def get_context_data(self, **kwargs):
@@ -87,7 +87,7 @@ class FileDownloadView(View):
         if is_internal(self.request):
             return ExportDocument.objects.filter(requester=user).order_by('-created')
         elif is_customer(self.request):
-            return ExportDocument.objects.filter(requester=request.user).order_by('-created')
+            return ExportDocument.objects.filter(requester=user).order_by('-created')
         return ExportDocument.objects.none()
 
     #def get(self, request, *args, **kwargs):

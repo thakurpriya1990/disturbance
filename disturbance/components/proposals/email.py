@@ -880,13 +880,20 @@ def send_proposal_test_sqq_request_sent_email_notification(proposal, user, task_
 
 def send_proposal_test_sqq_completed_email_notification(proposal, user, task_id, data):
     email = ProposalTestSqqCompletedSendNotificationEmail()
-    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
-    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
-    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    #url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+
+    url = settings.SITE_URL if settings.SITE_URL else ''
+    url += reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    if "-internal" not in url:
+        # add it. This email is for internal staff (assessors)
+        url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+
+    sqs_response = json.dumps(data, indent=4)
     context = {
         'proposal': proposal,
         'url': url,
         'task_id': task_id,
+        'sqs_response': sqs_response,
     }
 
     all_ccs = []
@@ -897,12 +904,14 @@ def send_proposal_test_sqq_completed_email_notification(proposal, user, task_id,
         # if proposal.applicant.email:
         all_ccs.append(proposal.applicant.email)
 
-    dt = datetime.now().strftime('%Y%m%dT%H%M%S')
-    filename = f'TEST_SQQ_{proposal.lodgement_number}_{dt}.json'
-    attachment = MIMEText(json.dumps(data, indent=4))
-    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+     # for attachment
+#    dt = datetime.now().strftime('%Y%m%dT%H%M%S')
+#    filename = f'TEST_SQQ_{proposal.lodgement_number}_{dt}.json'
+#    #attachment = MIMEText(sqs_response)
+#    attachment = sqs_response
+#    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
 
-    msg = email.send(user.email, bcc=all_ccs, attachments=[attachment], context=context)
+    msg = email.send(user.email, bcc=all_ccs, attachments=[], context=context)
     sender = get_sender_user()
     _log_proposal_email(msg, proposal, sender=sender)
     if proposal.applicant:

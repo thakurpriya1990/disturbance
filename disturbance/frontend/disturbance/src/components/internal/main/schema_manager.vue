@@ -8,7 +8,7 @@
         <template slot="tab-panel-masterlist"><SchemaMasterlist /></template>
         <template slot="tab-panel-proposal-type"><SchemaProposalType /></template>
         <template v-if="show_das_map" slot="tab-panel-spatial-query-question"><SpatialQueryQuestion /></template>
-        <template v-if="show_das_map" slot="tab-panel-spatial-query-metrics"><SpatialQueryMetrics /></template>
+        <!--<template v-if="show_das_map" slot="tab-panel-spatial-query-metrics"><SpatialQueryMetrics /></template>-->
         <!-- <template slot="tab-panel-group"><SchemaGroup /></template> -->
 
     </SchemaTabs>
@@ -52,7 +52,7 @@ export default {
                 // {'group': 'Section Groups'},
                 {'question': 'Section Questions'},
                 {'spatial-query-question': 'Spatial Query Questions'},
-                {'spatial-query-metrics': 'Spatial Query Metrics'},
+                //{'spatial-query-metrics': 'Spatial Query Metrics'},
                 ]
             }
             return [
@@ -72,7 +72,7 @@ export default {
                 // {'group': 'Section Groups'},
                 {'question': 'Section Questions'},
                 {'spatial-query-question': 'Spatial Query Questions'},
-                {'spatial-query-metrics': 'Spatial Query Metrics'},
+                //{'spatial-query-metrics': 'Spatial Query Metrics'},
             ],
         }
     },

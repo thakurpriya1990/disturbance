@@ -89,12 +89,14 @@
                                     <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
                                     Get GeoJSON File</button>
                                     -->
+                                    <!--
                                     <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(true)"><i class="fa fa-download"></i>
                                         Get GeoJSON File</button>
+                                    -->
                                     <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(false)"><i class="fa fa-download"></i>
-                                        Get Shapefile
+                                        Download Shapefile
                                     </button>
-                                    <a class="btn btn-primary" href="/filelist" target="_blank">View Export Files</a>
+                                    <a class="btn btn-primary" href="/filelist" target="_blank">View Download Files</a>
                                 </div>
                                 <!-- <div class="col-md-3">
                                     <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
@@ -1454,6 +1456,7 @@
                         let lodgement_date_str= proposal.lodgement_date ? moment(proposal.lodgement_date).format('DD/MM/YYYY') : ''
                         let submitter_str=proposal.submitter_full_name
                         let applicant_name=proposal.applicant_name
+                        let url = this.is_internal ? '/internal/proposal/' + proposal.id : '/external/proposal/' + proposal.id  
                         let proposal_row='<tr>' +
                                   '<td>' +proposal.lodgement_number + '</td>' +
                                 //   '<td><span id=' + unique_id + '></span>'+ applicant_name+ '</td>' +
@@ -1461,7 +1464,7 @@
                                   '<td>' + proposal_type_str + '</td>' +
                                   '<td>' + processing_status_str + '</td>' +
                                   '<td>' + submitter_str + '</td>' +
-                                  '<td>'+ '<a href="/internal/proposal/' + proposal.id + '">View</a>'
+                                  '<td>'+ '<a href="' + url + '">View</a>'
                                 '</tr>'
                         proposal_rows=proposal_rows + proposal_row; 
                         
