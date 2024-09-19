@@ -712,8 +712,9 @@ export default {
                     { 
                         data: "masterlist_question.question",
                         width: "40%",
-			'render': function (value) {
-	  		    return helpers.dtPopover(value, 50);
+			'render': function (value, type) {
+	  		    //return helpers.dtPopover(value, 50);
+                            return type=='export' ? value : helpers.dtPopover(value, 50);
 			},
                         'createdCell': helpers.dtPopoverCellFn,
                         
@@ -740,12 +741,13 @@ export default {
                     { 
                         data: "layers",
                         width: "10%",
-			mRender: function (value) {
+			mRender: function (value, type) {
                             var arr = [];
                             value.forEach(function(d){
                                 arr.push(d.layer.layer_name);
     		            });
-	  		    return helpers.dtPopover(arr.toString(), 60);
+	  		    //return helpers.dtPopover(arr.toString(), 60);
+                            return type=='export' ? arr : helpers.dtPopover(arr.toString(), 60);
 			},
                         'createdCell': helpers.dtPopoverCellFn,
                     },
