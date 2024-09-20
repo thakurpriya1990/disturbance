@@ -1,0 +1,74 @@
+services:                                                                                                                                                                                                  
+  das:                                                                                                                                                                                                     
+    image: dbcawa/das_gis:latest                                                                                                                                                                           
+    user: root
+    entrypoint: ["/bin/bash","-c"]
+    command:
+    - |
+       python manage_ds.py runserver 0.0.0.0:8000 &
+       cd disturbance/frontend/disturbance
+       npm install --save ckeditor4-vue file-saver 
+       npm start
+       #npm start --port 9062
+    ports:
+      - "8001:8000"
+      - "9062:9062"
+      #- "9052:9052"
+      #- "127.0.0.1:8001:8000"
+      #- "127.0.0.1:9062:9062"
+      #- "127.0.0.1:9052:9052"
+    env_file:
+      - ./.env
+    restart: 'no' # always|unless-stopped
+    volumes:
+      - ./:/app
+    networks: 
+      - app_network
+    depends_on:
+      - db
+  db:
+    #image: postgis/postgis:12-3.4
+    #image: postgis/postgis:15-3.4
+    image: postgis/postgis:16-3.4
+    volumes:
+      - postgres_data_v16:/var/lib/postgresql/data/
+    environment:
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_PASSWORD=postgres
+#      - POSTGRES_DB=postgres
+      - POSTGRES_USER=dev
+      - POSTGRES_PASSWORD=dev123
+      - POSTGRES_DB=das_dev
+      - POSTGRES_EXTENSIONS=postgis
+      # psql -h db -U dev -d hello_django_dev
+    ports:
+      - 5440:5432
+      # DATABASE_URL="postgis://dev:dev123@localhost:5440/das_dev"
+    networks: 
+      - app_network
+volumes:
+  postgres_data_v16:
+# https://medium.com/@kesaralive/diving-deeper-into-docker-networking-with-docker-compose-737e3b8a3c8c
+networks:
+  app_network:
+    name: app_network
+    driver: bridge
+
+
+# docker image build --tag dbcawa/das_gis:latest .
+#
+# docker-compose up -d --build
+# docker-compose up -d --build das
+# docker-compose up -d 
+# docker-compose ps -a
+# docker-compose stop
+# docker-compose logs -f
+# 
+# Connect to docker db
+# docker exec -it das_gis-db-1 bash
+#
+# Restore DB to docker db
+# docker exec -i das_gis-db-1 pg_restore --verbose --clean --no-acl --no-owner -U dev -d das_dev < ~/Downloads/das_test_14Sep2024.pgdump
+#
+# Django DATABASE_URL for new docker db
+# DATABASE_URL="postgis://dev:dev123@localhost:5440/das_dev"

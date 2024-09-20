@@ -32,14 +32,20 @@
 
                     <div class="row">
                         <div class="col-md-12">
-                            <button class="btn btn-primary pull-right" @click.prevent="export_layers_used()" name="export-layers-used">Export Layers Used</button>
+                            <button class="btn btn-primary pull-right" @click.prevent="export_layers_used()" name="export-layers-used" :disabled="export_layers_btn_disabled">
+                                <i v-if="export_layers_btn_disabled" class="fa fa-download fa-spinner fa-spin"></i>
+                                <i v-else class="fa fa-download"></i>
+                                Export Layers Used
+                            </button>
 			    <button class="btn btn-primary pull-right" @click.prevent="addTableEntry()" name="add-spatialquery">New Question</button>
                         </div>
                     </div>
 
+                    <!--
                     <div class="text-center">
                         <span v-if="show_spinner"><i class='fa fa-2x fa-spinner fa-spin' style="font-size:72px;color:blue"></i></span>
                     </div>
+                    -->
 
                     <div class="row"><br/></div> 
                     <div class="row">
@@ -627,6 +633,7 @@ export default {
             pHeaderBody: 'pHeaderBody' + vm._uid,
             pExpanderBody: 'pOptionBody' + vm._uid,
             show_spinner: false,
+            export_layers_btn_disabled: false,
             filterOptions: '',
             isModalOpen:false,
             spatialquery_selects: [],
@@ -1564,7 +1571,6 @@ export default {
 
         export_layers_used:function () {
             let vm = this;
-            vm.show_spinner = true;
             swal({
                 title: "Export Layers Used",
                 text: "Are you sure you want to run export?",
@@ -1573,7 +1579,8 @@ export default {
                 confirmButtonText: 'Export',
                 //confirmButtonColor:'#d9534f'
             }).then(() => {
-                //vm.$http.get(api_endpoints.proposals_sqs + '/layers_used/')
+                vm.show_spinner = true;
+                vm.export_layers_btn_disabled = true;
                 vm.$http.get('/api/proposal_sqs/layers_used/')
                 .then((response) => {
                     var FileSaver = require('file-saver');
@@ -1582,6 +1589,13 @@ export default {
                     //console.log(response.headers.map.filename)
                     FileSaver.saveAs(blob, response.headers.map.filename);
                     vm.show_spinner = false;
+                    vm.export_layers_btn_disabled = false;
+
+                    swal(
+                        'Export \'Layers Used\' Completed',
+                        "Export completed",
+                        'success'
+                    )
                 }, (error) => {
                     console.log(error);
                     swal({
@@ -1589,8 +1603,12 @@ export default {
                     text: error.body,
                     type: "error",
                     })
+                    vm.show_spinner = false;
+                    vm.export_layers_btn_disabled = false;
                 });
             },(error) => {
+                vm.show_spinner = false;
+                vm.export_layers_btn_disabled = false;
 
             });
         },

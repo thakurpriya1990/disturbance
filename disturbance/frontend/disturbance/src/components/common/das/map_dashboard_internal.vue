@@ -93,7 +93,9 @@
                                     <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(true)"><i class="fa fa-download"></i>
                                         Get GeoJSON File</button>
                                     -->
-                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(false)"><i class="fa fa-download"></i>
+                                    <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(false)" :disabled="download_shapefile_btn_disabled">
+                                        <i v-if="download_shapefile_btn_disabled" class="fa fa-download fa-spinner fa-spin"></i>
+                                        <i v-else class="fa fa-download"></i>
                                         Download Shapefile
                                     </button>
                                     <a class="btn btn-primary" href="/filelist" target="_blank">View Download Files</a>
@@ -241,6 +243,8 @@
                 newVectorLayerCluster: null,
                 newQuerySource: null,
                 debug: true,
+                show_spinner: false,
+                download_shapefile_btn_disabled: false,
                 modalBindId: uuid(),
                 map: null,
                 proposals: null,
@@ -506,6 +510,7 @@
             shapefileButtonClicked: function (geojson) {
                 let vm = this
                 vm.show_spinner = true;
+                vm.download_shapefile_btn_disabled = true;
                 let url = '/api/proposal/create_shapefile/'
 
                 let filter_kwargs = {}
@@ -523,10 +528,12 @@
                 }).then((response)=>{
                     swal(
                         'Create shapefile',
-                        response.body.message,
+                        //response.body.message,
+                        response.body.message + "<br> Click <a href='/filelist' target='_blank'> here </a>to view downloaded file",
                         'success'
                     )
                     vm.show_spinner = false;
+                    vm.download_shapefile_btn_disabled = false;
                 }, (error) => {
                     swal(
                         'Create shapefile Error',
@@ -534,6 +541,7 @@
                         'error'
                     )
                     vm.show_spinner = false;
+                    vm.download_shapefile_btn_disabled = false;
                 });
             },
             exportPNG: function () {

@@ -3532,11 +3532,15 @@ def search_sections(proposal_type_id, section_label,question_id,option_label,is_
             filter_conditions['activity']=activity
         if filter_conditions:
             proposal_list=proposal_list.filter(**filter_conditions)
-        if proposal_list:
-            for p in proposal_list:
+
+        p_ids = proposal_list.values_list('id', flat=True)
+        if p_ids:
+            for idx, p_id in enumerate(p_ids):
+                p = Proposal.objects.get(id=p_id)
                 if p.data:
                     try:
                         results = search_section(p.schema, section_label, question, p.data, option_label)
+                        print(f'{idx}: {p} - {results}')
                         final_results = {}
                         if results:
                             # for r in results:

@@ -167,7 +167,9 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
         else:
             rows = []
             rows.append(('Proposal Number', 'Proposal Submitter', 'Proposal Section', 'Layer Name', 'Layer Version', 'Layer Modified Date', 'SQS Timestamp'))
-            for proposal in Proposal.objects.filter(layer_data__isnull=False):
+            p_ids = Proposal.objects.filter(layer_data__isnull=False).values_list('id', flat=True)
+            for p_id in p_ids:
+                proposal = Proposal.objects.get(id=p_id)
                 for data in proposal.layer_data:
                     rows.append((proposal.lodgement_number, proposal.submitter, data['name'], data['layer_name'], data['layer_version'], data['layer_modified_date'], data['sqs_timestamp']))
 

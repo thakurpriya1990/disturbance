@@ -2191,14 +2191,16 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
         qs = qs.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
     else:
         qs = Proposal.objects.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+    p_ids = qs.values_list('id', flat=True)
 
     t0 = time.time()
     logger.info('create_shapefile: 0')
 
     columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','assocprop','proptype','propurl','prop_activ','geometry']
     gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry")
-    for p in qs:
+    for p_id in p_ids:
         try: 
+            p = Proposal.objects.get(id=p_id)
             gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)
             gdf.set_crs = settings.CRS
             #gdf['geometry'] = gdf['geometry']
@@ -2220,7 +2222,7 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
             gdf_concat = pd.concat([gdf_concat, gdf[columns]], ignore_index=True)
 
         except Exception as ge:
-            logger.error(f'Cannot append proposal {p} to shapefile: {ge}')
+            logger.error(f'Cannot append proposal {p_id} to shapefile: {ge}')
 
     t1 = time.time()
     logger.info(f'create_shapefile: 1 - {t1 - t0}')
