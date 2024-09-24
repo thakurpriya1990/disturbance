@@ -86,6 +86,7 @@ target/
 
 **/local/
 *.map
+docker-compose.yml
 
 # media
 media/
