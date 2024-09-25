@@ -382,7 +382,7 @@ module.exports = {
                 var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
                 boxes.push(
-                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                    <AssessorText box_view={box_visibility} type="text" name={assessor_name} value={assessor_val} label={'Assessor (Approved Management Actions)'} help_text={c.help_text} readonly={assessor_visibility}/>
                 )
                 // Referral Data
                 var current_referral_present=false;
@@ -392,7 +392,7 @@ module.exports = {
                         var readonly = v.email == assessor_info.email && assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true;
                         var referral_name = `${c.name}-Referral-${v.email}`;
                         boxes.push(
-                            <AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name} help_text={c.help_text} readonly={readonly}/>
+                            <AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name + ' (Suggested Management Action)'} help_text={c.help_text} readonly={readonly}/>
                         )
                     });
                 }
@@ -402,7 +402,7 @@ module.exports = {
                         // Add Referral Box
                         var referral_name = `${c.name}-Referral-${assessor_info.email}`;
                         var referral_visibility =  assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true ;
-                        var referral_label = `${assessor_info.name}`;
+                        var referral_label = `${assessor_info.name}` + ' (Suggested Management Action)';
                         boxes.push(
                             // <AssessorText box_view={box_visibility} type="text" name={referral_name} value={assessor_val} label={referral_label} readonly={referral_visibility}/>
                             <AssessorText box_view={box_visibility} type="text" name={referral_name} label={referral_label} readonly={referral_visibility}/>
@@ -416,7 +416,7 @@ module.exports = {
                     var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                     assessor_visibility = !assessor_visibility;
                     boxes.push(
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor (Approved Management Actions)'} help_text={c.help_text} readonly={assessor_visibility}/>
                     )
                 }
                 else if (assessor_mode == 'referral'){
@@ -424,12 +424,12 @@ module.exports = {
                     var name = `${c.name}-Assessor`;
                     var assessor_visibility = assessor_mode != 'assessor' ? true : false;
                     boxes.push(
-                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor'} help_text={c.help_text} readonly={assessor_visibility}/>
+                        <AssessorText box_view={box_visibility} type="text" name={name} value={val} label={'Assessor (Approved Management Actions)'} help_text={c.help_text} readonly={assessor_visibility}/>
                     )
                     // Add Referral Box
                     var referral_name = `${c.name}-Referral-${assessor_info.email}`;
                     var referral_visibility = assessor_mode != 'referral' ? true : false;
-                    var referral_label = `${assessor_info.name}`;
+                    var referral_label = `${assessor_info.name}` + ' (Suggested Management Action)';
                     boxes.push(
                         <AssessorText box_view={box_visibility} type="text" name={referral_name} value={val} label={referral_label} readonly={referral_visibility}/>
                     )
@@ -523,7 +523,8 @@ module.exports = {
                         "box_view": box_visibility,
                         "name": assessor_name,
                         "value": assessor_val,
-                        "label": "Deficiency assessor",
+                        //"label": "Deficiency assessor JM1",
+                        "label": "Assessor (Deficiency comments)",
                         "readonly": assessor_visibility,
                         "question": c.label,
                         "referral_box": false,
@@ -545,7 +546,7 @@ module.exports = {
                                 "box_view": box_visibility,
                                 "name": referral_name,
                                 "value": v.value,
-                                "label": v.full_name,
+                                "label": v.full_name + ' (Suggested Deficiency)',
                                 "readonly": readonly,
                                 "question": c.label,
                                 "referral_box": true,
@@ -565,7 +566,7 @@ module.exports = {
                             {
                                 "box_view": box_visibility,
                                 "name": referral_name,
-                                "label": referral_label,
+                                "label": referral_label + ' (Suggested Deficiency)',
                                 "readonly": referral_visibility,
                                 "question": c.label,
                                 "referral_box": true,
@@ -586,7 +587,7 @@ module.exports = {
                         {
                                 "box_view": box_visibility,
                                 "name": name,
-                                "label": "Deficiency assessor",
+                                "label": "Assessor (Deficiency comments)",
                                 "readonly": assessor_visibility,
                                 //"value": val,
                                 "value": '',
@@ -606,7 +607,7 @@ module.exports = {
                         {
                                 "box_view": box_visibility,
                                 "name": name,
-                                "label": "Deficiency assessor",
+                                "label": "Assessor (Deficiency comments)",
                                 "readonly": assessor_visibility,
                                 //"value": val,
                                 "value": '',
@@ -624,7 +625,7 @@ module.exports = {
                         {
                                 "box_view": box_visibility,
                                 "name": referral_name,
-                                "label": referral_label,
+                                "label": referral_label + ' (Suggested Deficiency)',
                                 "readonly": referral_visibility,
                                 //"value": val,
                                 "value": '',
