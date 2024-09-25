@@ -270,8 +270,8 @@
                     confirmButtonColor:'#d9534f',
                     input: 'radio',
                     inputOptions: {
-                      'clear_sqs':  'Clear only Proposal data from SQS',
-                      'clear_all': 'Clear all Proposal data',
+                      'clear_sqs': 'Clear only Spatial data from the Proposal',
+                      'clear_all': 'Clear all proposal data is ok',
                     }
                 }).then(async (result) => {
                     if (!result) {
