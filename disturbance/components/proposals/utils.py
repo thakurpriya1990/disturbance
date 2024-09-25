@@ -1008,9 +1008,10 @@ def save_proponent_data_disturbance(instance,request,viewset):
 
             logger.info("Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
 
+            title = special_fields.get('isTitleColumnForDashboard',None)[:250] if special_fields.get('isTitleColumnForDashboard',None) else None 
             data1 = {
                 #'region': special_fields.get('isRegionColumnForDashboard',None),
-                'title': special_fields.get('isTitleColumnForDashboard',None)[:250],
+                'title': title,
                 'activity': special_fields.get('isActivityColumnForDashboard',None),
 
                 'data': extracted_fields,
@@ -1021,7 +1022,7 @@ def save_proponent_data_disturbance(instance,request,viewset):
             }
             data = {
                 #'region': special_fields.get('isRegionColumnForDashboard',None),
-                'title': special_fields.get('isTitleColumnForDashboard',None)[:250],
+                'title': title,
 
                 'data': extracted_fields,
                 'add_info_applicant': add_info_applicant,
