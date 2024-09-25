@@ -392,7 +392,7 @@ module.exports = {
                         var readonly = v.email == assessor_info.email && assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true;
                         var referral_name = `${c.name}-Referral-${v.email}`;
                         boxes.push(
-                            <AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name} help_text={c.help_text} readonly={readonly}/>
+                            <AssessorText box_view={box_visibility} type="text" name={referral_name} value={v.value} label={v.full_name + ' (Suggested Management Action)'} help_text={c.help_text} readonly={readonly}/>
                         )
                     });
                 }
@@ -402,7 +402,7 @@ module.exports = {
                         // Add Referral Box
                         var referral_name = `${c.name}-Referral-${assessor_info.email}`;
                         var referral_visibility =  assessor_mode == 'referral' && this.status_data.assessorStatus.assessor_can_assess ? false : true ;
-                        var referral_label = `${assessor_info.name}`;
+                        var referral_label = `${assessor_info.name}` + ' (Suggested Management Action)';
                         boxes.push(
                             // <AssessorText box_view={box_visibility} type="text" name={referral_name} value={assessor_val} label={referral_label} readonly={referral_visibility}/>
                             <AssessorText box_view={box_visibility} type="text" name={referral_name} label={referral_label} readonly={referral_visibility}/>
@@ -429,7 +429,7 @@ module.exports = {
                     // Add Referral Box
                     var referral_name = `${c.name}-Referral-${assessor_info.email}`;
                     var referral_visibility = assessor_mode != 'referral' ? true : false;
-                    var referral_label = `${assessor_info.name}`;
+                    var referral_label = `${assessor_info.name}` + ' (Suggested Management Action)';
                     boxes.push(
                         <AssessorText box_view={box_visibility} type="text" name={referral_name} value={val} label={referral_label} readonly={referral_visibility}/>
                     )
@@ -546,7 +546,7 @@ module.exports = {
                                 "box_view": box_visibility,
                                 "name": referral_name,
                                 "value": v.value,
-                                "label": v.full_name + ' (Suggested Deficiency or Management Action)',
+                                "label": v.full_name + ' (Suggested Deficiency)',
                                 "readonly": readonly,
                                 "question": c.label,
                                 "referral_box": true,
@@ -566,7 +566,7 @@ module.exports = {
                             {
                                 "box_view": box_visibility,
                                 "name": referral_name,
-                                "label": referral_label + ' (Suggested Deficiency or Management Action)',
+                                "label": referral_label + ' (Suggested Deficiency)',
                                 "readonly": referral_visibility,
                                 "question": c.label,
                                 "referral_box": true,
@@ -625,7 +625,7 @@ module.exports = {
                         {
                                 "box_view": box_visibility,
                                 "name": referral_name,
-                                "label": referral_label + ' (Suggested Deficiency or Management Action)',
+                                "label": referral_label + ' (Suggested Deficiency)',
                                 "readonly": referral_visibility,
                                 //"value": val,
                                 "value": '',
