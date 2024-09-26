@@ -33,6 +33,21 @@
                                 </div>
                             </div>
                         </div>
+                        <div v-if="!apiaryTemplateGroup">
+                            <div class="col-md-3">
+                                <div class="form-group">
+                                    <template v-show="select2bApplied">
+                                        <label for="">District</label>
+                                        <select style="width:100%" class="form-control input-sm" ref="filterDistrict" >
+                                            <template v-if="select2bApplied">
+                                                <option v-for="r in proposal_districts" :value="r">{{r}}</option>
+                                            </template>
+                                        </select>
+                                    </template>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">{{ activityFilterLabel }}</label>
@@ -51,6 +66,8 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                    <div class="row">
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Proponent</label>
@@ -63,8 +80,6 @@
                         <!-- <div v-if="is_external" class="col-md-3">
                             <router-link  style="margin-top:25px;" class="btn btn-primary pull-right" :to="{ name: 'apply_proposal' }">{{newProposalText}}</router-link>
                         </div> -->
-                    </div>
-                    <div class="row">
                         <div class="col-md-3">
                             <label for="">Lodged From</label>
                             <div class="input-group date" ref="proposalDateFromPicker">
@@ -92,6 +107,8 @@
                                 </select>
                             </div>
                         </div>
+                    </div>
+                    <div class="row" v-if="!is_external">
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Proposal Type</label>
@@ -101,8 +118,6 @@
                                 </select>
                             </div>
                         </div>
-                    </div>
-                    <div class="row" v-if="!is_external">
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label for="">Sort By</label>
@@ -174,6 +189,7 @@ export default {
             is_das_apiary_admin: false,
             // Filters for Proposals
             filterProposalRegion: [],
+            filterProposalDistrict: [],
             filterProposalActivity: 'All',
             filterProposalApplicationType: 'All',
             filterProposalStatus: 'All',
@@ -211,10 +227,12 @@ export default {
             proposal_activityTitles : [],
             proposal_applicationTypes : [],
             proposal_regions: [],
+            proposal_districts: [],
             proposal_submitters: [],
             proposal_status: [],
             is_local: helpers.is_local(),
             select2Applied: false,
+            select2bApplied: false,
             dt_options: {},
             datatableReady: false,
             sort_by:[
@@ -246,6 +264,9 @@ export default {
             this.$refs.proposal_datatable.vmDataTable.draw();
             //let vm = this;
             //vm.$refs.proposal_datatable.vmDataTable.columns(1).search(vm.filterProposalRegion.join()).draw();
+        },
+        filterProposalDistrict: function(){
+            this.$refs.proposal_datatable.vmDataTable.draw();
         },
         filterProposalActivity: function() {
             let vm = this;
@@ -312,6 +333,9 @@ export default {
             if (this.dasTemplateGroup){
                 columnList.push("Region");
             }
+            if (this.dasTemplateGroup&&(!this.is_external)){
+                columnList.push("District");
+            }
             columnList.push(activity_or_application_type);
             if (this.dasTemplateGroup){
                 columnList.push("Title");
@@ -362,6 +386,15 @@ export default {
                     searchable: true,
                 });
             };
+            if (this.dasTemplateGroup&&(!this.is_external)){
+                columnList.push({
+                    // 2.5. District
+                    data: "district",
+                    name: 'district__name',
+                    searchable: true,
+                });
+            };
+
             columnList.push({
                     // 3. Activity/Application Type
                     data: "activity",
@@ -551,6 +584,7 @@ export default {
                     // adding extra GET params for Custom filtering
                     "data": function ( d ) {
                         d.regions = vm.filterProposalRegion.join();
+                        d.districts = vm.filterProposalDistrict.join();
                         d.date_from = vm.filterProposalLodgedFrom != '' && vm.filterProposalLodgedFrom != null ? moment(vm.filterProposalLodgedFrom, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.date_to = vm.filterProposalLodgedTo != '' && vm.filterProposalLodgedTo != null ? moment(vm.filterProposalLodgedTo, 'DD/MM/YYYY').format('YYYY-MM-DD'): '';
                         d.application_type = vm.filterProposalApplicationType;
@@ -643,7 +677,7 @@ export default {
             //vm.$http.get('/api/list_proposal/filter_list/').then((response) => {
             vm.$http.get(api_endpoints.filter_list).then((response) => {
                 vm.proposal_regions = response.body.regions;
-                //vm.proposal_districts = response.body.districts;
+                vm.proposal_districts = response.body.districts;
 
                 vm.proposal_activityTitles = response.body.activities;
                 vm.proposal_applicationTypes = response.body.application_types;
@@ -740,8 +774,32 @@ export default {
                 console.log('select2Applied')
             }
         },
+        applySelect2b: function(){
+            let vm = this
+
+            if (!vm.select2bApplied){
+                $(vm.$refs.filterDistrict).select2({
+                    "theme": "bootstrap",
+                    allowClear: true,
+                    placeholder:"Select District",
+                    multiple:true,
+                }).
+                on("select2:select",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalDistrict = selected.val();
+                }).
+                on("select2:unselect",function (e) {
+                    var selected = $(e.currentTarget);
+                    vm.filterProposalDistrict = selected.val();
+                });
+                vm.select2bApplied = true
+                console.log('select2bApplied')
+            }
+        },
+
         initialiseSearch:function(){
             this.regionSearch();
+            this.districtSearch();
             this.submitterSearch();
             this.dateSearch();
         },
@@ -767,6 +825,29 @@ export default {
                 }
             );
         },
+        districtSearch:function(){
+            let vm = this;
+            vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
+                function(settings,data,dataIndex,original){
+                    let found = false;
+                    let filtered_districts = vm.filterProposalDistrict;
+                    if (filtered_districts.length == 0){ return true; }
+
+                    let districts = original.district != '' && original.district != null ? original.district.split(','): [];
+
+                    $.each(districts,(i,r) => {
+                        if (filtered_districts.indexOf(r) != -1){
+                            found = true;
+                            return false;
+                        }
+                    });
+                    if  (found) { return true; }
+
+                    return false;
+                }
+            );
+        },
+
         submitterSearch:function(){
             let vm = this;
             vm.$refs.proposal_datatable.table.dataTableExt.afnFiltering.push(
@@ -888,6 +969,7 @@ export default {
                 } else {
                     this.dasTemplateGroup = true;
                     this.applySelect2()
+                    this.applySelect2b()
                 }
                 this.templateGroupDetermined = true;
                 this.setDashboardText();
