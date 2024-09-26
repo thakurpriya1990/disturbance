@@ -306,7 +306,6 @@ def kmiProxyView(request, path):
         for cts in cache_times_strings:
             if cts['layer_name'] in query_string_remote_url:
                 CACHE_EXPIRY = cts['cache_expiry']
-            print (cts['layer_name'])
         if proxy_cache is None:
             proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
             proxy_response_content_encoded = base64.b64encode(proxy_response.content)
@@ -340,10 +339,7 @@ def kbProxyView(request, path):
         proxy_cache = cache.get(query_string_remote_url)
         proxy_response_content = None
         base64_json = {}
-        print('query string')
-        print(query_string_remote_url)
         if proxy_cache is None:
-            print ("NOT CACHED")
             proxy_response = proxy_view(request, remoteurl, basic_auth={"user": user, "password": password})
             proxy_response_content_encoded = base64.b64encode(proxy_response.content)
             base64_json = {"status_code": proxy_response.status_code, "content_type": proxy_response._headers['content-type'][1], "content" : proxy_response_content_encoded.decode('utf-8'), "cache_expiry": CACHE_EXPIRY}
@@ -352,7 +348,6 @@ def kbProxyView(request, path):
             else:
                 cache.set(query_string_remote_url, json.dumps(base64_json), 15)
         else:
-            print ("CACHED")
             #print (query_string_remote_url)
             base64_json = json.loads(proxy_cache)
         proxy_response_content = base64.b64decode(base64_json["content"].encode())
@@ -428,7 +423,6 @@ def mapProxyView(request, path):
             remoteurl = settings.KB_SERVER_URL + path 
             auth_user = settings.KB_USER
             auth_password = settings.KB_PASSWORD
-        print(remoteurl, auth_user, auth_password)
         response = process_proxy(request, remoteurl, queryString, auth_user, auth_password)
         return response
     else:
