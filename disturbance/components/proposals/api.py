@@ -222,6 +222,12 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
             elif queryset.model is Referral or queryset.model is Compliance:
                 queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
+
+        districts = request.GET.get('districts')
+        if districts:
+            if queryset.model is Proposal:
+                queryset = queryset.filter(district__name__iregex=districts.replace(',', '|'))
+
             #elif queryset.model is Approval:
             #    queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
 
@@ -1595,6 +1601,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             qs = self.get_queryset().exclude(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            district_qs =  qs.filter(district__isnull=False).values_list('district__name', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
             applicant_qs = qs.filter(applicant__isnull=False).distinct(
@@ -1607,7 +1614,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
         data = dict(
             regions=region_qs,
-            #districts=district_qs,
+            districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
             application_types=application_type_qs,
