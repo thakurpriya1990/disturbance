@@ -1,5 +1,5 @@
 <template lang="html">
-    <div class="row">
+    <div class="">
         <div class="col-md-3">
         </div>
         <div :class="das_sections_classname">
@@ -16,7 +16,7 @@
                         
                     />
                 </div>
-                <div>  
+                <div class="noPrint">  
                      <File 
                         :name="map_doc_name" 
                         label="Upload Shapefile" :id="map_doc_id"  
@@ -48,8 +48,8 @@
                         </ul>
                 </div>
 
-                <alert :show.sync="showError" type="danger" style="color: red"><strong>{{errorString}}</strong></alert>
-                <div>
+                <alert :show.sync="showError" type="danger" style="color: red" class="noPrint"><strong>{{errorString}}</strong></alert>
+                <div class="noPrint">
                     <div class="row">
                         <div class="col-sm-2">
                             <span v-if="validating">

@@ -1094,8 +1094,8 @@ export default {
         vm.form = document.forms.new_proposal;
         window.addEventListener('beforeunload', vm.leaving);
         window.addEventListener('onblur', vm.leaving);
-        window.addEventListener('beforeprint', this.beforePrinting);
-        window.addEventListener('afterprint', this.afterPrinting);
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
         // this.$nextTick(() => {
         //   console.log("I am here1");
         //         if(vm.hasAmendmentRequest){
@@ -1185,4 +1185,9 @@ export default {
     opacity: .25;
     z-index: 2000;
 }
+@media print { 
+.noPrint { 
+  display: none;
+ }
+} 
 </style>

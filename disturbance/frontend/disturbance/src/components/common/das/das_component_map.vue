@@ -366,7 +366,7 @@
                 //     source: new OSM(),
                 // });
 
-                vm.tileLayerOsm= new TileLayer({
+                vm.tileLayerOsmWorking= new TileLayer({
                     name: "street",
                     canDelete: "no",
                     visible: !0,
@@ -385,6 +385,25 @@
                         // layer: "public:mapbox-streets",
                         // style: 'default',
                         // projection: 'EPSG:3857',
+                    })
+
+                let streetsTileWMS = new TileWMS({
+                url: env['kmi_server_url'] + '/geoserver/public/wms',
+                params: {
+                    FORMAT: 'image/png',
+                    VERSION: '1.1.1',
+                    tiled: true,
+                    STYLES: '',
+                    LAYERS: "public:mapbox-streets",
+                },
+                });
+                
+                vm.tileLayerOsm= new TileLayer({
+                    name: "street",
+                    canDelete: "no",
+                    visible: !0,
+                    type: 'base',
+                    source: streetsTileWMS,
                     }),
 
                 vm.tileLayerSat = new TileLayer({
