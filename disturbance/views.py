@@ -428,6 +428,7 @@ def mapProxyView(request, path):
             remoteurl = settings.KB_SERVER_URL + path 
             auth_user = settings.KB_USER
             auth_password = settings.KB_PASSWORD
+        print(remoteurl, auth_user, auth_password)
         response = process_proxy(request, remoteurl, queryString, auth_user, auth_password)
         return response
     else:

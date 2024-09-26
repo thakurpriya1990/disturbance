@@ -843,6 +843,7 @@
                 var matrixSet = "mercator";
                 var resolutions = new Array(21);
                 var matrixIds = new Array(21);
+                
                 for (var c = 0; c < 21; ++c)
                     resolutions[c] = s / Math.pow(2, c),
                     matrixIds[c] = matrixSet + ":" + c;
@@ -852,6 +853,38 @@
                     resolutions: resolutions,
                     matrixIds: matrixIds
                 });
+                matrixSet = 'gda94';
+                var resolutions = new Array(19);
+                var matrixIds = new Array(19);
+                for (var c = 0; c < 19; ++c)
+                    resolutions[c] = s / Math.pow(2, c),
+                    matrixIds[c] = matrixSet + ":" + c;
+
+                console.log('matrix ids', matrixIds)
+
+                var m1 = new WMTSTilegrid({
+                    origin: getTopLeft(projectionExtent),
+                    resolutions: resolutions,
+                    matrixIds: matrixIds,
+                    tileSize: 1024
+                });
+                vm.tileLayerOsmTest= new TileLayer({
+                    name: "street",
+                    canDelete: "no",
+                    visible: !0,
+                    source: new WMTS({
+                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
+                        url: "/kmi-proxy/geoserver/gwc/service/wmts",
+                        format: "image/png",
+                        layer: "public:mapbox-streets",
+                        matrixSet: matrixSet,
+                        projection: 'EPSG:3857',
+                        tileGrid: m1,
+                         wrapX: true,
+                        //crossOrigin: 'Anonymous'
+                    })
+                    })
+
 
                 let satelliteTileWms = new TileWMS({
                     url: env['kmi_server_url'] + '/geoserver/public/wms',
@@ -863,7 +896,7 @@
                         LAYERS: 'public:mapbox-satellite',
                     },
                 });
-                vm.tileLayerOsm= new TileLayer({
+                vm.tileLayerOsmWorking= new TileLayer({
                     name: "street",
                     canDelete: "no",
                     visible: !0,
@@ -883,6 +916,25 @@
                         // layer: "public:mapbox-streets",
                         // style: 'default',
                         // projection: 'EPSG:3857',
+                    })
+                
+                let streetsTileWMS = new TileWMS({
+                url: env['kmi_server_url'] + '/geoserver/public/wms',
+                params: {
+                    FORMAT: 'image/png',
+                    VERSION: '1.1.1',
+                    tiled: true,
+                    STYLES: '',
+                    LAYERS: "public:mapbox-streets",
+                },
+                });
+                
+                vm.tileLayerOsm= new TileLayer({
+                    name: "street",
+                    canDelete: "no",
+                    visible: !0,
+                    type: 'base',
+                    source: streetsTileWMS,
                     }),
 
                 // vm.tileLayerOsm = new TileLayer({
@@ -901,7 +953,8 @@
 
                 vm.map = new Map({
                     layers: [
-                        vm.tileLayerOsm, 
+                        //vm.tileLayerOsm, 
+                        vm.tileLayerOsmTest,
                         vm.tileLayerSat,
                     ],
                     //target: 'map',

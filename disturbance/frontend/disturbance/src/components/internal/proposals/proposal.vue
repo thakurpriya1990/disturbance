@@ -1552,8 +1552,8 @@ export default {
         }
     },
     mounted: function() {
-        window.addEventListener('beforeprint', this.beforePrinting);
-        window.addEventListener('afterprint', this.afterPrinting);
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
         
     },
     updated: function(){
@@ -1575,8 +1575,8 @@ export default {
                 vm.deficientFields();
             }
         });
-        window.addEventListener('beforeprint', this.beforePrinting);
-        window.addEventListener('afterprint', this.afterPrinting);
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
     },
     created: function() {
         Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
@@ -1656,7 +1656,6 @@ export default {
 .noPrint { 
   display: none;
  }
-
 } 
 
 </style>
