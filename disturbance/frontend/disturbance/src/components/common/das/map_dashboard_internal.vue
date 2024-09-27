@@ -162,9 +162,9 @@
                         </div>
                     </div>
                 </div>
-                <div class="button_row">
+                <!--- <div class="button_row">
                     <span class="view_all_button" @click="displayAllFeatures">View All On Map</span>
-                </div>
+                </div> -->
             </div>
             <div :id="popup_id" class="ol-popup">
                 <a href="#" :id="popup_closer_id" class="ol-popup-closer">
