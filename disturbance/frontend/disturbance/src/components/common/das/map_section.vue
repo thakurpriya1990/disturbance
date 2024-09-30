@@ -271,7 +271,7 @@
                     input: 'radio',
                     inputOptions: {
                       'clear_sqs': 'Clear only Spatial data from the Proposal',
-                      'clear_all': 'Clear all proposal data is ok',
+                      'clear_all': 'Clear all proposal data',
                     }
                 }).then(async (result) => {
                     if (!result) {
