@@ -564,7 +564,8 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
         log_request(f'{request.user} - {self.__class__.__name__}.{inspect.currentframe().f_code.co_name} - {url}')
         resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
         if resp.status_code != 200:
-            logger.error(f'SpatialQuery API call error: {resp.content}')
+            if resp.status_code != 208:
+                logger.error(f'SpatialQuery API call error: {resp.content}')
             try:
                 return Response(resp.json(), status=resp.status_code)
             except:

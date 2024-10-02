@@ -64,12 +64,19 @@ data: function() {
 		var resp_proposal=null;
 		resp_proposal=response['body']['proposal']
 		vm.$emit('refreshFromResponseProposal',resp_proposal);
-		let title = response['body']['message'].includes('updated') ? "Processing refresh request (UPDATED)" : "Processing refresh request"
+		//let title = response['body']['message'].includes('updated') ? "Processing refresh request (UPDATED)" : "Processing refresh request"
+		let msg = '';
+                if (response['body']['message'].includes('already updated')) {
+		    msg = "Refresh request is already running. Cannot request another until completed.";
+                } else if (response['body']['message'].includes('already queued')) {
+		    msg = "Refresh request is already queued. Cannot request another until completed.";
+                } else {
+		    msg = "Processing refresh request";
+		}
 		let queue_position = response['body']['position']
 		swal({
-		    //title: "Processing Proposal",
-		    title: title,
-		    html: '<p><strong>The question is in the process of being refreshed.</strong><br>' +
+		    title: 'Refresh Question',
+		    html: '<p><strong>' + msg + '</strong><br>' +
 			  '<span style="font-size:0.8em">You can close your browser and come back later. You will receive an email when it is complete. (' + queue_position+ ')</span>' +
 			  '</p>',
 		})

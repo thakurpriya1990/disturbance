@@ -263,7 +263,7 @@
                 
                 await swal({
                     title: "Prefill Proposal",
-                    text: "Are you sure you want to prefill this Proposal? Prefilling the proposal will clear all the existing data.",
+                    text: "Are you sure you want to prefill this Proposal?",
                     type: "warning",
                     showCancelButton: true,
                     confirmButtonText: 'Prefill Proposal',
@@ -271,7 +271,7 @@
                     input: 'radio',
                     inputOptions: {
                       'clear_sqs': 'Clear only Spatial data from the Proposal',
-                      'clear_all': 'Clear all proposal data',
+                      'clear_all': 'Clear all Proposal data',
                     }
                 }).then(async (result) => {
                     if (!result) {

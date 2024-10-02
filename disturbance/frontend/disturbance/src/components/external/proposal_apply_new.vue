@@ -7,13 +7,13 @@
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <h3 class="panel-title">Region, District, Activity Type, Sub Activity, ...
-                                <a :href="'#'+pBody2" data-toggle="collapse"  data-parent="#userInfo2" expanded="true" :aria-controls="pBody2">
-                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                <a class="panelClicker" :href="'#'+pBody2" data-toggle="collapse"  data-parent="#userInfo2" expanded="true" :aria-controls="pBody2">
+                                    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                 </a>
                             </h3>
                         </div>
                         
-                        <div class="panel-body collapse in" :id="pBody2">
+                        <div class="panel-body panel-collapse collapse in" :id="pBody2">
                             <div v-if="proposal">
                                 <label for="" class="control-label" >Region * <a :href="region_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a> </label>
                                 <div v-if="proposal.readonly" class="col-sm-12">
@@ -194,6 +194,7 @@ export default {
         display_activity_matrix_selectbox: false,
         site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
         global_settings:[],
+        panelClickersInitialised: false,
     }
   },
   components: {
@@ -705,7 +706,20 @@ export default {
     vm.fetchGlobalSettings();
     vm.form = document.forms.new_proposal;
   },
-  
+
+//    updated: function(){
+//        let vm = this;
+//        if (!vm.panelClickersInitialised){
+//            $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+//                var chev = $(this).children()[0];
+//                window.setTimeout(function () {
+//                    $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
+//                },100);
+//            });
+//            vm.panelClickersInitialised = true;
+//        }
+//    },
+
   beforeRouteEnter: function(to, from, next) {
 
     let initialisers = [

@@ -7,7 +7,8 @@
       <div class="row">
         <h3 v-if="proposal.migrated">Proposal: {{ proposal.lodgement_number }} (Migrated)</h3>
         <h3 v-else>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type }}</h4>
+        <h4>Application Type: {{proposal.proposal_type }}</h4>
+        <h4>Proposal Type: {{proposal.application_type }}</h4>
         <div v-if="proposal.application_type!='Apiary'" class="noPrint">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
@@ -250,7 +251,7 @@
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Applicant
                                         <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
-                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
@@ -279,7 +280,7 @@
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Address Details
                                         <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
@@ -324,7 +325,7 @@
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Contact Details
                                         <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
@@ -1562,7 +1563,7 @@ export default {
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {
                 var chev = $(this).children()[0];
                 window.setTimeout(function () {
-                    $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+                    $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
                 },100);
             });
             vm.panelClickersInitialised = true;
