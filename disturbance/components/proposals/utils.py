@@ -2214,8 +2214,9 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
                 gdf['appstadate'] = p.approval.start_date.strftime("%Y-%d-%d") if p.approval else None
                 gdf['appexpdate'] = p.approval.expiry_date.strftime("%Y-%d-%d") if p.approval else None
                 gdf['appstatus']  =  p.approval.status if p.approval else None
+                gdf['propstatus'] =  p.processing_status
                 gdf['assocprop']  = list(Proposal.objects.filter(approval__lodgement_number=p.approval.lodgement_number).values_list('lodgement_number', flat=True)) if p.approval else None
-                gdf['proptype']   = p.proposal_type
+                gdf['proptype']   = p.application_type.name
                 #gdf['propurl']    = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id}))
                 gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
                 gdf['prop_activ'] = p.activity
