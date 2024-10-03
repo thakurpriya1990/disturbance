@@ -67,13 +67,14 @@ class Command(BaseCommand):
 #                        send_proposal_test_sqq_error_email_notification(task.proposal, user, task.id)
 #                    else:
 #                        send_proposal_prefill_error_email_notification(task.proposal, task.id)
-                    send_proposal_prefill_error_email_notification(task.proposal, user, task.id)
+                    send_proposal_prefill_error_email_notification(task.proposal, user, task_id)
                 task.save()
 
         msg = None
         task = None
+        statuses = [TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]
         try:
-            task_ids = list(TaskMonitor.objects.filter(status__in=[TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]).values_list('task_id', flat=True))
+            task_ids = list(TaskMonitor.objects.filter(status__in=statuses).values_list('task_id', flat=True))
             
             if len(task_ids) > 0:
                 task_ids_str = ','.join(map(str, task_ids))
@@ -87,6 +88,7 @@ class Command(BaseCommand):
                 for task_id in task_ids:
                     task = TaskMonitor.objects.get(task_id=task_id)
                     sqs_task = get_sqs_task(task_id)
+                    user = EmailUser.objects.get(id=task.requester_id)
                     if sqs_task:
                         if sqs_task['status'] == TaskMonitor.STATUS_COMPLETED:
                             if sqs_task['request_log'] is None:
@@ -100,7 +102,7 @@ class Command(BaseCommand):
                                     task.status = TaskMonitor.STATUS_COMPLETED
                                     task.save()
 
-                                    user = EmailUser.objects.get(id=task.requester_id)
+                                    #user = EmailUser.objects.get(id=task.requester_id)
   
                                     if request_type in [RequestTypeEnum.REFRESH_SINGLE, RequestTypeEnum.REFRESH_PARTIAL]:
                                         send_proposal_refresh_completed_email_notification(proposal, user)
@@ -119,10 +121,10 @@ class Command(BaseCommand):
                                 task.status = TaskMonitor.STATUS_COMPLETED
                                 task.save()
 
-                                user = EmailUser.objects.get(id=task.requester_id)
+                                #user = EmailUser.objects.get(id=task.requester_id)
 
                                 send_proposal_test_sqq_completed_email_notification(proposal, user, task_id, data=sqs_task['request_log'])
-                                action = ProposalUserAction.ACTION_SEND_TEST_SQQ_COMPLETED_TO.format(proposal.lodgement_number, task.id, metrics_obj_id, task.task_id)
+                                action = ProposalUserAction.ACTION_SEND_TEST_SQQ_COMPLETED_TO.format(proposal.lodgement_number, task.id, metrics_obj_id, task_id)
                                 ProposalUserAction.log_action(proposal, action, user)
                                 pass
 
@@ -161,7 +163,10 @@ class Command(BaseCommand):
                             # this task on SQS may have status ERROR/FAILED - update local TaskMonitor with the same
                             task.status = sqs_task['status']
                             task.save()
-                            send_proposal_prefill_error_email_notification(task.proposal, task.id)
+                            send_proposal_prefill_error_email_notification(task.proposal, user, task_id)
+
+                            msg = f'task_id {task_id} - current status \'{sqs_task["status"]}\' on SQS'
+                            logger.info(msg)
 
                         else:
                             msg = f'Unable to process task_id {task_id}'
