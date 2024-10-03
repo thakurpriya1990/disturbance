@@ -500,6 +500,7 @@ class TaskMonitor(models.Model):
     STATUS_CANCELLED = 'cancelled'
     STATUS_ERROR = 'error'
     STATUS_MAX_QUEUE_TIME = 'max_queue_time'
+    STATUS_MAX_RUNNING_TIME = 'max_running_time'
     STATUS_MAX_RETRIES_REACHED = 'max_retries'
     STATUS_CHOICES = (
         (STATUS_FAILED,    'Failed'),
@@ -509,6 +510,7 @@ class TaskMonitor(models.Model):
         (STATUS_CANCELLED, 'Cancelled'),
         (STATUS_ERROR,     'Error'),
         (STATUS_MAX_QUEUE_TIME, 'Max_Queue_Time_Reached'),
+        (STATUS_MAX_RUNNING_TIME, 'Max_Running_Time_Reached'),
         (STATUS_MAX_RETRIES_REACHED, 'Max_Retries_Reached'),
     )
 
