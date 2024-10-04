@@ -182,7 +182,7 @@ export default {
                 vm.table.ajax.reload();
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+user,
+                    'The referral has been recalled from '+user,
                     'success'
                 )
             },
