@@ -263,7 +263,7 @@
                 
                 await swal({
                     title: "Prefill Proposal",
-                    text: "Are you sure you want to prefill this Proposal?",
+                    html: '<p>Are you sure you want to prefill this Proposal?<br>Select the Applicable:</p>',
                     type: "warning",
                     showCancelButton: true,
                     confirmButtonText: 'Prefill Proposal',
