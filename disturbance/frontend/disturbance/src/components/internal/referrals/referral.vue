@@ -643,7 +643,7 @@ export default {
                 vm.fetchReferral(vm.referral.id);
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
+                    'The referral has been recalled from '+r.referral,
                     'success'
                 )
             },

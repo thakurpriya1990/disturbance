@@ -1494,7 +1494,7 @@ export default {
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
+                    'The referral has been recalled from '+r.referral,
                     'success'
                 )
             },
