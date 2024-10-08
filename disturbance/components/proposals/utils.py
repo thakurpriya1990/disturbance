@@ -1296,6 +1296,29 @@ def clone_proposal_with_status_reset(proposal):
 help_site_url='site_url:/help/disturbance/user'
 help_site_assessor_url='site_url:/help/disturbance/assessor'
 
+def create_region_help():
+    #Function to add Region, District etc to help page as it is not a part of the schema
+    from disturbance.components.main.models import GlobalSettings
+    global richtext
+    global richtext_assessor
+
+    #Get the keys to add help text into help page
+    help_keys = [ 'region_help_url', 'district_help_url', 'activity_type_help_url','sub_activity_1_help_url','sub_activity_2_help_url','category_help_url']
+    
+    #Convert the Globale settings keys to dict so its easier to get value of the key for title'
+    gs_keys_dict= dict(GlobalSettings.keys)
+    for key in help_keys:
+        try:
+            gs_instance= GlobalSettings.objects.get(key=key)
+            if gs_instance.help_text_required and gs_instance.help_text:
+                title=gs_keys_dict[gs_instance.key]
+                richtext += u'<h1 style="text-align:justify"><span style="font-size:14px"><a id="{0}" name="{0}"><span style="color:#2980b9"> <strong> {1}</strong></span></a></span></h1>'.format(key, title.replace('help url',''))
+                richtext += gs_instance.help_text
+                richtext += u'<p>&nbsp;</p>'
+        except:
+            pass
+    return richtext
+
 def create_richtext_help(question, name):
     global richtext
     global richtext_assessor
@@ -1315,6 +1338,7 @@ def create_richtext_help(question, name):
         richtext_assessor += u'<p>&nbsp;</p>'
 
     return richtext
+
 
 def create_helppage_object(proposal_type, help_type=HelpPage.HELP_TEXT_EXTERNAL):
     """
@@ -1747,6 +1771,8 @@ def generate_schema(proposal_type, request):
     richtext_assessor=u''
     help_site_url='site_url:/help/{}/user'.format(proposal_type.name)
     help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
+    #Add the Region/ District etc help text to richtext first
+    create_region_help()
     for section in section_list:
         section_name=section.section_label.replace(" ","")
         section_name=section_name.replace(".","")
