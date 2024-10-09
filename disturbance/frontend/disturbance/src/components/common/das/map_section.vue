@@ -393,5 +393,10 @@
     .input-file-wrapper {
         margin: 1.5em 0 0 0;
     }
+    @media print { 
+        .panel-default {
+            margin-top: 30px;
+        }
+    }
 </style>
 

@@ -395,6 +395,7 @@ class ApiaryGlobalSettings(models.Model):
     def __str__(self):
         return self.key
 
+from ckeditor.fields import RichTextField
 
 @python_2_unicode_compatible
 class GlobalSettings(models.Model):
@@ -436,6 +437,8 @@ class GlobalSettings(models.Model):
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
     value = models.CharField(max_length=255)
+    help_text_required=models.BooleanField(default=False)
+    help_text=RichTextField(null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'

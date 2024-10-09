@@ -344,7 +344,7 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
-    list_display = ['key', 'value']
+    list_display = ['key', 'value', 'help_text_required', 'help_text' ]
     ordering = ('key',)
 
 
