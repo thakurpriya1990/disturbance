@@ -2,13 +2,18 @@ import re
 from telnetlib import NEW_ENVIRON
 import traceback
 import os
+import csv
+import requests
+from requests.auth import HTTPBasicAuth
 
 import json
 from dateutil import parser
+from deepdiff import DeepDiff
 
 import pytz
 from ledger.settings_base import TIME_ZONE, DATABASES
-from django.db.models import Q
+from django.conf import settings
+from django.db.models import F, Q
 from django.db import transaction, connection
 from django.core.exceptions import ValidationError
 from rest_framework import viewsets, serializers, status, views
@@ -17,7 +22,9 @@ from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
 from ledger.accounts.models import EmailUser
 from datetime import datetime
+import time
 from reversion.models import Version
+from django.core.cache import cache
 
 from django.http import HttpResponse, JsonResponse #, Http404
 from disturbance.components.approvals.email import (
@@ -29,19 +36,22 @@ from disturbance.components.approvals.serializers_apiary import (
     ApiarySiteOnApprovalMinimalGeometrySerializer,
     ApiarySiteOnApprovalMinGeometrySerializer,
 )
-from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger
+from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
-    save_apiary_assessor_data, update_proposal_apiary_temporary_use,
+    save_apiary_assessor_data, 
+    update_proposal_apiary_temporary_use,
+    search_schema,
+    gen_shapefile,
 )
 from disturbance.components.proposals.models import ProposalDocument, searchKeyWords, search_reference, \
     OnSiteInformation, ApiarySite, ApiaryChecklistQuestion, ApiaryChecklistAnswer, \
     ProposalApiaryTemporaryUse, ApiarySiteOnProposal, PublicLiabilityInsuranceDocument, DeedPollDocument, \
-    SupportingApplicationDocument, search_sections, private_storage
+    SupportingApplicationDocument, ExportDocument, search_sections, get_search_geojson, private_storage
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED
-from disturbance.utils import search_tenure
+from disturbance.utils import search_tenure, search_label, get_schema_questions
 from disturbance.components.main.utils import (
     check_db_connection,
     get_template_group,
@@ -50,11 +60,12 @@ from disturbance.components.main.utils import (
     get_qs_approval,
     handle_validation_error, get_qs_pending_site, get_qs_denied_site, get_qs_current_site,
     get_qs_not_to_be_reissued_site, get_qs_suspended_site, get_qs_discarded_site,
+    #get_questions_grouped_by_layers
 )
 
 from django.urls import reverse
 from django.shortcuts import redirect, get_object_or_404
-from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings
+from disturbance.components.main.models import ApplicationType, ApiaryGlobalSettings, DASMapLayer
 from disturbance.components.proposals.models import (
     ProposalType,
     Proposal,
@@ -72,6 +83,11 @@ from disturbance.components.proposals.models import (
     ProposalTypeSection,
     SectionQuestion,
     MasterlistQuestion,
+    CddpQuestionGroup,
+    SpatialQueryQuestion,
+    SpatialQueryLayer,
+    SpatialQueryMetrics,
+    ProposalUserAction,
 )
 from disturbance.components.proposals.serializers import (
     SendReferralSerializer,
@@ -104,7 +120,19 @@ from disturbance.components.proposals.serializers import (
     SelectSchemaMasterlistSerializer,
     DTSchemaProposalTypeSerializer,
     SchemaProposalTypeSerializer,
+    SchemaMasterlistOptionSerializer,
+    DASMapFilterSerializer,
+    SearchGeoJsonSerializer,
+    SearchProposalTypeSerializer,
 )
+#from disturbance.components.proposals.sqs_utils.serializers import (
+#    DTSpatialQueryQuestionSerializer,
+#    SpatialQueryLayerSerializer,
+#    DTSpatialQueryMetricsSerializer,
+#    DTSpatialQueryMetricsDetailsSerializer,
+#    DTSpatialQueryLayersUsedSerializer,
+#    CddpQuestionGroupSerializer,
+#)
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiaryTypeSerializer,
     ApiaryInternalProposalSerializer,
@@ -132,6 +160,7 @@ from disturbance.components.proposals.serializers_apiary import (
 from disturbance.components.approvals.models import Approval, ApiarySiteOnApproval
 from disturbance.components.approvals.serializers import ApprovalLogEntrySerializer
 from disturbance.components.compliances.models import Compliance
+from disturbance.components.main.serializers import DASMapLayerSqsSerializer
 
 from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_das_apiary_admin, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
@@ -142,6 +171,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from disturbance.components.main.process_document import (
         process_generic_document, 
         )
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -166,9 +196,9 @@ class GetEmptyList(views.APIView):
 
 #class DatatablesFilterBackend(BaseFilterBackend):
 #
-#	def filter_queryset(self, request, queryset, view):
-#		queryset = super(DatatablesFilterBackend, self).filter_queryset(request, queryset, view)
-#		return queryset
+#       def filter_queryset(self, request, queryset, view):
+#               queryset = super(DatatablesFilterBackend, self).filter_queryset(request, queryset, view)
+#               return queryset
 
 class ProposalFilterBackend(DatatablesFilterBackend):
     """
@@ -192,6 +222,12 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
             elif queryset.model is Referral or queryset.model is Compliance:
                 queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
+
+        districts = request.GET.get('districts')
+        if districts:
+            if queryset.model is Proposal:
+                queryset = queryset.filter(district__name__iregex=districts.replace(',', '|'))
+
             #elif queryset.model is Approval:
             #    queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
 
@@ -234,6 +270,12 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                 queryset = queryset.filter(proposal__submitter__email=submitter)
             else:
                 queryset = queryset.filter(submitter__email=submitter)
+        applicant = request.GET.get('applicant')
+        if applicant and not applicant.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__applicant_id=applicant)
+            else:
+                queryset = queryset.filter(applicant_id=applicant)
         date_from = request.GET.get('date_from')
         date_to = request.GET.get('date_to')
         if queryset.model is Proposal:
@@ -271,6 +313,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         getter = request.query_params.get
         fields = self.get_fields(getter)
         ordering = self.get_ordering(getter, fields)
+        sort_by = request.GET.get('sort_by')
         queryset = queryset.order_by(*ordering)
         if len(ordering):
             #for num, item in enumerate(ordering):
@@ -279,26 +322,19 @@ class ProposalFilterBackend(DatatablesFilterBackend):
                # elif item == '-status__name':
                 #    ordering[num] = '-status'
             queryset = queryset.order_by(*ordering)
-
+        
         try:
             queryset = super(ProposalFilterBackend, self).filter_queryset(request, queryset, view)
         except Exception as e:
             print(e)
+        if(sort_by and sort_by!=''):
+            if queryset.model is Proposal:
+                queryset = queryset.order_by(sort_by)
         setattr(view, '_datatables_total_count', total_count)
         return queryset
 
-#class ProposalRenderer(DatatablesRenderer):
-#    def render(self, data, accepted_media_type=None, renderer_context=None):
-#        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-#            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-#            # data.pop('recordsTotal')
-#            #data.pop('recordsFiltered')
-#        return super(ProposalRenderer, self).render(data, accepted_media_type, renderer_context)
 
-#from django.utils.decorators import method_decorator
-#from django.views.decorators.cache import cache_page
 class ProposalPaginatedViewSet(viewsets.ModelViewSet):
-    #queryset = Proposal.objects.all()
     #filter_backends = (DatatablesFilterBackend,)
     filter_backends = (ProposalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
@@ -308,10 +344,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
     search_fields = ['lodgement_number',]
     #serializer_class = DTProposalSerializer
     page_size = 10
-
-#    @method_decorator(cache_page(60))
-#    def dispatch(self, *args, **kwargs):
-#        return super(ListProposalViewSet, self).dispatch(*args, **kwargs)
 
     def get_queryset(self):
         user = self.request.user
@@ -326,17 +358,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             return qs
             #queryset =  Proposal.objects.filter(region__isnull=False).filter( Q(applicant_id__in = user_orgs) | Q(submitter = user) )
         return Proposal.objects.none()
-
-#    def filter_queryset(self, request, queryset, view):
-#        return self.filter_backends[0]().filter_queryset(self.request, queryset, view)
-        #return super(ProposalPaginatedViewSet, self).filter_queryset(request, queryset, view)
-
-#    def list(self, request, *args, **kwargs):
-#        response = super(ProposalPaginatedViewSet, self).list(request, args, kwargs)
-#
-#        # Add extra data to response.data
-#        #response.data['regions'] = self.get_queryset().filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-#        return response
 
     @list_route(methods=['GET',])
     def proposals_internal(self, request, *args, **kwargs):
@@ -375,37 +396,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
-
-    #@list_route(methods=['GET',])
-    #def referrals_internal(self, request, *args, **kwargs):
-    #    """
-    #    Used by the internal dashboard
-
-    #    http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
-    #    """
-    #    #self.serializer_class = ReferralSerializer
-    #    template_group = get_template_group(request)
-    #    referral_id_list = []
-    #    qs_r = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
-    #    for r in qs_r:
-    #        referral_id_list.append(r.id)
-    #    #qs = self.filter_queryset(self.request, qs, self)
-    #    # Add Apiary Referrals
-    #    qs_ra = Referral.objects.filter(apiary_referral__referral_group__members=request.user)
-    #    #qs = qs_r.union(qs_ra) if qs_r else qs_ra
-    #    for ar in qs_ra:
-    #        if ar.id not in referral_id_list:
-    #            referral_id_list.append(ar.id)
-    #    qs = Referral.objects.filter(id__in=referral_id_list)
-    #    qs = self.filter_queryset(qs)
-
-    #    self.paginator.page_size = qs.count()
-    #    result_page = self.paginator.paginate_queryset(qs, request)
-    #    serializer = DTReferralSerializer(result_page, context={
-    #        'request':request,
-    #        'template_group': template_group
-    #        }, many=True)
-    #    return self.paginator.get_paginated_response(serializer.data)
 
     @list_route(methods=['GET',])
     def referrals_internal(self, request, *args, **kwargs):
@@ -474,6 +464,24 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
             }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
+
+    @list_route(methods=['GET', ])
+    def spatial_query_layers_used_datatable_list(self, request, *args, **kwargs):
+        """ http://localhost:8003/api/proposal_paginated/spatial_query_layers_used_datatable_list/?format=datatables&draw=1&length=10 """
+        self.serializer_class = DTSpatialQueryLayersUsedSerializer 
+        queryset = self.get_queryset().filter(layer_data__isnull=False, processing_status=Proposal.PROCESSING_STATUS_APPROVED)
+
+        queryset = self.filter_queryset(queryset)
+        self.paginator.page_size = queryset.count()
+        # self.paginator.page_size = 0
+        result_page = self.paginator.paginate_queryset(queryset, request)
+        serializer = DTSpatialQueryLayersUsedSerializer(
+            result_page, context={'request': request}, many=True
+        )
+        data = serializer.data
+
+        response = self.paginator.get_paginated_response(data)
+        return response
 
 
 class OnSiteInformationViewSet(viewsets.ModelViewSet):
@@ -1090,7 +1098,6 @@ class ProposalApiaryViewSet(viewsets.ModelViewSet):
 
 
 class ApiaryReferralViewSet(viewsets.ModelViewSet):
-    #queryset = Referral.objects.all()
     queryset = ApiaryReferral.objects.none()
     serializer_class = ApiaryReferralSerializer
 
@@ -1101,27 +1108,6 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             queryset = ApiaryReferral.objects.all()
             return queryset
         return ApiaryReferral.objects.none()
-
-    #@list_route(methods=['GET',])
-    #def filter_list(self, request, *args, **kwargs):
-    #    """ Used by the external dashboard filters """
-    #    qs =  self.get_queryset().filter(referral=request.user)
-    #    region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
-    #    #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
-    #    activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
-    #    submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list('proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
-    #    submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
-    #    processing_status_qs =  qs.filter(proposal__processing_status__isnull=False).order_by('proposal__processing_status').distinct('proposal__processing_status').values_list('proposal__processing_status', flat=True)
-    #    processing_status = [dict(value=i, name='{}'.format(' '.join(i.split('_')).capitalize())) for i in processing_status_qs]
-    #    data = dict(
-    #        regions=region_qs,
-    #        #districts=district_qs,
-    #        activities=activity_qs,
-    #        submitters=submitters,
-    #        processing_status_choices=processing_status,
-    #    )
-    #    return Response(data)
-
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1352,9 +1338,31 @@ class ApiaryReferralViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+class ProposalSqsViewSet(viewsets.ModelViewSet):
+    queryset = Proposal.objects.none()
+    serializer_class = ProposalSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) |
+                Q(application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            )
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
+            return queryset
+
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return Proposal.objects.none()
+
 
 class ProposalViewSet(viewsets.ModelViewSet):
-    #queryset = Proposal.objects.all()
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
 
@@ -1424,6 +1432,17 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @list_route(methods=['POST', ])
+    @api_exception_handler
+    def create_shapefile(self, request, *args, **kwargs):
+        ''' requests.get('http://localhost:8003/api/proposal/create_shapefile.json')
+        '''
+        geojson = request.data.get('geojson', False)
+        filter_kwargs = request.data.get('filter_kwargs', {})
+        filename = gen_shapefile(request.user, self.get_queryset(), filter_kwargs, geojson)
+        file_url = reverse('file-download', kwargs={'filename':filename})
+        return Response(data={'message': f'File created {filename}'}, status=status.HTTP_200_OK)
+                
     @detail_route(methods=['POST',])
     def get_revision(self, request, *args, **kwargs):
         """
@@ -1564,6 +1583,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         region_qs = []
         activity_qs = []
         application_type_qs = []
+        applicant_qs = []
         if template_group == 'apiary':
             qs = self.get_queryset().filter(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
@@ -1572,21 +1592,33 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 submitter__isnull=False).filter(
                     application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
                     'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+            application_type_qs =  ApplicationType.objects.filter(
+                    name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, 
+                        #ApplicationType.TEMPORARY_USE
+                        ]).values_list(
+                        'name', flat=True).distinct()
         else:
             qs = self.get_queryset().exclude(
                 application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
             region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+            district_qs =  qs.filter(district__isnull=False).values_list('district__name', flat=True).distinct()
             submitter_qs = qs.filter(submitter__isnull=False).distinct(
                             'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+            applicant_qs = qs.filter(applicant__isnull=False).distinct(
+                            'applicant_id').values_list('applicant_id','applicant__organisation__name',)
+
 
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
+        application_type_qs =  qs.filter(application_type__isnull=False).values_list('application_type__name', flat=True).distinct()
+        applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
         data = dict(
             regions=region_qs,
-            #districts=district_qs,
+            districts=district_qs,
             activities=activity_qs,
             submitters=submitters,
-            #application_types=application_type_qs,
+            application_types=application_type_qs,
+            applicants=applicants,
             ##processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
             ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
             ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
@@ -1659,6 +1691,68 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
             else:
                 return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.documents.filter(input_name=section, hidden=False) if d._file] )
+
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+
+    @detail_route(methods=['POST'])
+    @renderer_classes((JSONRenderer,))
+    def process_map_document(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            action = request.POST.get('action')
+            section = request.POST.get('input_name')
+            if action == 'list' and 'input_name' in request.POST:
+                pass
+
+            elif action == 'delete' and 'document_id' in request.POST:
+                document_id = request.POST.get('document_id')
+                document = instance.map_documents.get(id=document_id)
+
+                if document._file and os.path.isfile(document._file.path) and document.can_delete:
+                    os.remove(document._file.path)
+
+                document.delete()
+                instance.save(version_comment='Map File Deleted: {}'.format(document.name)) # to allow revision to be added to reversion history
+                #instance.current_proposal.save(version_comment='File Deleted: {}'.format(document.name)) # to allow revision to be added to reversion history
+
+            elif action == 'hide' and 'document_id' in request.POST:
+                document_id = request.POST.get('document_id')
+                document = instance.map_documents.get(id=document_id)
+
+                document.hidden=True
+                document.save()
+                instance.save(version_comment='Map File hidden: {}'.format(document.name)) # to allow revision to be added to reversion history
+
+            elif action == 'save' and 'input_name' in request.POST and 'filename' in request.POST:
+                proposal_id = request.POST.get('proposal_id')
+                filename = request.POST.get('filename').replace(' ', '_')
+                _file = request.POST.get('_file')
+                if not _file:
+                    _file = request.FILES.get('_file')
+                _file._name = filename
+
+                #Check if the file with same extension already exists so not to allow multiple shapefiles with same extension.
+                fname, fext=os.path.splitext(filename)
+                doc_qs=instance.map_documents.filter(name__endswith=fext, hidden=False)
+                if doc_qs:
+                    raise serializers.ValidationError('Document with extension {} already exists.'.format(fext))
+                else:
+                    document = instance.map_documents.get_or_create(input_name=section, name=filename)[0]
+                    path = private_storage.save('proposals/{}/documents/map_docs/{}'.format(proposal_id, filename), ContentFile(_file.read()))
+
+                    document._file = path
+                    document.save()
+                    instance.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
+                    #instance.current_proposal.save(version_comment='File Added: {}'.format(filename)) # to allow revision to be added to reversion history
+
+            return  Response( [dict(input_name=d.input_name, name=d.name,file=d._file.url, id=d.id, can_delete=d.can_delete, can_hide=d.can_hide) for d in instance.map_documents.filter(input_name=section, hidden=False) if d._file] )
 
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -1877,6 +1971,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return paginator.get_paginated_response(serializer.data)
 
+   
+
     @detail_route(methods=['GET',])
     def internal_proposal(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1936,6 +2032,28 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @detail_route(methods=['post'])
+    @renderer_classes((JSONRenderer,))
+    def validate_map_files(self, request, *args, **kwargs):
+        try:
+            instance = self.get_object()
+            if instance.apiary_group_application_type:
+                pass
+            else:
+                instance.validate_map_files(request)
+            instance.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+            #return redirect(reverse('external'))
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
+        
     @detail_route(methods=['GET',])
     def assign_request_user(self, request, *args, **kwargs):
         try:
@@ -2250,14 +2368,13 @@ class ProposalViewSet(viewsets.ModelViewSet):
         apiary_site_on_proposal.delete()
 
         return Response({'removed': 'success'})
-
+ 
     @detail_route(methods=['post'])
     @renderer_classes((JSONRenderer,))
     def draft(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
 
-            print('in draft')
             # Ensure the current user is a member of the organisation that created the draft application.
             is_authorised_to_modify_draft(request, instance)
 
@@ -2454,24 +2571,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
                 elif application_type.name == ApplicationType.TEMPORARY_USE:
                     approval_id = request.data.get('approval_id')
                     approval = Approval.objects.get(id=approval_id)
-
-                    # # format from_date
-                    # from_datetime = convert_utc_time_to_local(apiary_temp_use['from_date'])
-                    # from_date = from_datetime.date() if from_datetime else None
-                    #
-                    # # format to_date
-                    # to_datetime = convert_utc_time_to_local(apiary_temp_use['to_date'])
-                    # to_date = to_datetime.date() if to_datetime else None
-                    #
-                    # details_data['from_date'] = from_date
-                    # details_data['to_date'] = to_date
-                    # details_data['temporary_occupier_name'] = apiary_temp_use['temporary_occupier_name']
-                    # details_data['temporary_occupier_phone'] = apiary_temp_use['temporary_occupier_phone']
-                    # details_data['temporary_occupier_mobile'] = apiary_temp_use['temporary_occupier_mobile']
-                    # details_data['temporary_occupier_email'] = apiary_temp_use['temporary_occupier_email']
-                    # # details_data['proposal_apiary_base_id'] = apiary_temp_use['proposal_apiary_base_id']
-                    #
-                    # Save ProposalApiaryTemporaryUse
 
                     details_data['loaning_approval_id'] = approval_id
                     serializer = ProposalApiaryTemporaryUseSerializer(data=details_data)
@@ -3039,11 +3138,17 @@ class ProposalTypeSectionViewSet(viewsets.ReadOnlyModelViewSet):
     #queryset = ProposalTypeSection.objects.all().order_by('id')
     serializer_class = ProposalTypeSectionSerializer
 
+class SearchProposalTypeViewSet(viewsets.ReadOnlyModelViewSet):
+    #Only select Proposal Types which has Sections linked to them
+    proposal_type_ids= ProposalTypeSection.objects.all().values_list('proposal_type_id', flat=True).distinct()
+    queryset = ProposalType.objects.filter(id__in=proposal_type_ids)
+    serializer_class = SearchProposalTypeSerializer
+
 class SearchSectionsView(views.APIView):
     renderer_classes = [JSONRenderer,]
     def post(self,request, format=None):
         qs = []
-        application_type_name= request.data.get('application_type_name')
+        proposal_type_id= request.data.get('proposal_type_id')
         region= request.data.get('region')
         district= request.data.get('district')
         activity= request.data.get('activity')
@@ -3051,9 +3156,19 @@ class SearchSectionsView(views.APIView):
         question_id= request.data.get('question_id')
         option_label= request.data.get('option_label')
         is_internal= request.data.get('is_internal')
-        qs= search_sections(application_type_name, section_label,question_id,option_label,is_internal, region,district,activity)
+        qs= search_sections(proposal_type_id, section_label,question_id,option_label,is_internal, region,district,activity)
         #queryset = list(set(qs))
         serializer = SearchKeywordSerializer(qs, many=True)
+        return Response(serializer.data)
+
+class GetSearchGeoJsonView(views.APIView):
+    renderer_classes = [JSONRenderer,]
+    def post(self,request, format=None):
+        proposal_lodgement_numbers= request.data.get('proposal_lodgement_numbers')
+        
+        search_geojson= get_search_geojson(proposal_lodgement_numbers, request)
+        #queryset = list(set(qs))
+        serializer = SearchGeoJsonSerializer({'search_geojson':search_geojson})
         return Response(serializer.data)
 
 #Schema api's
@@ -3098,16 +3213,6 @@ class SchemaMasterlistFilterBackend(DatatablesFilterBackend):
 
         setattr(view, '_datatables_total_count', total_count)
         return queryset
-
-
-#class SchemaMasterlistRenderer(DatatablesRenderer):
-#    def render(self, data, accepted_media_type=None, renderer_context=None):
-#        if 'view' in renderer_context and \
-#                hasattr(renderer_context['view'], '_datatables_total_count'):
-#            data['recordsTotal'] = \
-#                renderer_context['view']._datatables_total_count
-#        return super(SchemaMasterlistRenderer, self).render(
-#            data, accepted_media_type, renderer_context)
 
 
 class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
@@ -3379,16 +3484,6 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
 
         setattr(view, '_datatables_total_count', total_count)
         return queryset
-
-
-#class SchemaQuestionRenderer(DatatablesRenderer):
-#    def render(self, data, accepted_media_type=None, renderer_context=None):
-#        if 'view' in renderer_context and \
-#                hasattr(renderer_context['view'], '_datatables_total_count'):
-#            data['recordsTotal'] = \
-#                renderer_context['view']._datatables_total_count
-#        return super(SchemaQuestionRenderer, self).render(
-#            data, accepted_media_type, renderer_context)
 
 
 class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
@@ -3808,11 +3903,17 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
         try:
 
             sections = ProposalType.objects.all()
+            # proposal_types = [
+            #     {
+            #         'label': s.name_with_version,
+            #         'value': s.id,
+            #     } for s in sections if not s.apiary_group_proposal_type and s.latest
+            # ]
             proposal_types = [
                 {
                     'label': s.name_with_version,
                     'value': s.id,
-                } for s in sections if not s.apiary_group_proposal_type and s.latest
+                } for s in sections if not s.apiary_group_proposal_type
             ]
 
             return Response(
@@ -3935,3 +4036,144 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
         except Exception as e:
             logger.exception()
             raise serializers.ValidationError(str(e))
+
+
+class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Proposal.objects.all()
+    serializer_class = DASMapFilterSerializer
+    permission_classes = []
+
+    def get_queryset(self):
+        user = self.request.user
+        exclude_application_type=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+
+        # if is_internal(self.request):
+        #     return Proposal.objects.filter(
+        #         Q(region__isnull=False) |
+        #         Q(application_type__name__in=[ApplicationType.DISTURBANCE,])).exclude(shapefile_json__isnull=True)
+        if is_internal(self.request):
+            return Proposal.objects.filter(
+                Q(region__isnull=False) | 
+                Q(application_type__name__in=exclude_application_type)).exclude(shapefile_json__isnull=True)
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            queryset = Proposal.objects.filter(region__isnull=False).filter(
+                Q(applicant_id__in=user_orgs) |
+                Q(submitter=user)
+            ).exclude(processing_status='')
+            queryset= queryset.exclude(shapefile_json__isnull=True)
+            return queryset
+
+        logger.warn("User is neither customer nor internal user: {} <{}>".format(user.get_full_name(), user.email))
+        return Proposal.objects.none()
+
+
+    def list(self, request, *args, **kwargs):
+        #Turning off the caching for now. Can be added if dashboard performance is poor.
+        # cache_key = settings.CACHE_KEY_MAP_PROPOSALS
+        # queryset = cache.get(cache_key)
+        # if queryset is None:
+        #     queryset = self.get_queryset()
+        #     cache.set(cache_key, queryset, settings.CACHE_TIMEOUT_2_HOURS)
+        # logger.debug(f"{cache_key}:{queryset}")
+        queryset = self.get_queryset()
+        search_text = request.GET.get('search[value]', '')
+        total_count = queryset.count()
+        def get_choice(status, choices=Proposal.PROCESSING_STATUS_CHOICES):
+            for i in choices:
+                if i[1]==status:
+                    return i[0]
+            return None
+
+        # on the internal dashboard, the Region filter is multi-select - have to use the custom filter below
+        regions = request.GET.get('regions')
+        if regions:
+            if queryset.model is Proposal:
+                queryset = queryset.filter(region__name__iregex=regions.replace(',', '|'))
+            elif queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__region__name__iregex=regions.replace(',', '|'))
+            #elif queryset.model is Approval:
+            #    queryset = queryset.filter(region__iregex=regions.replace(',', '|'))
+
+        
+        application_type = request.GET.get('application_type')
+        if application_type and not application_type.lower() =='all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__application_type__name=application_type)
+            else:
+                queryset = queryset.filter(application_type__name=application_type)
+        proposal_activity = request.GET.get('proposal_activity')
+        if proposal_activity and not proposal_activity.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__activity=proposal_activity)
+            else:
+                queryset = queryset.filter(activity=proposal_activity)
+        proposal_status = request.GET.get('proposal_status')
+        if proposal_status and not proposal_status.lower() == 'all':
+            #processing_status = get_choice(proposal_status, Proposal.PROCESSING_STATUS_CHOICES)
+            #queryset = queryset.filter(processing_status=processing_status)
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__processing_status=proposal_status)
+            else:
+                queryset = queryset.filter(processing_status=proposal_status)
+        
+        submitter = request.GET.get('submitter')
+        if submitter and not submitter.lower() == 'all':
+            if queryset.model is Referral or queryset.model is Compliance:
+                queryset = queryset.filter(proposal__submitter__email=submitter)
+            else:
+                queryset = queryset.filter(submitter__email=submitter)
+        date_from = request.GET.get('date_from')
+        date_to = request.GET.get('date_to')
+        if queryset.model is Proposal:
+            if date_from:
+                queryset = queryset.filter(lodgement_date__gte=date_from)
+
+            if date_to:
+                queryset = queryset.filter(lodgement_date__lte=date_to)
+        
+        serializer = DASMapFilterSerializer(queryset,context={'request':request}, many=True)
+        return Response(serializer.data)
+
+    @list_route(methods=['GET',])
+    def filter_list(self, request, *args, **kwargs):
+        """ Used by the internal/external dashboard filters """
+        template_group = get_template_group(request)
+        region_qs = []
+        activity_qs = []
+        application_type_qs = []
+        if template_group == 'apiary':
+            qs = self.get_queryset().filter(
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
+            )
+            submitter_qs = qs.filter(
+                submitter__isnull=False).filter(
+                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
+                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        else:
+            qs = self.get_queryset().exclude(
+                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE])
+            region_qs =  qs.filter(region__isnull=False).values_list('region_id', 'region__name').distinct()
+            submitter_qs = qs.filter(submitter__isnull=False).distinct(
+                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+            applicant_qs = qs.filter(applicant__isnull=False).distinct(
+                            'applicant_id').values_list('applicant_id','applicant__organisation__name',)
+
+        application_type_qs =  qs.filter(application_type__isnull=False).values_list('application_type__name', flat=True).distinct()
+        activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
+        submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
+        applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
+        regions = [dict(id=i[0], search_term='{}'.format(i[1])) for i in region_qs]
+        data = dict(
+            regions=regions,
+            #districts=district_qs,
+            activities=activity_qs,
+            submitters=submitters,
+            applicants=applicants,
+            application_types=application_type_qs,
+            processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
+            ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
+            approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
+        )
+        return Response(data)

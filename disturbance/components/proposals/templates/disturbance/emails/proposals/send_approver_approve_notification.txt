@@ -3,27 +3,34 @@
 {%  block content %}
     The Proposal {{ proposal.lodgement_number }} has been assessed and has been recommended for approval.
 
+    Region: {{proposal.region}}
+    {% if proposal.district %}
+        District: {{proposal.district}}
+    {% else %}
+        District: -
+    {% endif %}
     Title: {{proposal.title}}
     Activity: {{proposal.activity}}
-	Region: {{proposal.region}}
-	{% if proposal.district %}
-		District:{{proposal.district}}
-	{% else %}
-		District: -
-	{% endif %}
+    Assessor: {{assessor_name}}
 
 	{% if proposal.proposed_issuance_approval %}
-        <p>
-        	<span>Approved: </span>
-        </p>
-        <p>Start date: {{ start_date }}</p>
-        <p>Expiry date: {{ expiry_date }}</p>
-        <p>Details: {{ details }}</p>
+        
+        	<span>Recommended approval: </span>
+        
+        Start date: {{ start_date }}
+        Expiry date: {{ expiry_date }}
+        Details: {{ details }}
     {% endif %}
 
-    <p>
+    
     You can access this Proposal using the following link:
-    </p>
+    
     {{url}}
+
+    Note:
+    3 approval decisions a) Approve b) Decline or c) Request more information.
+	If more information or changes are needed push it ‘Back to Assessor’ including comments on what’s needed and by when.
+    Ensure appropriate Approval Level (authorisation) is gained prior to approval, attach evidence or comments to justify.
+    See {{ proposal_approver_help_page }} DAS 05 How to approve or decline an assessed proposal</a> for full instructions.
 
 {%  endblock %}

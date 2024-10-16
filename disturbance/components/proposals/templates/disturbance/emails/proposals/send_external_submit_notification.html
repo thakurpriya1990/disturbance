@@ -2,6 +2,16 @@
 
 {%  block content %}
 	Your Proposal {{ proposal.lodgement_number }} has been submitted.<br><br>
+    <p>
+        Region: {{proposal.region}}<br>
+        {% if proposal.district %}
+            District: {{proposal.district}}<br>
+        {% else %}
+            District: -<br>
+        {% endif %}
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+    </p>
 
 	Submitter: {{ proposal.submitter.get_full_name }}<br>
 	Lodgement date: {{ proposal.lodgement_date }}
@@ -10,6 +20,16 @@
     You can access this Proposal using the following link:
     </p>
     <a href="{{url}}">Access Proposal</a>
+
+    <p>
+		ATTENTION:
+		<ul>
+			<li>This notification confirms your proposal has been submitted for assessment, it is NOT AN APPROVAL.</li>
+			<li>Disturbance activities cannot commence until you have received an Approval letter.</li>
+            <li>Please contact the relevant DBCA district or region to determine who the assessor is for your proposal.</li>
+            <li>Maintain regular liaison with the assigned assessor to ensure no delays.</li>
+		</ul>
+	</p>
 
 
 {%  endblock %}

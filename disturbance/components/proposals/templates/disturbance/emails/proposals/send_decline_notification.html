@@ -3,6 +3,18 @@
 {%  block content %}
  
         <p>Proposal <strong>{{proposal.lodgement_number}}</strong> has been declined</p>
+        <p>
+                Region: {{proposal.region}}<br>
+                {% if proposal.district %}
+                        District: {{proposal.district}}<br>
+                {% else %}
+                        District: -<br>
+                {% endif %}
+                Title: {{proposal.title}}<br>
+                Activity: {{proposal.activity}}<br>
+                Declined Reason: {{ reason }}<br>
+                Please contact the relevant DBCA district or regional manager for further information, if required.<br>
+        </p>
    
    
 {%  endblock %}

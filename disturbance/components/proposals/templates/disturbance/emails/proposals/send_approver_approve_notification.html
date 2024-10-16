@@ -5,19 +5,20 @@
     
     
     <p>
-    Title: {{proposal.title}}<br>
-    Activity: {{proposal.activity}}<br>
-    Region: {{proposal.region}}<br>
-    {% if proposal.district %}
-        District:{{proposal.district}}
-    {% else %}
-        District: -
-    {% endif %}
+        Region: {{proposal.region}}<br>
+        {% if proposal.district %}
+            District: {{proposal.district}}<br>
+        {% else %}
+            District: -<br>
+        {% endif %}
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+        Assessor: {{ assessor_name }}<br>
     </p>
 
     {% if proposal.proposed_issuance_approval %}
         <p>
-        	<span>Approved: </span>
+        	<span>Recommended approval: </span>
         </p>
         <p>Start date: {{ start_date }}</p>
         <p>Expiry date: {{ expiry_date }}</p>
@@ -28,6 +29,16 @@
     You can access this Proposal using the following link:
     </p>
     <a href="{{url}}">Access Proposal</a>
+
+    <p>
+		Note:
+		<ul>
+			<li>3 approval decisions a) Approve b) Decline or c) Request more information.</li>
+			<li>If more information or changes are needed push it ‘Back to Assessor’ including comments on what’s needed and by when.</li>
+            <li>Ensure appropriate Approval Level (authorisation) is gained prior to approval, attach evidence or comments to justify.</li>
+            <li>See <a href="{{ proposal_approver_help_page }}">DAS 05 How to approve or decline an assessed proposal</a> for full instructions.</li>
+		</ul>
+	</p>
 
 
 {%  endblock %}

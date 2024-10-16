@@ -1,17 +1,20 @@
 {%  extends 'disturbance/emails/base_email.html' %}
 
 {%  block content %}
-	The Proposal {{ proposal.lodgement_number }} has been submitted and can be assessed.
+	A new proposal {{ proposal.lodgement_number }} has been submitted and is now ready for assessment.
 
 	<p>
-	Title: {{proposal.title}}<br>
-	Activity: {{proposal.activity}}<br>
+	
+	
 	Region: {{proposal.region}}<br>
 	{% if proposal.district %}
-		District:{{proposal.district}}
+		District: {{proposal.district}}<br>
 	{% else %}
-		District: -
+		District: -<br>
 	{% endif %}
+	Organisation: {{proposal.applicant}}<br>
+	Title: {{proposal.title}}<br>
+	Activity: {{proposal.activity}}<br>
 	</p>
 
 
@@ -19,6 +22,16 @@
     You can access this Proposal using the following link:
     </p>
     <a href="{{url}}">Access Proposal</a>
+
+	<p>
+		Note:
+		<ul>
+			<li>To start the assessment process an Assessor must be 'assigned' to the proposal ASAP.</li>
+			<li>To determine who is responsible for assessing a proposal consult your local Assessor’s ‘Regional Ready Reckoner’ or discuss with the district or regional manager.</li>
+			<li>DBCAs aim is to have proposals assessed and an approval decision made within 30-working days (from lodgment) unless significant amendments  are required. </li>
+			<li>See <a href="{{ proposal_assess_help_page }}">DAS 06 how to assess a proposal</a> for full instructions.</li>
+		</ul>
+	</p>
 
 
 {%  endblock %}

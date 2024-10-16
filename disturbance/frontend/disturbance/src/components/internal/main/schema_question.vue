@@ -139,7 +139,7 @@
                     </div>
                     <!-- <div class="row">
                         <div class="col-md-6">
-                        <div v-for="(c, cid) in ['isRepeatable', 'isRequired']" v-bind:key="`check_${cid}`" >
+                        <div v-for="(c, cid) in ['isRepeatable', 'isRequired','isCopiedToPermit','canBeEditedByAssessor' ]" v-bind:key="`check_${cid}`" >
                             <input type="checkbox" :value="true" v-model="getCheckedTag(c).isChecked" >&nbsp;&nbsp;<label>{{c.label}}</label></input><label>{{ c }}</label>
                         </div>
                         </div>
@@ -147,12 +147,27 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <input type="checkbox" :value="true" v-model="getCheckedTag('isRepeatable').isChecked" >&nbsp;&nbsp;&nbsp;<label>isRepeatable</label></input>
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isRepeatable').isChecked" >&nbsp;&nbsp;&nbsp;<label>is Repeatable</label></input>
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6">
-                            <input type="checkbox" :value="true" v-model="getCheckedTag('isRequired').isChecked" >&nbsp;&nbsp;&nbsp;<label>isRequired</label></input>
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isRequired').isChecked" >&nbsp;&nbsp;&nbsp;<label>is Required</label></input>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isCopiedToPermit').isChecked" >&nbsp;&nbsp;&nbsp;<label>is Copied To Permit</label></input>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('canBeEditedByAssessor').isChecked" >&nbsp;&nbsp;&nbsp;<label>can Be Edited By Assessor</label></input>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <input type="checkbox" :value="true" v-model="getCheckedTag('isTitleColumnForDashboard').isChecked" >&nbsp;&nbsp;&nbsp;<label>is Title Column For Dashboard</label></input>
                         </div>
                     </div>
 
@@ -488,7 +503,7 @@ export default {
                     tag: atag,
                     isChecked: set_checked,
                 }
-                if (['isRepeatable','isRequired'].includes(atag)){
+                if (['isRepeatable','isRequired', 'isCopiedToPermit', 'canBeEditedByAssessor', 'isTitleColumnForDashboard'].includes(atag)){
                     this.checkedTag.push(checked)
                 }
             }

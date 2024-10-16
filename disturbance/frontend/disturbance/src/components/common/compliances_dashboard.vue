@@ -313,6 +313,8 @@ export default {
                         // 5. Requirement
                         data: "requirement",
                         //name: "proposal__title",
+                        //searchable: false,
+                        name: "requirement__free_requirement, requirement__standard_requirement__text",
                         //visible: false,
                         'render': function (value, type) {
                             var ellipsis = '...',

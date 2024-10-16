@@ -65,7 +65,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="row">
+                    <!-- <div class="row">
                         <div class="col-md-3">
                             <label for="">Start From</label>
                             <div class="input-group date" ref="proposalStartDateFromPicker">
@@ -84,7 +84,7 @@
                                 </span>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                     <div class="row">
                         <div class="col-md-3">
                             <label for="">Expiry From</label>
@@ -270,7 +270,10 @@ export default {
             if (this.dasTemplateGroup) {
                 columnHeaders.push("Region",
                 "Activity",
-                "Title");
+                "Title",);
+                if(!this.is_external){
+                    columnHeaders.push("Associated Proposals");
+                }
             }
             columnHeaders.push("Holder",
                 "Status",
@@ -370,6 +373,16 @@ export default {
                     //visible: false,
                     searchable: true,
                 });
+                if (!this.is_external){
+                    columnList.push(
+                    {
+                        data: "associated_proposals",
+                        //name: "current_proposal__activity",
+                        //visible: false,
+                        searchable: false,
+                    });
+                }
+                
             };
             columnList.push({
                     data: "applicant",
@@ -605,25 +618,25 @@ export default {
         addEventListeners: function(){
             let vm = this;
             // Initialise Proposal Date Filters
-            $(vm.$refs.proposalStartDateToPicker).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.proposalStartDateToPicker).on('dp.change', function(e){
-                if ($(vm.$refs.proposalStartDateToPicker).data('DateTimePicker').date()) {
-                    vm.filterProposalStartTo =  e.date.format('DD/MM/YYYY');
-                }
-                else if ($(vm.$refs.proposalStartDateToPicker).data('date') === "") {
-                    vm.filterProposaStartTo = "";
-                }
-             });
-            $(vm.$refs.proposalStartDateFromPicker).datetimepicker(vm.datepickerOptions);
-            $(vm.$refs.proposalStartDateFromPicker).on('dp.change',function (e) {
-                if ($(vm.$refs.proposalStartDateFromPicker).data('DateTimePicker').date()) {
-                    vm.filterProposalStartFrom = e.date.format('DD/MM/YYYY');
-                    $(vm.$refs.proposalStartDateToPicker).data("DateTimePicker").minDate(e.date);
-                }
-                else if ($(vm.$refs.proposalStartDateFromPicker).data('date') === "") {
-                    vm.filterProposalStartFrom = "";
-                }
-            });
+            // $(vm.$refs.proposalStartDateToPicker).datetimepicker(vm.datepickerOptions);
+            // $(vm.$refs.proposalStartDateToPicker).on('dp.change', function(e){
+            //     if ($(vm.$refs.proposalStartDateToPicker).data('DateTimePicker').date()) {
+            //         vm.filterProposalStartTo =  e.date.format('DD/MM/YYYY');
+            //     }
+            //     else if ($(vm.$refs.proposalStartDateToPicker).data('date') === "") {
+            //         vm.filterProposaStartTo = "";
+            //     }
+            //  });
+            // $(vm.$refs.proposalStartDateFromPicker).datetimepicker(vm.datepickerOptions);
+            // $(vm.$refs.proposalStartDateFromPicker).on('dp.change',function (e) {
+            //     if ($(vm.$refs.proposalStartDateFromPicker).data('DateTimePicker').date()) {
+            //         vm.filterProposalStartFrom = e.date.format('DD/MM/YYYY');
+            //         $(vm.$refs.proposalStartDateToPicker).data("DateTimePicker").minDate(e.date);
+            //     }
+            //     else if ($(vm.$refs.proposalStartDateFromPicker).data('date') === "") {
+            //         vm.filterProposalStartFrom = "";
+            //     }
+            // });
             $(vm.$refs.proposalExpiryDateToPicker).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.proposalExpiryDateToPicker).on('dp.change', function(e){
                 if ($(vm.$refs.proposalExpiryDateToPicker).data('DateTimePicker').date()) {

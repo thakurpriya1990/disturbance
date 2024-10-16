@@ -1,5 +1,3 @@
-
-
 import logging
 import copy
 import subprocess
@@ -9,11 +7,13 @@ import datetime
 import pytz
 import requests
 import re
+import traceback
+import os
 
 from dateutil.relativedelta import relativedelta
-from django.contrib.gis.db.models.fields import PointField
+from django.contrib.gis.db.models.fields import PointField, MultiPolygonField, GeometryField, GeometryCollectionField
 from django.contrib.gis.db.models.manager import GeoManager
-from django.contrib.gis.geos import GEOSGeometry
+from django.contrib.gis.geos import GEOSGeometry, MultiPolygon
 from django.contrib.gis.measure import Distance
 from django.contrib.postgres.fields import ArrayField
 from django.db import models,transaction
@@ -25,6 +25,7 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
+from django.core.paginator import Paginator
 
 from dirtyfields import DirtyFieldsMixin
 from reversion.models import Version
@@ -44,7 +45,7 @@ from ledger.payments.models import Invoice
 from disturbance import exceptions
 from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, UserAction, Document, Region, District, \
-    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca
+    ApplicationType, RegionDbca, DistrictDbca, CategoryDbca, DASMapLayer, TaskMonitor, RequestTypeEnum
 from disturbance.components.main.utils import get_department_user
 from disturbance.components.proposals.email import (
         send_referral_email_notification,
@@ -63,21 +64,34 @@ from disturbance.components.proposals.email import (
         send_site_transfer_approval_email_notification,
         )
 from disturbance.ordered_model import OrderedModel
+import copy
+import subprocess
+from multiselectfield import MultiSelectField
+from smart_selects.db_fields import ChainedForeignKey, ChainedManyToManyField, GroupedForeignKey
+from django.core.urlresolvers import reverse
 
 
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_PENDING, SITE_STATUS_APPROVED, SITE_STATUS_DENIED, \
     SITE_STATUS_CURRENT, RESTRICTED_RADIUS, SITE_STATUS_TRANSFERRED, PAYMENT_SYSTEM_ID, PAYMENT_SYSTEM_PREFIX, \
-    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED
+    SITE_STATUS_SUSPENDED, SITE_STATUS_NOT_TO_BE_REISSUED, \
+    CRS, OGR2OGR
 
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
-private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+#private_storage = FileSystemStorage(location=settings.BASE_DIR+"/private-media/", base_url='/private-media/')
+private_storage = FileSystemStorage(location="private-media/", base_url='/private-media/')
 
 logger = logging.getLogger(__name__)
+
+DATE_FMT = '%Y-%m-%d'
+DATETIME_FMT = '%Y-%m-%d %H:%M:%S'
 
 
 def update_proposal_doc_filename(instance, filename):
     return 'proposals/{}/documents/{}'.format(instance.proposal.id,filename)
+
+def update_proposal_map_doc_filename(instance, filename):
+    return 'proposals/{}/documents/map_docs/{}'.format(instance.proposal.id,filename)
 
 def update_proposal_comms_log_filename(instance, filename):
     return 'proposals/{}/communications/{}/{}'.format(instance.log_entry.proposal.id,instance.log_entry.id,filename)
@@ -255,6 +269,74 @@ class ProposalApproverGroup(models.Model):
     def members_email(self):
         return [i.email for i in self.members.all()]
 
+class CddpQuestionGroup(models.Model):
+    name = models.CharField(max_length=255)
+    members = models.ManyToManyField(EmailUser)
+    default = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Spatial Question Group'
+
+    def __str__(self):
+        return self.name
+
+#    def clean(self):
+#        try:
+#            default = CddpQuestionGroup.objects.get(default=True)
+#        except CddpQuestionGroup.DoesNotExist:
+#            default = None
+#
+#        if self.pk:
+#            if not self.default and not self.region:
+#                raise ValidationError('Only default can have no region set for proposal assessor group. Please specifiy region')
+#        else:
+#            if default and self.default:
+#                raise ValidationError('There can only be one default proposal approver group')
+
+#    def member_is_assigned(self,member):
+#        for p in self.current_proposals:
+#            if p.assigned_approver == member:
+#                return True
+#        return False
+
+    @property
+    def current_cddp_questions(self):
+        return SpatialQueryQuestion.objects.filter(group=self.name)
+
+    @property
+    def members_email(self):
+        return [i.email for i in self.members.all()]
+
+#class __ApiaryAssessorGroup(models.Model):
+#    #site = models.OneToOneField(Site, default='1')
+#    members = models.ManyToManyField(EmailUser)
+#
+#    def __str__(self):
+#        return 'Apiary Assessors Group'
+#
+#    @property
+#    def all_members(self):
+#        all_members = []
+#        all_members.extend(self.members.all())
+#        member_ids = [m.id for m in self.members.all()]
+#        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
+#        return all_members
+#
+#    @property
+#    def filtered_members(self):
+#        return self.members.all()
+#
+#    class Meta:
+#        app_label = 'disturbance'
+#        verbose_name_plural = 'Apiary Assessors Group'
+#
+#    @property
+#    def members_email(self):
+#        return [i.email for i in self.members.all()]
+
+
+
 class DefaultDocument(Document):
     input_name = models.CharField(max_length=255,null=True,blank=True)
     can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
@@ -269,6 +351,21 @@ class DefaultDocument(Document):
             return super(DefaultDocument, self).delete()
         logger.info('Cannot delete existing document object after Application has been submitted (including document submitted before Application pushback to status Draft): {}'.format(self.name))
 
+class ProposalMapDocument(Document):
+    proposal = models.ForeignKey('Proposal',related_name='map_documents')
+    _file = models.FileField(upload_to=update_proposal_map_doc_filename, max_length=500, storage=private_storage)
+    input_name = models.CharField(max_length=255,null=True,blank=True)
+    can_delete = models.BooleanField(default=True) # after initial submit prevent document from being deleted
+    can_hide= models.BooleanField(default=False) # after initial submit, document cannot be deleted but can be hidden
+    hidden=models.BooleanField(default=False) # after initial submit prevent document from being deleted
+
+    def delete(self):
+        if self.can_delete:
+            return super(ProposalMapDocument, self).delete()
+        logger.info('Cannot delete existing document object after Proposal has been submitted (including document submitted before Proposal pushback to status Draft): {}'.format(self.name))
+
+    class Meta:
+        app_label = 'disturbance'
 
 class ProposalDocument(Document):
     proposal = models.ForeignKey('Proposal',related_name='documents')
@@ -385,8 +482,15 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     data = JSONField(blank=True, null=True)
     assessor_data = JSONField(blank=True, null=True)
     comment_data = JSONField(blank=True, null=True)
+    add_info_applicant=JSONField(blank=True, null=True) #To store addition info provided by applicant for the question answered by GIS.
+    add_info_assessor=JSONField(blank=True, null=True) #To store addition info provided by assessor for the question answered by GIS.
+    history_add_info_assessor=JSONField(blank=True, null=True) #To store history of addition info provided by assessor for the question answered by GIS.
+    layer_data = JSONField(blank=True, null=True)
+    refresh_timestamp = JSONField(blank=True, null=True)
+    prefill_timestamp = models.DateTimeField(blank=True, null=True)
     schema = JSONField(blank=False, null=False)
     proposed_issuance_approval = JSONField(blank=True, null=True)
+    gis_info = JSONField(blank=True, null=True)
     #hard_copy = models.ForeignKey(Document, blank=True, null=True, related_name='hard_copy')
 
     customer_status = models.CharField('Customer Status', max_length=40, choices=CUSTOMER_STATUS_CHOICES,
@@ -443,8 +547,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     # fee_invoice_reference = models.CharField(max_length=50, null=True, blank=True, default='')
     fee_invoice_references = ArrayField(models.CharField(max_length=50, null=True, blank=True, default=''), null=True, default=fee_invoice_references_default)
     migrated = models.BooleanField(default=False)
+    shapefile_json = JSONField('Source/Submitter (multi) polygon geometry', blank=True, null=True)
+    shapefile_geom = MultiPolygonField('Source/Submitter gdf.exploded (multi) polygon geometry', srid=4326, blank=True, null=True) # for 'pgsql2shp' from KB
     reissued = models.BooleanField(default=False)
-
 
     class Meta:
         app_label = 'disturbance'
@@ -475,12 +580,38 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         # so we have a way of filtering based on the status changing
         if self.processing_status != original_processing_status:
             self.save(version_comment=f'processing_status: {self.processing_status}')
+#            das_geom, created = DASGeometry.objects.update_or_create(
+#               
+#           )
+
         elif self.assessor_data != original_assessor_data:
             # Although the status hasn't changed we add the text 'processing_status'
             # So we can filter based on it later (for both assessor_data and comment_data)
             self.save(version_comment='assessor_data: Has changed - tagging with processing_status')
         elif self.comment_data != original_comment_data:
             self.save(version_comment='comment_data: Has changed - tagging with processing_status')
+
+#    def save_geom(self):
+#        columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','assocprop','proptype','propurl','prop_activ','geometry']
+#        gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry") 
+#        gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)
+#
+#       das_geom, created = DASGeometry.objects.update_or_create(
+#           proposal = models.ForeignKey(Proposal, unique=True),
+#           org = self.applicant.name if p.applicant else None,
+#           app_no = self.approval.lodgement_number if p.approval else None,
+#           prop_title = self.title,
+#           appissdate = self.approval.issue_date.strftime("%Y-%d-%d") if p.approval else None,
+#           appstadate = self.approval.start_date.strftime("%Y-%d-%d") if p.approval else None,
+#           appexpdate = self.approval.expiry_date.strftime("%Y-%d-%d") if p.approval else None,
+#           appstatus = self.approval.status if p.approval else None,
+#           assocprop = list(Proposal.objects.filter(approval__lodgement_number=self.approval.lodgement_number).values_list('lodgement_number', flat=True)) if self.approval else None,
+#           proptype = self.proposal_type,
+#           propurl = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': self.id}),
+#           prop_activ = self.activity,
+#           geometry = GeometryField(srid=4326)
+#       )
+
 
     @property
     def fee_paid(self):
@@ -635,6 +766,18 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         """
         return self.customer_status in self.CUSTOMER_VIEWABLE_STATE
 
+    @property
+    def in_prefill_queue(self):
+        """
+        :return: True if the application is in the prefilling queue.
+        """
+        queue_status=[TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]
+        if self.taskmonitor_set.all():
+            task=self.taskmonitor_set.latest('id')
+            if task.status in queue_status:
+                return True        
+        return False
+    
     @property
     def is_discardable(self):
         """
@@ -1389,6 +1532,213 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def log_user_action(self, action, request):
         return ProposalUserAction.log_action(self, action, request.user)
 
+    def log_metrics(self, when, sqs_response, time_taken, response_cached=False):
+        system = sqs_response['system'] if sqs_response and 'system' in sqs_response else 'Unknown'
+        request_type = sqs_response['request_type'] if sqs_response and 'request_type' in sqs_response else 'Unknown'
+        return SpatialQueryMetrics.objects.create(proposal=self, when=when, system=system, request_type=request_type, sqs_response=sqs_response, time_taken=time_taken, response_cached=response_cached)
+
+    def validate_map_files(self, request):
+        import geopandas as gpd
+        try:
+            shp_file_qs=self.map_documents.filter(name__endswith='.shp')
+            MAX_NO_POLYGONS=15
+            try:
+                from disturbance.components.main.models import GlobalSettings
+                gs_key=GlobalSettings.objects.get(key=GlobalSettings.MAX_NO_POLYGONS)
+                if gs_key and gs_key.value.isdigit():
+                   MAX_NO_POLYGONS=int(gs_key.value) 
+            except:
+                MAX_NO_POLYGONS=15
+            #TODO : validate shapefile and all the other related filese are present
+            if shp_file_qs:
+                shp_file_obj= shp_file_qs.last()
+                # shp_file=shp_file_obj._file
+                # shp= gpd.read_file(shp_file_obj.path)
+                # shp_transform=shp.to_crs(crs=4326)
+                # shp_json=shp_transform.to_json()
+
+                #result = subprocess.run(f'{OGR2OGR} -f GeoJSON -lco COORDINATE_PRECISION={GEOM_PRECISION} /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                #result = subprocess.run(f'{OGR2OGR} -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                result = subprocess.run(f'{OGR2OGR} -t_srs EPSG:4326 -f GeoJSON /vsistdout/ {shp_file_obj.path}', capture_output=True, text=True, check=True, shell=True)
+                shp_json = json.loads(result.stdout)
+                shapefile_json=None
+                if type(shp_json)==str:
+                    shapefile_json=json.loads(shp_json)
+                else:
+                    shapefile_json=shp_json
+
+                #The features id has to be unique for each shapefile_json
+                if shapefile_json and 'features' in shapefile_json:
+                    num_features = len(shapefile_json['features'])
+                    if num_features > 0 and num_features <= MAX_NO_POLYGONS:
+                        if 'id' in shapefile_json['features'][0]:
+                            shapefile_json['features'][0]['id']=self.id
+                        self.shapefile_json=shapefile_json
+                    else:
+                        msg = 'no features found in shapefile' if num_features == 0 else f'too many features: {num_features} (max {MAX_NO_POLYGONS})' 
+                        raise ValidationError(f'Cannot upload a Shapefile - {msg}')
+                else:
+                    raise ValidationError('Please upload a valid shapefile')
+
+
+#                # Explode multi-part geometries into multiple single geometries. 'pgsql2shp' cannot handle multi-part geometries (mix of Polygon and MultiPolygon Geometries)
+#                gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
+#                exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
+#                # Set proposal_geom field for shapefile export sql query (from KB)
+#                geoms = []         
+#                #for ft in self.shapefile_json['features']:
+#                for ft in exploded_shapefile['features']:
+#                    geom = GEOSGeometry(json.dumps(ft['geometry']))        
+#                    geoms.append(geom)       
+#                self.shapefile_geom = MultiPolygon(geoms)
+
+                # Explode multi-part geometries into multiple single geometries.
+                self.set_shapefile_geom()
+
+                self.save(version_comment='New Shapefile JSON saved.')
+                # else:
+                #     raise ValidationError('Please upload a valid shapefile')
+            else:
+                raise ValidationError('Please upload a valid shapefile') 
+        except Exception as e:
+            #Delete the uploaded shapefile as it is invalid
+            map_docs=self.map_documents.all()
+            if map_docs:
+                for document in map_docs:
+                    if document._file and os.path.isfile(document._file.path) and document.can_delete:
+                        os.remove(document._file.path)
+                        document.delete()
+                    else:
+                        document.hidden=True
+                        document.save()
+            self.shapefile_json=None
+            self.shapefile_exp_json=None
+            self.save(version_comment='Shapefile json cleared as invalid shapefile uploaded.')
+            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
+
+
+    def set_shapefile_geom(self):
+        ''' Explode multi-part geometries into multiple single geometries. 
+            pgsql2shp cannot handle multi-part geometries (mix of Polygon and MultiPolygon Geometries)
+            
+            Test:
+                pgsql2shp -f DAS_WA -h localhost -u <username> -p 5432 -P <passwd> db_name  'select p.lodgement_number AS app_no, p.shapefile_geom AS geometry from disturbance_proposal p where p.id=<p.id>;'
+        '''
+        import geopandas as gpd
+        if self.shapefile_geom:
+            return self.shapefile_geom
+
+        geoms = []         
+        try:
+            gdf = gpd.GeoDataFrame.from_features(self.shapefile_json)
+            exploded_shapefile = json.loads(gdf.explode(index_parts=True, ignore_index=False).to_json()) 
+            #exploded_shapefile = self.shapefile_json
+            #for ft in self.shapefile_json['features']:
+            for ft in exploded_shapefile['features']:
+                geom = GEOSGeometry(json.dumps(ft['geometry']))        
+                geoms.append(geom)       
+
+            self.shapefile_geom = MultiPolygon(geoms)
+        except Exception as e:
+            logger.error(geoms)
+            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
+
+
+    def get_lonlat(self):
+       ''' Get longitude and latitude from centroid of polygon
+           Returns Point(x,y)
+       ''' 
+       import geopandas as gpd 
+       try:
+           if self.shapefile_json is None:
+               logger.warn(f'No shapefile found. Upload shapefile to the Proposal first')
+               return
+           gdf = gpd.read_file(json.dumps(self.shapefile_json), driver='GeoJSON')
+           return gdf.centroid[0]
+       except Exception as e:
+           logger.error(f'Error getting lon/lat from shapefile {str(e)}\n' + str(traceback.print_exc()))
+
+       return None
+        
+    def prefill_proposal(self, request):
+        import geopandas as gpd 
+        try:
+            #TODO : validate shapefile and all the other related filese are present
+            if self.shapefile_json:
+                print('yes')
+                
+            else:
+                raise ValidationError('Please upload a valid shapefile') 
+        except:
+            raise ValidationError('Please upload a valid shapefile')
+
+    def get_history_add_info_assessor(self):
+        try:
+            history={}
+            if self.add_info_assessor:
+                for key in self.add_info_assessor:
+                    if self.history_add_info_assessor and key in self.history_add_info_assessor:
+                        new_value=''
+                        if type(self.add_info_assessor[key])==str:
+                            new_value=self.history_add_info_assessor[key]+'/r/n/n'+self.add_info_assessor[key]
+                        else:
+                            new_value=self.history_add_info_assessor[key]
+                        history[key]=new_value
+                    else:
+                        history[key]=self.add_info_assessor[key]
+            return history
+        except:
+            raise
+    
+    def get_layers_info():
+        import geopandas as gpd
+
+        qs=DASMapLayer.objects.filter(layer_url__isnull=False)
+        gdf = gpd.GeoDataFrame()
+        if qs:
+            for layer in qs:
+                if layer.layer_url:
+                    if 'public' not in layer.layer_url:
+                        response = requests.get('{}'.format(layer.layer_url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
+                    else:
+                        response=requests.get('{}'.format(layer.layer_url), verify=None)
+                    layer_gdf = gpd.GeoDataFrame.from_features(response.json()["features"])
+                    gdf = gdf.append(layer_gdf)
+
+        output_file='/data/data/projects/disturbance_das_gis/media/proposals/1734/documents/map_docs/output/layers.geojson'
+        gdf.to_file(output_file, driver="GeoJSON")
+
+        #res = requests.get('{}'.format(self.url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
+
+
+    def combine_shapefile_json():
+        import geopandas as gpd
+
+        qs=Proposal.objects.filter(shapefile_json__isnull=False)
+        gdf = gpd.GeoDataFrame()
+        combined_features=[]
+        if qs:
+            for proposal in qs:
+                if proposal.shapefile_json:
+                    features=proposal.shapefile_json.get('features',[])
+                    combined_features.extend(features)
+        combined_geojson={
+            'type': 'FeatureCollection',
+            'features': combined_features
+        }
+                    # if 'public' not in proposal.layer_url:
+                    #     response = requests.get('{}'.format(layer.layer_url), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=None)
+                    # else:
+                    #     response=requests.get('{}'.format(layer.layer_url), verify=None)
+                    # layer_gdf = gpd.GeoDataFrame.from_features(re sponse.json()["features"])
+                    # gdf = gdf.append(layer_gdf)
+
+        output_file_path='/data/data/projects/disturbance_das_gis/media/proposals/1734/documents/map_docs/output/proposal.geojson'
+        with open(output_file_path, 'w') as output_file:
+            json.dump(combined_geojson, output_file)
+        #gdf.to_file(output_file, driver="GeoJSON")
+
+
     def submit(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
         with transaction.atomic():
@@ -1696,6 +2046,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.processing_status = 'declined'
                 self.customer_status = 'declined'
                 self.save()
+                reason = details.get('reason')
 
                 if hasattr(self, 'proposal_apiary') and self.proposal_apiary:
                     # Update apiary site status
@@ -1846,6 +2197,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                             'expiry_date' : expiry_date,
                             'details' : details.get('details'),
                             'cc_email' : details.get('cc_email'),
+                            'confirmation': details.get('confirmation'),
 
                             #'cpc_date' : cpc_date,
                             #'minister_date' : minister_date,
@@ -1862,7 +2214,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 self.proposed_decline_status = False
                 approver_comment = ''
                 self.move_to_status(request,'with_approver', approver_comment)
-                self.assigned_officer = None
+                #self.assigned_officer = None
 
                 apiary_sites = request.data.get('apiary_sites', None)
                 apiary_sites_list = []
@@ -2027,6 +2379,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                     'expiry_date' : details.get('expiry_date').strftime('%d/%m/%Y'),
                     'details': details.get('details'),
                     'cc_email':details.get('cc_email'),
+                    'confirmation': details.get('confirmation')
 
 #                    'cpc_date' : details.get('cpc_date').strftime('%d/%m/%Y'),
 #                    'minister_date' : details.get('minister_date').strftime('%d/%m/%Y'),
@@ -2366,6 +2719,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def internal_view_log(self,request):
         self.log_user_action(ProposalUserAction.ACTION_VIEW_PROPOSAL.format(self.lodgement_number), request)
         return self
+
 
     def apiary_requirements(self, approval=None):
         if self.application_type.name == ApplicationType.SITE_TRANSFER and approval:
@@ -2728,6 +3082,18 @@ class ProposalUserAction(UserAction):
     APIARY_SITE_MOVED = "Apiary Site {} has been moved from {} to {}"
     APIARY_REFERRAL_ASSIGN_TO_ASSESSOR = "Assign Referral {} of application {} to {} as the assessor"
     APIARY_REFERRAL_UNASSIGN_ASSESSOR = "Unassign assessor from Referral {} of application {}"
+    # SQS
+    ACTION_PREFILL_PROPOSAL = "Prefill Proposal {}"
+    ACTION_REFRESH_PROPOSAL = "Refresh data for Proposal {}"
+    ACTION_SEND_PREFILL_REQUEST_TO = "Prefill request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
+    ACTION_SEND_PREFILL_COMPLETED_TO = "Prefill for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
+    ACTION_SEND_PREFILL_ERROR_TO = "ERROR: Prefill for proposal {}"
+    ACTION_SEND_REFRESH_REQUEST_TO = "Refresh request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
+    ACTION_SEND_REFRESH_COMPLETED_TO = "Refresh for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
+    ACTION_SEND_REFRESH_ERROR_TO = "ERROR: Refresh for proposal {}"
+    ACTION_SEND_TEST_SQQ_REQUEST_TO = "Test SQQ request for proposal {} sent. (DAS TaskMonitor ID {}, SQS Task ID {}, SQS Queue Position {})"
+    ACTION_SEND_TEST_SQQ_COMPLETED_TO = "Test SQQ for proposal {} completed. (DAS TaskMonitor ID {}, SpatialQueryMetric ID {}, SQS Task ID {})"
+    ACTION_SEND_TEST_SQQ_ERROR_TO = "ERROR: TEST SQQ for proposal {}"
 
     class Meta:
         app_label = 'disturbance'
@@ -3145,15 +3511,17 @@ def search_reference(reference_number):
     else:
         raise ValidationError('Record with provided reference number does not exist')
 
-def search_sections(application_type_name, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
+def search_sections(proposal_type_id, section_label,question_id,option_label,is_internal= True, region=None,district=None,activity=None):
     from disturbance.utils import search_section
     #print(application_type_name, section_label,question_label,option_label,is_internal)
-    qs = []
+    res_qs = []
     if is_internal:
-        if(not application_type_name or not section_label or not question_id or not option_label):
+        if(not proposal_type_id or not section_label or not question_id or not option_label):
             raise ValidationError('Some of the mandatory fields are missing')
-        #import ipdb; ipdb.set_trace()
-        proposal_list = Proposal.objects.filter(application_type__name=application_type_name).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+        proposal_type=ProposalType.objects.get(id=proposal_type_id)
+        proposal_type_name=proposal_type.name
+        qs = Proposal.objects.filter(application_type__name=proposal_type_name, data__isnull=False).exclude(processing_status__in=[Proposal.PROCESSING_STATUS_DISCARDED, Proposal.PROCESSING_STATUS_DRAFT])
+
         question=MasterlistQuestion.objects.get(id=question_id)
         filter_conditions={}
         if region:
@@ -3163,12 +3531,15 @@ def search_sections(application_type_name, section_label,question_id,option_labe
         if activity:
             filter_conditions['activity']=activity
         if filter_conditions:
-            proposal_list=proposal_list.filter(**filter_conditions)
-        if proposal_list:
-            for p in proposal_list:
+            qs=qs.filter(**filter_conditions)
+
+        paginator = Paginator(qs, settings.QS_PAGINATOR_SIZE) # chunks
+        for page_num in paginator.page_range:
+            for p in paginator.page(page_num).object_list:
                 if p.data:
                     try:
                         results = search_section(p.schema, section_label, question, p.data, option_label)
+                        #print(f'{idx}: {p} - {results}')
                         final_results = {}
                         if results:
                             # for r in results:
@@ -3181,12 +3552,73 @@ def search_sections(application_type_name, section_label,question_id,option_labe
                                 'applicant': p.applicant.name,
                                 'text': results[0],
                                 }
-                            qs.append(res)
-                    except:
+                            res_qs.append(res)
+                    except Exception as e:
+                        print(e)
                         raise
 
+    return res_qs
 
-    return qs
+def add_properties_to_feature(features, proposal, request):
+    new_properties={}
+    new_properties['proposal_number']=proposal.lodgement_number
+    new_properties['organisation'] = proposal.applicant.name
+    new_properties['proposal_title']= proposal.title
+    new_properties['proposal_type']=proposal.proposal_type
+    new_properties['proposal_url'] = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    
+
+    if proposal.approval:
+        qs=Proposal.objects.filter(approval__lodgement_number=proposal.approval.lodgement_number).values_list('lodgement_number', flat=True)
+        if qs:
+            new_properties['associated_proposals']= [proposal for proposal in qs]
+        new_properties['approval_number']=proposal.approval.lodgement_number
+        new_properties['approval_issue_date']=proposal.approval.issue_date
+        new_properties['approval_start_date']=proposal.approval.start_date
+        new_properties['approval_expiry_date']=proposal.approval.expiry_date
+        new_properties['approval_status']=proposal.approval.status
+
+    if features:
+        for feature in features:
+            if 'properties' in feature:
+                feature['properties'].update(new_properties)
+            else:
+                feature['properties']=new_properties
+    return features
+
+def get_search_geojson(proposal_lodgement_numbers,request):
+    combined_geojson=None
+    try:
+        import geopandas as gpd
+
+        qs=Proposal.objects.filter(lodgement_number__in=proposal_lodgement_numbers, shapefile_json__isnull=False)
+        combined_features=[]
+        if qs:
+            for proposal in qs:
+                if proposal.shapefile_json:
+                    gpd_shp=gpd.read_file(json.dumps(proposal.shapefile_json))
+                    shp_transform=gpd_shp.to_crs(crs=4326)
+                    shp_json=shp_transform.to_json()
+                    if type(shp_json)==str:
+                        shp_json=json.loads(shp_json)
+                    else:
+                        shp_json=shp_json
+                    features=shp_json.get('features',[])
+                    updated_features=add_properties_to_feature(features, proposal, request)
+                    combined_features.extend(updated_features)
+            combined_geojson={
+                'type': 'FeatureCollection',
+                'crs': {
+                    'type': 'name',
+                    'properties': {
+                        'name': 'urn:ogc:def:crs:OGC:1.3:CRS84'
+                    }
+                },
+                'features': combined_features
+            }
+        return combined_geojson
+    except:
+        raise
 
 from ckeditor.fields import RichTextField
 class HelpPage(models.Model):
@@ -4456,7 +4888,6 @@ class ApiarySite(models.Model):
         return '{}'.format(self.id,)
 
     def save(self, **kwargs):
-        #import ipdb; ipdb.set_trace()
         if not self.id:
             max = ApiarySite.objects.aggregate(id_max=Max('id'))['id_max']
             self.id = int(max) + 1 if max is not None else 1
@@ -4746,6 +5177,36 @@ class SupportingApplicationDocument(Document):
 
     class Meta:
         app_label = 'disturbance'
+
+
+def export_file_path(instance, filename):
+    return f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+
+class OldFileExportManager(models.Manager):
+    def get_queryset(self):
+        days_ago = timezone.now() - datetime.timedelta(days=settings.CLEAR_AFTER_DAYS_FILE_EXPORT)
+        return super().get_queryset().filter(created__lt=days_ago)
+
+
+class ExportDocument(models.Model):
+    _file = models.FileField(upload_to=export_file_path, max_length=255, storage=private_storage)
+    requester = models.ForeignKey(EmailUser, related_name='+')
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    proposal = models.ForeignKey('Proposal', blank=True, null=True)
+  
+    objects = models.Manager()
+    old_files = OldFileExportManager()
+
+    class Meta:
+        app_label = 'disturbance'
+
+    def __str__(self):
+        return f'Document {self._file}'
+
+    @property
+    def filename(self):
+        return os.path.basename(self._file.name)
+
 
 #class DeedPollDocument(DefaultDocument):
 #    proposal = models.ForeignKey('Proposal', related_name='deed_poll_documents')
@@ -5187,8 +5648,8 @@ class ApiaryReferral(RevisionedMixin):
 # --------------------------------------------------------------------------------------
 @python_2_unicode_compatible
 class QuestionOption(models.Model):
-    label = models.CharField(max_length=100, unique=True)
-    value = models.CharField(max_length=100)
+    label = models.CharField(max_length=255, unique=True)
+    value = models.CharField(max_length=255)
 
     class Meta:
         app_label = 'disturbance'
@@ -5495,6 +5956,7 @@ class SectionQuestion(models.Model):
                  ('isRequired', 'isRequired'),
                  ('canBeEditedByAssessor', 'canBeEditedByAssessor'),
                  ('isRepeatable', 'isRepeatable'),
+                 ('isTitleColumnForDashboard', 'isTitleColumnForDashboard'),
                 )
     section=models.ForeignKey(ProposalTypeSection, related_name='section_questions', on_delete=models.PROTECT)
     question=models.ForeignKey(MasterlistQuestion, related_name='question_sections',on_delete=models.PROTECT)
@@ -5636,9 +6098,223 @@ class SectionQuestion(models.Model):
 # Generate JSON schema models start
 # --------------------------------------------------------------------------------------
 
+#class CurrentSpatialQueryQuestionManager(models.Manager):
+#    ''' Return queryset with non-expired SpatialQueryQuestions '''
+#    def get_queryset(self):
+#        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
+
+class SpatialQueryQuestion(RevisionedMixin):
+                        
+    question = models.ForeignKey(MasterlistQuestion, related_name='questions', on_delete=models.PROTECT)
+    answer_mlq = models.ForeignKey(QuestionOption, related_name='question_options', on_delete=models.PROTECT, blank=True, null=True)
+    group = models.ForeignKey(CddpQuestionGroup, related_name='groups', on_delete=models.CASCADE)
+    other_data = JSONField('Additional/Misc Data', blank=True, null=True)
+                               
+    objects = models.Manager()
+#    current_questions = CurrentSpatialQueryQuestionManager()
+
+    class Meta:
+        app_label = 'disturbance'
+        unique_together = ('question', 'answer_mlq',)
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.question}'
+
+    def __cddp_group(self):
+        try:
+            check_group = CddpQuestionGroup.objects.filter(id=self.group.id)
+            if check_group:
+                return check_group[0]
+        except CddpQuestionGroup.DoesNotExist:
+            pass
+        default_group = CddpQuestionGroup.objects.get(default=True)
+
+        return default_group
+
+    @property
+    def layer_name(self):
+        return self.spatial_query_layer.layer_name
+
+    @property
+    def allowed_editors(self):
+        group = self.__cddp_group()
+        return group.members.all() if group else []
+
+
+class CurrentSpatialQueryLayerManager(models.Manager):
+    ''' Return queryset with non-expired SpatialQueryLayer's '''
+    def get_queryset(self):
+        return super().get_queryset().exclude(expiry__lt=datetime.datetime.now().date())
+
+
+class SpatialQueryLayer(RevisionedMixin):
+    OVERLAPPING = 'Overlapping'
+    OUTSIDE     = 'Outside'
+    INSIDE      = 'Inside'
+    HOW_CHOICES=(
+        (OVERLAPPING, 'Overlapping'),
+        (OUTSIDE, 'Outside'),
+        (INSIDE, 'Inside'),
+    )
+                         
+    ALL = 'All'
+    REGION_CHOICES=(
+        (ALL, 'All'),
+    )
+
+    EQUALS      = 'Equals'
+    CONTAINS    = 'Contains'
+    OR          = 'OR'
+    LIKE        = 'Like'
+    GREATERTHAN = 'GreaterThan'
+    LESSTHAN    = 'LessThan'
+    ISNOTNULL   = 'IsNotNull'
+    #ISNULL = 'IsNull'
+    OPERATOR_CHOICES=(
+        (EQUALS, 'Equals'),
+        (CONTAINS, 'Contains'),
+        (OR, 'OR'),
+        (LIKE, 'Like'),
+        (GREATERTHAN, 'Greather than'),
+        (LESSTHAN, 'Less than'),
+    #    (ISNULL, 'Is null'),
+        (ISNOTNULL, 'Is not null'),
+    )
+
+    NONE  = '' 
+    TEXT  = 'Text'
+    INT   = 'Int'
+    FLOAT = 'Float'
+    VALUE_TYPE_CHOICES=(
+        (NONE, ''),
+        (TEXT, 'Text String'),
+        (INT, 'Integer'),
+        (FLOAT, 'Float'),
+    )
+                         
+    layer = models.ForeignKey(DASMapLayer, related_name='layers', on_delete=models.CASCADE) #, blank=True, null=True)
+    expiry = models.DateField('Expiry Date', blank=True, null=True)
+    visible_to_proponent = models.BooleanField(default=False)
+    buffer = models.PositiveIntegerField(blank=True, null=True)
+    how = models.CharField('Overlapping/Outside/Inside', max_length=40, choices=HOW_CHOICES, default=HOW_CHOICES[0][0])
+    column_name = models.CharField('Name of layer attribute/field', max_length=100)
+    operator = models.CharField('Operator', max_length=40, choices=OPERATOR_CHOICES, default=OPERATOR_CHOICES[0][0])
+    value = models.CharField(max_length=100, blank=True, null=True)
+
+    prefix_answer = models.TextField(blank=True, null=True)
+    #no_polygons_proponent = models.IntegerField('No. of polygons to process (Proponent)', default=-1, blank=True)
+    answer = models.TextField(blank=True, null=True)
+    prefix_info = models.CharField(max_length=100, blank=True, null=True)
+    #no_polygons_assessor = models.IntegerField('No. of polygons to process (Assessor)', default=-1, blank=True)
+    assessor_info = models.TextField(blank=True, null=True)
+
+    proponent_items = JSONField('Proponent response set', default=[{}])
+    assessor_items = JSONField('Assessor response set', default=[{}])
+
+    #regions = models.CharField('Regions', max_length=40, choices=REGION_CHOICES, default=REGION_CHOICES[0][0], blank=True)
+
+    spatial_query_question = models.ForeignKey(SpatialQueryQuestion, related_name='spatial_query_layers', on_delete=models.CASCADE)
+
+    objects = models.Manager()
+    current_layers = CurrentSpatialQueryLayerManager()
+                                
+    class Meta:
+        app_label = 'disturbance'
+        #ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.layer_name}'
+
+    @property
+    def layer_name(self):
+        return self.layer.layer_name
+
+
+class SpatialQueryMetrics(models.Model):
+                         
+    proposal = models.ForeignKey(Proposal, related_name='metrics', on_delete=models.PROTECT)
+    when = models.DateTimeField()
+    system = models.CharField('Application System Name', max_length=64)
+    request_type = models.CharField(max_length=40, choices=RequestTypeEnum.REQUEST_TYPE_CHOICES)
+    sqs_response = JSONField('Response from SQS', default=[{}])
+    time_taken = models.DecimalField('Total time for request/response', max_digits=9, decimal_places=3)
+    response_cached = models.NullBooleanField()
+
+    #when = models.DateTimeField(auto_now_add=True, null=False, blank=False)
+
+    class Meta:
+        app_label = 'disturbance'
+        ordering = ['-id']
+
+    def __str__(self):
+        return f'{self.system}|{self.proposal.lodgement_number}|{self.when.strftime(DATETIME_FMT)}'
+
+    @property
+    def metrics(self):
+        try:
+            return self.sqs_response['metrics']['spatial_query'] 
+        except Exception as e:
+            logger.error(f'Metrics not found in sqs_response: {e}')
+        return None
+
+    @property
+    def total_query_time(self):
+        ''' Total time taken for all Spatial Query Intersection - sum of each intersection query
+        '''
+        try:
+            return self.sqs_response['metrics']['total_query_time']
+        except Exception as e:
+            logger.error(f'Total Query Time not found in sqs_response: {e}')
+        return None
+
+    def metrics_table(self):
+        ''' Tabulated summary of metrics '''
+        
+        try:
+            #print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Layer cached|Condition|Expired|Error|Time retrieve layer|Time taken")
+            print(f"Metric ID|Lodgement Number|Question|Answer|Layer name|Condition|Expired|Error|Time retrieve layer|Time taken")
+            count = 0
+            for idx, m in enumerate(self.metrics, 1):
+                #print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['layer_cached']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                print(f"{self.id}|{self.proposal.lodgement_number}|{m['question']}|{m['answer_mlq']}|{m['layer_name']}|{m['condition']}|{m['expired']}|{m['error']}|{m['time_retrieve_layer']}|{m['time']}")
+                count += 1
+
+            print(f'Total Query Time:        {self.total_query_time}')
+            print(f'Total API Request Time:  {self.time_taken}')
+            print(f'Total Responses/Results: {count}')
+
+        except Exception as e:
+            logger.error(f'Total Query Time not found in sqs_response: {e}')
+
+
+#class DASGeometry(models.Model):
+#    #proposal = models.ForeignKey(Proposal, unique=True)
+#    org = models.CharField(max_length=128)
+#    app_no = models.CharField(max_length=9)
+#    prop_title = models.CharField(max_length=255)
+#    appissdate = models.CharField(max_length=10)
+#    appstadate = models.CharField(max_length=10)
+#    appexpdate = models.CharField(max_length=10)
+#    appstatus = models.CharField(max_length=30)
+#    assocprop = models.CharField(max_length=512)
+#    proptype = models.CharField(max_length=64)
+#    propurl = models.CharField(max_length=512)
+#    prop_activ = models.CharField(max_length=255)
+#    geometry = GeometryField(srid=4326)
+#
+#    class Meta:
+#        app_label = 'disturbance'
+#
+#    def __str__(self):
+#        return f'{self.app_no}'
+
+
+
+
 import reversion
-#reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
-reversion.register(Proposal, follow=['proposal_apiary'])
+reversion.register(Proposal, follow=['requirements', 'documents', 'compliances', 'referrals', 'approvals', 'proposal_apiary'])
+#reversion.register(Proposal, follow=['proposal_apiary'])
 reversion.register(ProposalType)
 reversion.register(ProposalRequirement)            # related_name=requirements
 reversion.register(ProposalStandardRequirement)    # related_name=proposal_requirements
@@ -5686,5 +6362,9 @@ reversion.register(QuestionOption)
 reversion.register(ProposalTypeSection)
 reversion.register(SectionQuestion)
 
+#CDDP Spatial model
+reversion.register(SpatialQueryQuestion)
+reversion.register(SpatialQueryLayer)
 
+reversion.register(ExportDocument)
 

@@ -78,6 +78,28 @@
                                 </div>
 
                             </div>
+                            <div v-if="processing_status != 'With Approver' || !approval.confirmation" class="form-group">
+                                <div class="row">
+                                    <div class="col-sm-12">
+                                        <label>
+                                            <input  name="confirmation" type="checkbox" class="control-label pull-left"  v-model="approval.confirmation" /> &nbsp;
+                                            As the Assessor I confirm the following.
+                                            <ul>
+                                                <li>
+                                                    The assessment data is up-to-date and used within its limitations.
+                                                </li>
+                                                <li>
+                                                    The management actions are consistent with departmental protocols, management plans, and tenure. 
+                                                </li>
+                                                <li>
+                                                    Where appropriate this proposal includes specialist referral advice, particularly important if this proposal has the potential to significantly affect another output programs (NC, PVS, SFM, FMS).
+                                                </li>
+                                            </ul>
+                                        </label>
+                                    </div>
+                                    
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <div class="row">
                                     <div class="col-sm-12">
@@ -99,7 +121,7 @@
 
             <div slot="footer">
                 <button type="button" v-if="issuingApproval" disabled class="btn btn-default" @click="ok"><i class="fa fa-spinner fa-spin"></i> Processing</button>
-                <button type="button" v-else class="btn btn-default" @click="ok">Ok</button>
+                <button type="button" v-else-if="approval && approval.start_date && approval.confirmation" class="btn btn-default" @click="ok">Ok</button>
                 <button type="button" class="btn btn-default" @click="cancel">Cancel</button>
             </div>
         </modal>
@@ -111,6 +133,7 @@
 import modal from '@vue-utils/bootstrap-modal.vue'
 import alert from '@vue-utils/alert.vue'
 import {helpers, api_endpoints} from "@/utils/hooks.js"
+import moment from 'moment'
 export default {
     name:'Proposed-Approval',
     components:{
@@ -207,7 +230,8 @@ export default {
             return vm.approvalCCError;
         },
         title: function(){
-            return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
+            //return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Propose to issue approval';
+            return this.processing_status == 'With Approver' ? 'Issue Approval' : 'Submit to Approver';
         },
         is_amendment: function(){
             return (this.proposal_type == 'Amendment' && !this.reissued) ? true : false;
@@ -348,7 +372,7 @@ export default {
                 rules: {
                     start_date:"required",
                     due_date:"required",
-                    approval_details:"required",
+                    //approval_details:"required",
                 },
                 messages: {
                 },
@@ -374,6 +398,7 @@ export default {
        },
        eventListeners:function () {
             let vm = this;
+            let today= moment().format('DD/MM/YYYY')
             // Initialise Date Picker
             $(vm.$refs.due_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.due_date).on('dp.change', function(e){
@@ -397,8 +422,12 @@ export default {
             $(vm.$refs.start_date).datetimepicker(vm.datepickerOptions);
             $(vm.$refs.start_date).on('dp.change', function(e){
                 if ($(vm.$refs.start_date).data('DateTimePicker').date()) {
-
-                    if (($(vm.$refs.due_date).data('DateTimePicker').date()!= null)&& ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date())){
+                    if (($(vm.$refs.start_date).data('DateTimePicker').date().format('DD/MM/YYYY') < today)&&(!vm.is_amendment)){
+                        vm.startDateError = true;
+                        vm.startDateErrorString = 'Please select Start date from today';
+                        vm.approval.start_date = ""
+                    }
+                    else if (($(vm.$refs.due_date).data('DateTimePicker').date()!= null)&& ($(vm.$refs.due_date).data('DateTimePicker').date() < $(vm.$refs.start_date).data('DateTimePicker').date())){
                         vm.startDateError = true;
                         vm.startDateErrorString = 'Please select Start date that is before Expiry date';
                         vm.approval.start_date = ""

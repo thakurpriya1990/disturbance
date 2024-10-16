@@ -1,4 +1,9 @@
 import logging
+from django.utils import timezone
+from django.http import JsonResponse
+
+from rest_framework import serializers, status
+from django.db.models import Q
 
 from ledger.payments.models import Invoice
 import collections
@@ -16,17 +21,25 @@ from disturbance.components.proposals.models import (
                                     SectionQuestion,
                                     ProposalTypeSection,
                                     MasterlistQuestion,
+                                    QuestionOption,
+                                    SpatialQueryQuestion,
+                                    SpatialQueryLayer,
+                                    SpatialQueryMetrics,
+                                    CddpQuestionGroup,
                                 )
 from disturbance.components.organisations.models import (
                                 Organisation
                             )
-from disturbance.components.main.serializers import CommunicationLogEntrySerializer
-from rest_framework import serializers
+from disturbance.components.main.serializers import CommunicationLogEntrySerializer, DASMapLayerSqsSerializer
+from disturbance.components.main.models import DASMapLayer
 
 from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, \
     ProposalApiaryTemporaryUseSerializer
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
-    ProposalDeclinedDetailsSerializer, EmailUserSerializer
+    ProposalDeclinedDetailsSerializer, EmailUserSerializer, EmailSerializer
+from drf_writable_nested import UniqueFieldsMixin , WritableNestedModelSerializer
+from datetime import datetime
+from django.core.urlresolvers import reverse
 
 
 logger = logging.getLogger(__name__)
@@ -109,6 +122,7 @@ class ListProposalSerializer(BaseProposalSerializer):
     template_group = serializers.SerializerMethodField(read_only=True)
 
     fee_invoice_references = serializers.SerializerMethodField()
+    approval = serializers.CharField(source='approval.lodgement_number')
 
     class Meta:
         model = Proposal
@@ -132,6 +146,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'get_history',
                 'lodgement_date',
                 'modified_date',
+                'in_prefill_queue',
                 'readonly',
                 'can_user_edit',
                 'can_user_view',
@@ -149,6 +164,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
+                'approval',
                 )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -178,6 +194,7 @@ class ListProposalSerializer(BaseProposalSerializer):
                 'relevant_applicant_name',
                 'apiary_group_application_type',
                 'template_group',
+                'approval',
                 )
 
     def get_fee_invoice_references(self, obj):
@@ -238,6 +255,14 @@ class ListProposalSerializer(BaseProposalSerializer):
         return self.context.get('template_group')
 
 
+#class ProposalSqsSerializer(BaseProposalSerializer):
+#    class Meta:
+#        model = Proposal
+#        fields = (
+#            'schema',
+#            'data',
+#        )
+ 
 class ProposalSerializer(BaseProposalSerializer):
     submitter = serializers.CharField(source='submitter.get_full_name')
     processing_status = serializers.SerializerMethodField(read_only=True)
@@ -249,6 +274,7 @@ class ProposalSerializer(BaseProposalSerializer):
     #district = serializers.CharField(source='district.name', read_only=True)
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
     comment_data= serializers.SerializerMethodField(read_only=True)
+    #add_info_applicant= serializers.SerializerMethodField(read_only=True)
 
     proposal_apiary = serializers.SerializerMethodField()
     apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
@@ -264,12 +290,21 @@ class ProposalSerializer(BaseProposalSerializer):
             'proposal_apiary',
             'apiary_temporary_use',
             'apiary_group_application_type',
+            'shapefile_json',
+            'add_info_applicant',
+            'add_info_assessor',
+            'history_add_info_assessor',
+            'refresh_timestamp',
+            'prefill_timestamp',
+            'layer_data',
             'region_name',
             'district_name',
             # 'apiary_temporary_use_set',
         )
 
     def get_readonly(self,obj):
+        if not obj.can_user_view:
+            return obj.in_prefill_queue
         return obj.can_user_view
 
     def get_comment_data(self,obj):
@@ -303,6 +338,11 @@ class SaveProposalSerializer(BaseProposalSerializer):
                 'data',
                 'assessor_data',
                 'comment_data',
+                'add_info_applicant',
+                'add_info_assessor',
+                'history_add_info_assessor',
+                'refresh_timestamp',
+                'prefill_timestamp',
                 'schema',
                 'customer_status',
                 'processing_status',
@@ -398,6 +438,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'approval_level_comment',
                 'region',
                 'district',
+                'gis_info',
                 'tenure',
                 'title',
                 'data',
@@ -418,6 +459,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'modified_date',
                 'documents',
                 'requirements',
+                'in_prefill_queue',
                 'readonly',
                 'can_user_edit',
                 'can_user_view',
@@ -425,7 +467,13 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'assessor_mode',
                 'current_assessor',
                 'assessor_data',
+                'layer_data',
                 'comment_data',
+                'add_info_applicant',
+                'add_info_assessor',
+                'history_add_info_assessor',
+                'refresh_timestamp',
+                'prefill_timestamp',
                 'latest_referrals',
                 'allowed_assessors',
                 'proposed_issuance_approval',
@@ -448,11 +496,12 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 'apiary_temporary_use',
                 'requirements_completed',
                 'reversion_history',
+                'shapefile_json',
                 'reissued',
                 'region_name',
                 'district_name',
                 )
-        read_only_fields=('documents','requirements')
+        read_only_fields=('documents','requirements','gis_info',)
 
 
     def get_reversion_history(self, obj):
@@ -675,8 +724,9 @@ class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
 class ProposedApprovalSerializer(serializers.Serializer):
     expiry_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
     start_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
-    details = serializers.CharField()
+    details = serializers.CharField(required=False, allow_blank=True)
     cc_email = serializers.CharField(required=False,allow_null=True, allow_blank=True)
+    confirmation = serializers.BooleanField(required=False,default=False)
 
 #    batch_no = serializers.CharField(required=False,allow_null=True, allow_blank=True)
 #    cpc_date = serializers.DateField(input_formats=['%d/%m/%Y'], required=False)
@@ -759,6 +809,9 @@ class SearchReferenceSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     type = serializers.CharField()
 
+class SearchGeoJsonSerializer(serializers.Serializer):
+    search_geojson = serializers.JSONField(required=False)
+
 class QuestionOptionSerializer(serializers.ModelSerializer):
     class Meta:
         model = QuestionOption
@@ -795,6 +848,20 @@ class ProposalTypeSectionSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProposalTypeSection
         fields = '__all__'
+
+class SearchProposalTypeSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Licence ProposalType on the Search Section.
+    '''
+    sections = ProposalTypeSectionSerializer(many=True, read_only=True)
+    class Meta:
+        model = ProposalType
+        fields = (
+                'id',
+                'name_with_version',
+                'name',
+                'sections',
+        )
 
 #Schema screen serializers 
 class SchemaSectionSerializer(serializers.ModelSerializer):
@@ -876,6 +943,7 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         try:
             options = self.initial_data.get('options', None)
             for o in options:
+                o['label']=o['label'].strip()
                 #option_labels.append(o)
                 qo = QuestionOption.objects.filter(label=o['label'])
                 if qo.exists():
@@ -947,6 +1015,62 @@ class SchemaMasterlistSerializer(serializers.ModelSerializer):
         return expanders
 
 
+class SchemaMasterlistOptionSerializer(serializers.ModelSerializer):
+    '''
+    Serializer for Schema builder using Masterlist questions.
+    '''
+    options = serializers.SerializerMethodField()
+    #question_id = serializers.SerializerMethodField()
+
+    class Meta:
+        model = MasterlistQuestion
+        fields = ('id', 'question', 'answer_type', 'options')
+
+#    def get_option(self, obj):
+#        return obj.option.values()
+
+    #def get_question_id(self, obj):
+
+
+    def get_options(self, obj):
+        if obj.answer_type not in ['radiobuttons', 'checkbox']:
+            # Only need options for rb and cb in SpatialQuery CDDP config'n
+            return None
+
+        option_labels = []
+        try:
+            options = self.initial_data.get('options', None)
+            for o in options:
+                #option_labels.append(o)
+                qo = QuestionOption.objects.filter(label=o['label'])
+                if qo.exists():
+                    o['value'] = qo[0].id
+                else:
+                    option_serializer = SchemaOptionSerializer(data=o)
+                    option_serializer.is_valid(raise_exception=True)
+                    option_serializer.save()
+                    opt_id = option_serializer.data['id']
+                    o['value'] = opt_id
+                option_labels.append(o)
+            obj.set_property_cache_options(option_labels)
+            
+        except Exception:
+            options = None
+            option_list = obj.get_options()
+            if option_list:
+                options = [
+                    {
+                        'label': o.label,
+                        'value': o.value,
+                        #'conditions': obj.ANSWER_TYPE_CONDITIONS,
+
+                    } for o in option_list
+                ]
+
+        return options
+
+
+
 class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
     '''
     Serializer for Schema builder using Masterlist questions.
@@ -1007,7 +1131,6 @@ class SelectSchemaMasterlistSerializer(serializers.ModelSerializer):
         # return options
 
     
-
 
 class DTSchemaMasterlistSerializer(SchemaMasterlistSerializer):
     '''
@@ -1222,3 +1345,114 @@ class DTSchemaProposalTypeSerializer(SchemaProposalTypeSerializer):
 
     def get_proposal_type(self, obj):
         return ProposalTypeSchemaSerializer(obj.proposal_type).data
+
+class DASMapFilterSerializer(BaseProposalSerializer):
+    processing_status_display= serializers.SerializerMethodField()
+    customer_status_display= serializers.SerializerMethodField()
+    approval_lodgement_number= serializers.SerializerMethodField()
+    approval_issue_date= serializers.SerializerMethodField()
+    approval_start_date= serializers.SerializerMethodField()
+    approval_expiry_date= serializers.SerializerMethodField()
+    approval_status= serializers.SerializerMethodField()
+    submitter_full_name = serializers.CharField(source='submitter.get_full_name')
+    submitter = serializers.CharField(source='submitter.email')
+    applicant_name= serializers.CharField(source='applicant.name')
+    application_type_name= serializers.CharField(source='application_type.name')
+    region_name = serializers.CharField(source='region.name', read_only=True)
+    associated_proposals= serializers.SerializerMethodField()
+    proposal_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Proposal
+        fields = (
+                'id',
+                'activity',
+                'title',
+                'region',
+                'region_name',
+                'district',
+                'customer_status',
+                'processing_status',
+                'processing_status_display',
+                'customer_status',
+                'customer_status_display',
+                'submitter', 
+                'submitter_full_name',
+                'lodgement_number',
+                #'shapefile_json',
+                'lodgement_date',
+                'proposal_type',
+                'approval_lodgement_number',
+                'approval_issue_date',
+                'approval_start_date',
+                'approval_expiry_date',
+                'approval_status',
+                'applicant_id',
+                'applicant_name',
+                'shapefile_json',
+                'application_type_name',
+                'associated_proposals',
+                'proposal_url',
+
+                )
+    
+    def get_region(self,obj):
+        if obj.region:
+            return obj.region.name
+        return None
+
+    def get_district(self,obj):
+        if obj.district:
+            return obj.district.name
+        return None
+    
+    def get_processing_status_display(self,obj):
+        return obj.get_processing_status_display()
+    
+    def get_customer_status_display(self,obj):
+        return obj.get_customer_status_display()
+    
+    def get_approval_lodgement_number(self,obj):
+        if obj.approval:
+            return obj.approval.lodgement_number
+        return None
+    def get_approval_issue_date(self,obj):
+        if obj.approval:
+            return obj.approval.issue_date
+        return None
+    
+    def get_approval_start_date(self,obj):
+        if obj.approval:
+            return obj.approval.start_date
+        return None
+    
+    def get_approval_expiry_date(self,obj):
+        if obj.approval:
+            return obj.approval.expiry_date
+        return None
+    
+    def get_approval_status(self,obj):
+        if obj.approval:
+            return obj.approval.status
+        return None
+    
+    def get_associated_proposals(self,obj):
+        if obj.approval:
+            qs=Proposal.objects.filter(approval__lodgement_number=obj.approval.lodgement_number).values_list('lodgement_number', flat=True)
+            if qs:
+                result= [proposal for proposal in qs]
+                return result
+        return None
+    
+    def get_proposal_url(self,obj):
+        request=self.context['request']
+        url=''
+        from disturbance.helpers import is_internal
+        if is_internal(request):
+            url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': obj.id}))
+        else:
+            url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': obj.id}))
+        return url
+
+
+

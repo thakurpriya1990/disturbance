@@ -28,6 +28,7 @@ module.exports = {
     activity_matrix:"/api/activity_matrix.json",
     application_types:"/api/application_types.json",
     searchable_application_types:"/api/application_types/searchable_application_types.json",
+    searchable_proposal_types:"/api/search_proposal_types.json",
     proposal_type_sections:"/api/proposal_type_sections.json",
 
     // used in internal and external dashboards
@@ -42,6 +43,8 @@ module.exports = {
     filter_list_approvals:          "/api/approvals/filter_list.json",
     filter_list_compliances:        "/api/compliances/filter_list.json",
     filter_list_referrals:          "/api/referrals/filter_list.json",
+    das_map_proposal:"/api/das_map_proposal.json",
+    filter_list_map:"/api/das_map_proposal/filter_list.json",
 
     //approvals_paginated:"/api/approvals/user_list_paginated/?format=datatables",
     //compliances_paginated:"/api/compliances/user_list_paginated/?format=datatables",
@@ -70,6 +73,15 @@ module.exports = {
     //schema_proposal_type:"/api/schema_proposal_type/",
     schema_proposal_type:"/api/schema_proposal_type.json",
     schema_proposal_type_paginated:"/api/schema_proposal_type_paginated/",
+
+    // SQS
+    proposals_sqs:"/api/proposal_sqs.json",
+    spatial_query:"/api/spatial_query",
+    spatial_query_layer:"/api/spatial_query_layer",
+    spatial_query_paginated:"/api/spatial_query_paginated/",
+    spatial_query_metrics_paginated:"/api/spatial_query_metrics_paginated/",
+    spatial_query_layers_used_paginated:"/api/proposal_paginated/",
+
     schema_group:"/api/schema_group/",
     schema_group_paginated:"/api/schema_group_paginated/",
     //schema_question:"/api/schema_question/",

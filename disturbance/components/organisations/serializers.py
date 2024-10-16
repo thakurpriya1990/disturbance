@@ -258,6 +258,7 @@ class OrganisationRequestCommsSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrganisationRequestLogEntry
         fields = '__all__'
+
     def get_documents(self,obj):
         return [[d.name,d._file.url] for d in obj.documents.all()]
 

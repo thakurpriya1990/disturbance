@@ -17,6 +17,9 @@ Vue.config.productionTip = false
 Vue.use( resource );
 Vue.prototype.$log = console.log
 
+import CKEditor from 'ckeditor4-vue';
+Vue.use( CKEditor );
+
 // Add CSRF Token to every request
 Vue.http.interceptors.push( function ( request, next ) {
   // modify headers

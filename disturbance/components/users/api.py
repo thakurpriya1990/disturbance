@@ -14,6 +14,8 @@ from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django_countries import countries
+from django.db.models.functions import Concat
+from django.db.models import F, Value, CharField
 from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route,renderer_classes
 from rest_framework.response import Response
@@ -116,25 +118,27 @@ class UserViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-
-    @detail_route(methods=['POST',])
-    def update_personal(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = PersonalSerializer(instance,data=request.data)
-            serializer.is_valid(raise_exception=True)
-            instance = serializer.save()
-            serializer = UserSerializer(instance)
-            return Response(serializer.data);
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(repr(e.error_dict))
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
+#    NOTE the below has been replaced by ../sso/setting to update User first and last name
+#         src/components/user/profile.vue
+#
+#    @detail_route(methods=['POST',])
+#    def update_personal(self, request, *args, **kwargs):
+#        try:
+#            instance = self.get_object()
+#            serializer = PersonalSerializer(instance,data=request.data)
+#            serializer.is_valid(raise_exception=True)
+#            instance = serializer.save()
+#            serializer = UserSerializer(instance)
+#            return Response(serializer.data);
+#        except serializers.ValidationError:
+#            print(traceback.print_exc())
+#            raise
+#        except ValidationError as e:
+#            print(traceback.print_exc())
+#            raise serializers.ValidationError(repr(e.error_dict))
+#        except Exception as e:
+#            print(traceback.print_exc())
+#            raise serializers.ValidationError(str(e))
 
     @detail_route(methods=['POST',])
     def update_contact(self, request, *args, **kwargs):

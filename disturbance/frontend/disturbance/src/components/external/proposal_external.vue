@@ -184,8 +184,14 @@
                 </div>
             </template>
             <template v-else>
+                <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" @refreshFromResponseProposal="refreshFromResponseProposal" ref="mapSection" :is_external="true" />
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" :key="proposalComponentMapKey">
+                <NewApply v-if="proposal" :proposal="proposal" ref="proposal_apply"></NewApply>
+
+                <!-- From master 28-Mar-2024 TODO remove this commented section
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
                 <NewApply v-if="proposal" :proposal="proposal" ref="proposal_apply"></NewApply>
+                -->
                 <div>
                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                     <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -246,6 +252,7 @@ import ProposalDisturbance from '../form.vue'
 import ProposalApiary from '../form_apiary.vue'
 import ApiarySiteTransfer from '../form_apiary_site_transfer.vue'
 import NewApply from './proposal_apply_new.vue'
+import MapSection from '@/components/common/das/map_section.vue'
 import Vue from 'vue'
 import {
   api_endpoints,
@@ -257,8 +264,10 @@ export default {
         return {
             "proposal": null,
             "loading": [],
+            original_proposal: null,
             form: null,
             amendment_request: [],
+            proposalComponentMapKey: 0,
             //isDataSaved: false,
             proposal_readonly: true,
             hasAmendmentRequest: false,
@@ -304,8 +313,16 @@ export default {
         ProposalApiary,
         NewApply,
         ApiarySiteTransfer,
+        MapSection,
     },
     computed: {
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+        },
         amendmentRequestText: function() {
             let requestText = 'An amendment has been requested for this proposal';
             if (this.apiaryTemplateGroup) {
@@ -808,6 +825,14 @@ export default {
                     blank_fields.push(' You must select at least one site to transfer')
                 }
              }
+             else{
+                if((!vm.proposal.region) || (!vm.proposal.district) || (vm.proposal.approval_level=='')) {
+                    if((vm.proposal.management_area=='') && (vm.proposal.sub_activity_level1=='')) {
+                        blank_fields.push('Region or District or Category/Sub Activity cannot be blank')
+                    }
+                }
+             }
+
              if(vm.proposal.application_type == 'Disturbance'){
                 if(vm.proposal && vm.proposal.region && vm.proposal.district){
                     let districts=vm.$refs.proposal_apply.districts
@@ -1033,6 +1058,34 @@ export default {
             $('body').append(formElement);
             $(formElement).submit();
         },
+        incrementProposalComponentMapKey: function() {
+                this.proposalComponentMapKey++;
+            },
+        refreshFromResponse:function(response){
+            let vm = this;
+            vm.original_proposal = helpers.copyObject(response.body);
+            vm.proposal = helpers.copyObject(response.body);
+            this.incrementProposalComponentMapKey();
+            // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+            
+        },
+        refreshFromResponseProposal:function(new_proposal){
+            let vm = this;
+            vm.original_proposal = helpers.copyObject(new_proposal);
+            vm.proposal = helpers.copyObject(new_proposal);
+            vm.setdata(vm.proposal.readonly);
+            this.incrementProposalComponentMapKey();
+            // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+            
+        },
+        beforePrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "none" );
+        },
+        afterPrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "" );
+        }
     },
     mounted: function() {
         console.log('in mounted')
@@ -1041,6 +1094,8 @@ export default {
         vm.form = document.forms.new_proposal;
         window.addEventListener('beforeunload', vm.leaving);
         window.addEventListener('onblur', vm.leaving);
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
         // this.$nextTick(() => {
         //   console.log("I am here1");
         //         if(vm.hasAmendmentRequest){
@@ -1130,4 +1185,9 @@ export default {
     opacity: .25;
     z-index: 2000;
 }
+@media print { 
+.noPrint { 
+  display: none;
+ }
+} 
 </style>

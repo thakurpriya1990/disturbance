@@ -3,17 +3,26 @@
 {%  block content %}
     The Proposal {{ proposal.lodgement_number }} has been submitted and can be assessed.
 
-    Activity: {{proposal.activity}}
-	Region: {{proposal.region}}<br>
+    Region: {{proposal.region}}
 	{% if proposal.district %}
-		District:{{proposal.district}}
+		District: {{proposal.district}}
 	{% else %}
 		District: -
 	{% endif %}
+	Title: {{proposal.title}}
+	Activity: {{proposal.activity}}
+	Organisation: {{proposal.applicant}}
    
     You can access this Proposal using the following link:
   
     {{url}}
+	Note:
+		
+			To start the assessment process an Assessor must be 'assigned' to the proposal ASAP.
+			To determine who is responsible for assessing a proposal consult your local Assessor’s ‘Regional Ready Reckoner’ or discuss with the district or regional manager. 
+			DBCAs aim is to have proposals assessed and an approval decision made within 30-working days (from lodgment) unless significant amendments  are required.  
+			See {{ proposal_assess_help_page }} for full instructions. 
+		
 
 
 {%  endblock %}

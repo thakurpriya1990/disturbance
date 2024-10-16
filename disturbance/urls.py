@@ -5,7 +5,7 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
-from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView
+from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView, FileDownloadView, FileListView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.das_payments import views as payment_views
@@ -14,6 +14,7 @@ from disturbance.components.proposals.views import ExternalProposalTemporaryUseS
 from disturbance.components.users import api as users_api
 from disturbance.components.organisations import api as org_api
 from disturbance.components.proposals import api as proposal_api
+from disturbance.components.proposals.sqs_utils import api as proposal_sqs_api
 from disturbance.components.approvals import api as approval_api
 from disturbance.components.compliances import api as compliances_api
 from disturbance.components.main import api as main_api
@@ -29,8 +30,10 @@ from disturbance.views import LedgerPayView
 
 router = routers.DefaultRouter()
 router.include_root_view = settings.SHOW_ROOT_API
+
 router.register(r'organisations',org_api.OrganisationViewSet,"organisations")
 router.register(r'proposal',proposal_api.ProposalViewSet,"proposal")
+router.register(r'proposal_sqs',proposal_sqs_api.ProposalSqsViewSet,"proposal_sqs")
 router.register(r'proposal_apiary', proposal_api.ProposalApiaryViewSet,"proposal_apiary")
 router.register(r'on_site_information', proposal_api.OnSiteInformationViewSet,"on_site_information")
 router.register(r'apiary_site', proposal_api.ApiarySiteViewSet,"apiary_site")
@@ -51,12 +54,14 @@ router.register(r'compliance_amendment_request',compliances_api.ComplianceAmendm
 router.register(r'regions', main_api.RegionViewSet,"regions")
 router.register(r'activity_matrix', main_api.ActivityMatrixViewSet,"activity_matrix")
 #router.register(r'tenure', main_api.TenureViewSet)
+router.register(r'global_settings', main_api.GlobalSettingsViewSet, "global_settings")
 router.register(r'application_types', main_api.ApplicationTypeViewSet,"application_types")
 router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewSet,"apiary_referral_groups")
 router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet,"apiary_referrals")
 router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet,"apiary_site_fees")
 #router.register(r'payment',payment_api.PaymentViewSet)
 router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet,"proposal_type_sections")
+router.register(r'search_proposal_types', proposal_api.SearchProposalTypeViewSet)
 
 router.register(
     r'schema_question_paginated', proposal_api.SchemaQuestionPaginatedViewSet,"schema_question_paginated")
@@ -76,6 +81,21 @@ router.register(
 router.register(
     r'schema_proposal_type_paginated', proposal_api.SchemaProposalTypePaginatedViewSet,"schema_proposal_type_paginated")
 router.register(r'map_layers', main_api.MapLayerViewSet,"map_layers")
+router.register(r'das_map_layers', main_api.DASMapLayerViewSet)
+
+router.register(
+    r'spatial_query_paginated', proposal_sqs_api.SpatialQueryQuestionPaginatedViewSet)
+router.register(
+    r'spatial_query_metrics_paginated', proposal_sqs_api.SpatialQueryMetricsPaginatedViewSet)
+router.register(
+    r'spatial_query',
+    proposal_sqs_api.SpatialQueryQuestionViewSet
+)
+router.register(
+    r'spatial_query_layer',
+    proposal_sqs_api.SpatialQueryLayerViewSet
+)
+router.register(r'das_map_proposal',proposal_api.DASMapFilterViewSet)
 
 api_patterns = [
     url(r'^api/profile$', users_api.GetProfile.as_view(), name='get-profile'),
@@ -91,8 +111,11 @@ api_patterns = [
     url(r'^api/search_keywords',proposal_api.SearchKeywordsView.as_view(),name='search_keywords'),
     url(r'^api/search_reference',proposal_api.SearchReferenceView.as_view(),name='search_reference'),
     url(r'^api/search_sections',proposal_api.SearchSectionsView.as_view(),name='search_sections'),
+    url(r'^api/get_search_geojson',proposal_api.GetSearchGeoJsonView.as_view(),name='get_search_geojson'),
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
     url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url'),
+#    url(r'^api/das/spatial_query$' proposal_api.SpatialQueryQuestionViewSet, name='sqs_spatial_query'),
+
     url(r'^api/history/compare/serialized/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
             history_api.GetCompareSerializedVersionsView.as_view(), name='get-compare-serialized-versions'),
     url(r'^api/history/compare/root/fields/(?P<app_label>[\w-]+)/(?P<model_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
@@ -119,8 +142,10 @@ urlpatterns = [
     url(r'^$', views.DisturbanceRoutingView.as_view(), name='ds_home'),
     url(r'^contact/', views.DisturbanceContactView.as_view(), name='ds_contact'),
     url(r'^further_info/', views.DisturbanceFurtherInformationView.as_view(), name='ds_further_info'),
+    #url(r'^internal/layer_json/(?P<layer_name>[^/]+)/$',proposal_views.LayerJsonView.as_view(), name='layer_json'),
     url(r'^internal/', views.InternalView.as_view(), name='internal'),
     url(r'^internal/proposal/(?P<proposal_pk>\d+)/referral/(?P<referral_pk>\d+)/$', views.ReferralView.as_view(), name='internal-referral-detail'),
+    #url(r'^layer_json/(?P<layer_name>[^/]+)/$',proposal_views.LayerJsonView.as_view(), name='layer_json'),
     url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', ExternalProposalTemporaryUseSubmitSuccessView.as_view(),),
     url(r'^external/', views.ExternalView.as_view(), name='external'),
     url(r'^firsttime/$', views.first_time, name='first_time'),
@@ -153,6 +178,10 @@ urlpatterns = [
     url(r'^internal/proposal/(?P<proposal_pk>\d+)/$', views.InternalProposalView.as_view(), name='internal-proposal-detail'),
     url(r'^external/compliance/(?P<compliance_pk>\d+)/$', views.ExternalComplianceView.as_view(), name='external-compliance-detail'),
     url(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
+    url(r'filelist/$', FileListView.as_view(), name='file-list'),
+    url(r'filedownload/(?P<filename>[\w\s ().-]+)/$', FileDownloadView.as_view(), name='file-download'),
+    
+    url(r'apiary_admin', views.ApiarySiteStatusView.as_view(), name='apiary_admin'),
 
     #url(r'^organisations/(?P<pk>\d+)/confirm-delegate-access/(?P<uid>[0-9A-Za-z]+)-(?P<token>.+)/$', views.ConfirmDelegateAccess.as_view(), name='organisation_confirm_delegate_access'),
     # reversion history-compare
@@ -172,6 +201,10 @@ urlpatterns = [
     url(r'^api/oracle_job$', main_api.OracleJob.as_view(), name='get-oracle'),
     url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),
         name='booking-settlements-report'),
+    # url('kmi-proxy/(?P<path>.*)', views.kmiProxyView),
+    # url('kb-proxy/(?P<path>.*)', views.kbProxyView),
+    url('kmi-proxy/(?P<path>.*)', views.mapProxyView),
+    url('kb-proxy/(?P<path>.*)', views.mapProxyView),
 
                   # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
 ] + ledger_patterns #+ media_serv_patterns

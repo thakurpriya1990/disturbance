@@ -36,17 +36,18 @@
 
         </meta>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        {% if DOMAIN_DETECTED == 'apiary' %}
-            <link rel="shortcut icon" type="image/ico" href="/static/favicon.ico"/>
-        {% endif %}
+        <link rel="shortcut icon" type="image/ico" href="/static/favicon.ico"/>
         <script language="javascript">
             env = {
-                "kmi_server_url": "{{ KMI_SERVER_URL }}"
+                "kmi_server_url": "{{ KMI_SERVER_URL }}",
+                "sqs_apiurl": "{{ SQS_APIURL }}",
+                "show_das_map": "{{ SHOW_DAS_MAP }}",
+                "max_layers_per_sqq": "{{ MAX_LAYERS_PER_SQQ }}"
             }
         </script>
     </head>
     <body>
-        {% if DEBUG %}<div style="position: absolute; color: dodgerblue; font-size: 0.5em;">{{ DOMAIN_DETECTED }}</div>{% endif %}
+        <!-- {% if DEBUG %}<div style="position: absolute; color: dodgerblue; font-size: 0.5em;">{{ DOMAIN_DETECTED }}</div>{% endif %} -->
         <header class="topmast">
             {% block header %}
                 {% include 'disturbance/header.html' %}
@@ -124,7 +125,16 @@
                                                         <li><a href="{% url 'admin:index' %}">Admin</a></li>
 							{% if DOMAIN_DETECTED != 'apiary' %}
                                                             <li><a href="/internal/schema">Manage Application Schema</a></li>
+							    <!-- <li><a href="/filelist">View Export Files</a></li> -->
                                                         {% endif %}
+							{% comment %}
+                                                        {% if is_apiary_admin_user and DOMAIN_DETECTED == 'apiary' %}
+                                                            <li><a href="{% url 'apiary_admin' %}">Apiary Update Panel</a></li>
+                                                        {% endif %}
+                                                        {% if is_disturbance_admin_user and DOMAIN_DETECTED != 'apiary' %}
+                                                            <li><a href="{% url 'apiary_admin' %}">Disturbance Update Panel</a></li>
+                                                        {% endif %}
+							{% endcomment %}
                                                         <li role="separator" class="divider"></li>
                                                     {% endif %}
                                                     {% if request.user.is_superuser %}

@@ -2,7 +2,26 @@
 
 {%  block content %}
         <p>A referral for Proposal <strong>{{proposal.lodgement_number}}</strong> has been completed:</p>
+        <p>
+	
+            Region: {{proposal.region}}<br>
+            {% if proposal.district %}
+                District: {{proposal.district}}<br>
+            {% else %}
+                District: -<br>
+            {% endif %}
+            Title: {{proposal.title}}<br>
+            Activity: {{proposal.activity}}<br>
+            Referee: {{referral_name}}<br>
+        </p>
+
         <p>Referral Comments: {{referral_comments}}</p>
     <p>You can access this Proposal using the following link:</p>
     <a href="{{url}}">Access Proposal</a>
+    <p>
+		Note:
+		<ul>
+			<li>Review referral comments and update the Assessor management actions and/or deficiencies (boxes) (as required), as referee comments will not be visible to the proponent.</li>
+		</ul>
+	</p>
 {%  endblock %}

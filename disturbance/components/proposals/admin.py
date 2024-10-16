@@ -187,6 +187,20 @@ class ProposalApproverGroupAdmin(admin.ModelAdmin):
             return False
         return super(ProposalApproverGroupAdmin, self).has_delete_permission(request, obj)
 
+
+@admin.register(models.CddpQuestionGroup)
+class CddpQuestionGroupAdmin(admin.ModelAdmin):
+    list_display = ['name','default']
+    filter_horizontal = ('members',)
+    form = forms.CddpQuestionGroupAdminForm
+    readonly_fields = ['default']
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and obj.default:
+            return False
+        return super(CddpQuestionGroupAdmin, self).has_delete_permission(request, obj)
+
+
 @admin.register(models.ApiaryReferralGroup)
 class ApiaryReferralGroupAdmin(admin.ModelAdmin):
     filter_horizontal = ('members',)
@@ -244,7 +258,6 @@ class ProposalStandardRequirementAdmin(admin.ModelAdmin):
     #list_filter=('system',)
 
     def get_queryset(self, request):
-        #import ipdb;ipdb.set_trace()
         # filter based on membership of Apiary Admin or Disturbance Admin
         qs = super(ProposalStandardRequirementAdmin, self).get_queryset(request)
         if request.user.is_superuser or is_das_apiary_admin(request):
@@ -331,7 +344,7 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 
 @admin.register(GlobalSettings)
 class GlobalSettingsAdmin(admin.ModelAdmin):
-    list_display = ['key', 'value']
+    list_display = ['key', 'value', 'help_text_required', 'help_text' ]
     ordering = ('key',)
 
 
@@ -469,4 +482,12 @@ class SectionQuestionAdmin(admin.ModelAdmin):
     #list_display = ['section', 'question','parent_question',]
     form = forms.SectionQuestionAdminForm
 
-    
+#@admin.register(models.SpatialQueryQuestion)
+#class SpatialQueryQuestionAdmin(admin.ModelAdmin):
+#    list_display = ['layer_name', 'how', 'column_name','operator', 'value']
+#    #fields = ['question', 'options']
+#    #list_display = ['question','answer_mlq', 'layer_name','how', 'column_name','operator', 'value']
+#    #list_display = ['section', 'question','parent_question',]
+#    #form = forms.SpatialQueryQuestionAdminForm
+
+   

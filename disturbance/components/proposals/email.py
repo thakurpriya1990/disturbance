@@ -1,4 +1,7 @@
 import logging
+from email.mime.text import MIMEText
+import json
+from datetime import datetime
 
 from django.core.mail import EmailMultiAlternatives, EmailMessage
 from django.utils.encoding import smart_text
@@ -7,6 +10,7 @@ from django.conf import settings
 
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
+from disturbance.components.main.models import GlobalSettings
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +24,46 @@ def get_sender_user():
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
     return sender_user
+
+def get_das_sharepoint_url():
+    sharepoint_url = ''
+    try:
+        sharepoint_url = GlobalSettings.objects.get(key=GlobalSettings.DAS_SHAREPOINT_PAGE).value
+    except:
+        sharepoint_url = ''
+    return sharepoint_url
+
+def get_proposal_assess_help_url():
+    proposal_assess_help_url = ''
+    try:
+        proposal_assess_help_url = GlobalSettings.objects.get(key=GlobalSettings.PROPOSAL_ASSESS_HELP_PAGE).value
+    except:
+        proposal_assess_help_url = ''
+    return proposal_assess_help_url
+
+def get_proposal_approver_help_url():
+    proposal_assess_help_url = ''
+    try:
+        proposal_approver_help_url = GlobalSettings.objects.get(key=GlobalSettings.PROPOSAL_APPROVER_HELP_PAGE).value
+    except:
+        proposal_approver_help_url = ''
+    return proposal_approver_help_url
+
+def get_referral_assess_help_url():
+    referral_assess_help_url = ''
+    try:
+        referral_assess_help_url = GlobalSettings.objects.get(key=GlobalSettings.REFERRAL_ASSESS_HELP_PAGE).value
+    except:
+        referral_assess_help_url = ''
+    return referral_assess_help_url
+
+def get_assessment_reminder_days():
+    assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
+    try:
+        assessment_reminder_days = GlobalSettings.objects.get(key='assessment_reminder_days').value
+    except:
+        assessment_reminder_days= settings.ASSESSMENT_REMINDER_DAYS
+    return assessment_reminder_days
 
 
 class ReferralSendNotificationEmail(TemplateEmailBase):
@@ -149,16 +193,67 @@ class ApiaryApproverSendBackNotificationEmail(TemplateEmailBase):
     html_template = 'disturbance/emails/proposals/apiary_send_approver_sendback_notification.html'
     txt_template = 'disturbance/emails/proposals/apiary_send_approver_sendback_notification.txt'
 
+class ProposalPrefillRequestSentSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal prefill request has been sent.'
+    html_template = 'disturbance/emails/proposals/proposal_prefill_request_sent_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_prefill_request_sent_notification.txt'
+
+class ProposalPrefillCompletedSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal prefill has completed.'
+    html_template = 'disturbance/emails/proposals/proposal_prefill_completed_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_prefill_completed_notification.txt'
+
+class ProposalPrefillErrorSendNotificationEmail(TemplateEmailBase):
+    subject = 'ERROR: Proposal prefill'
+    html_template = 'disturbance/emails/proposals/proposal_prefill_error_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_prefill_error_notification.txt'
+
+class ProposalRefreshRequestSentSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal refresh request has been sent.'
+    html_template = 'disturbance/emails/proposals/proposal_refresh_request_sent_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_refresh_request_sent_notification.txt'
+
+class ProposalRefreshCompletedSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal refresh has completed.'
+    html_template = 'disturbance/emails/proposals/proposal_refresh_completed_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_refresh_completed_notification.txt'
+
+class ProposalRefreshErrorSendNotificationEmail(TemplateEmailBase):
+    subject = 'ERROR: Proposal refresh'
+    html_template = 'disturbance/emails/proposals/proposal_refresh_error_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_refresh_error_notification.txt'
+
+class ProposalTestSqqRequestSentSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal TEST SQQ request has been sent.'
+    html_template = 'disturbance/emails/proposals/proposal_test_sqq_request_sent_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_test_sqq_request_sent_notification.txt'
+
+class ProposalTestSqqCompletedSendNotificationEmail(TemplateEmailBase):
+    subject = 'Proposal TEST SQQ has completed.'
+    html_template = 'disturbance/emails/proposals/proposal_test_sqq_completed_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_test_sqq_completed_notification.txt'
+
+class ProposalTestSqqErrorSendNotificationEmail(TemplateEmailBase):
+    subject = 'ERROR: Proposal TEST SQQ'
+    html_template = 'disturbance/emails/proposals/proposal_test_sqq_error_notification.html'
+    txt_template = 'disturbance/emails/proposals/proposal_test_sqq_error_notification.txt'
+
+
 
 def send_referral_email_notification(referral,request,reminder=False):
     email = ReferralSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
-
+    assessor_name=referral.proposal.assigned_officer.get_full_name() if referral.proposal.assigned_officer else ''
     context = {
         'proposal': referral.proposal,
         'url': url,
         'reminder':reminder,
-        'comments': referral.text
+        'comments': referral.text,
+        'greeting': 'Referee',
+        'referral_assess_help_page': get_referral_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessor_name': assessor_name,
     }
 
     msg = email.send(referral.referral.email, context=context)
@@ -171,10 +266,15 @@ def send_referral_email_notification(referral,request,reminder=False):
 def send_referral_recall_email_notification(referral,request):
     email = ReferralRecallNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-referral-detail',kwargs={'proposal_pk':referral.proposal.id,'referral_pk':referral.id}))
-
+    assessor_name=referral.proposal.assigned_officer.get_full_name() if referral.proposal.assigned_officer else ''
     context = {
         'proposal': referral.proposal,
         'url': url,
+        'greeting': 'Referee',
+        'referral_assess_help_page': get_referral_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessor_name': assessor_name,
     }
 
     msg = email.send(referral.referral.email, context=context)
@@ -188,11 +288,16 @@ def send_referral_recall_email_notification(referral,request):
 def send_referral_complete_email_notification(referral,request):
     email = ReferralCompleteNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': referral.proposal.id}))
-
+    referral_name=referral.referral.get_full_name() if referral.referral else ''
     context = {
         'proposal': referral.proposal,
         'url': url,
-        'referral_comments': referral.referral_text
+        'referral_comments': referral.referral_text,
+        'greeting': 'Assessor',
+        'referral_assess_help_page': get_referral_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'referral_name': referral_name,
     }
 
     msg = email.send(referral.sent_by.email, context=context)
@@ -332,10 +437,13 @@ def send_submit_email_notification(request, proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
-
     context = {
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'greeting': 'Assessor',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url()
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
@@ -388,10 +496,16 @@ def send_approver_decline_email_notification(reason, request, proposal):
     else:
         email = ApproverDeclineSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
     context = {
         'proposal': proposal,
         'reason': reason,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Approver',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
     }
 
     msg = email.send(proposal.approver_recipients, context=context)
@@ -407,14 +521,20 @@ def send_approver_approve_email_notification(request, proposal):
     else:
         email = ApproverApproveSendNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
     context = {
         'start_date' : proposal.proposed_issuance_approval.get('start_date'),
         'expiry_date' : proposal.proposed_issuance_approval.get('expiry_date'),
         'details': proposal.proposed_issuance_approval.get('details'),
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Assessor',
+        'proposal_approver_help_page': get_proposal_approver_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
-
     msg = email.send(proposal.approver_recipients, context=context)
     #sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     sender = get_sender_user()
@@ -428,10 +548,10 @@ def send_proposal_decline_email_notification(proposal,request,proposal_decline):
         email = ApiaryProposalDeclineSendNotificationEmail()
     else:
         email = ProposalDeclineSendNotificationEmail()
-
+    reason=proposal_decline.reason
     context = {
         'proposal': proposal,
-
+        'reason': reason,
     }
     cc_list = proposal_decline.cc_email
     all_ccs = []
@@ -457,10 +577,17 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
     else:
         email = ApproverSendBackNotificationEmail()
     url = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': proposal.id}))
+    approver_name=proposal.assigned_approver.get_full_name() if proposal.assigned_approver else ''
     context = {
         'proposal': proposal,
         'url': url,
-        'approver_comment': proposal.approver_comment
+        'approver_comment': proposal.approver_comment,
+        'approver_name': approver_name,
+        'greeting': 'Assessor',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
@@ -472,7 +599,6 @@ def send_proposal_approver_sendback_email_notification(request, proposal):
 
 
 def send_proposal_approval_email_notification(proposal,request):
-    #import ipdb; ipdb.set_trace()
     if proposal.apiary_group_application_type:
         email = ApiaryProposalApprovalSendNotificationEmail()
     else:
@@ -553,10 +679,17 @@ def send_assessment_reminder_email_notification(proposal):
     if "-internal" not in url:
         # add it. This email is for internal staff (assessors)
         url = '-internal.{}'.format(settings.SITE_DOMAIN).join(url.split('.' + settings.SITE_DOMAIN))
+    assessor_name=proposal.assigned_officer.get_full_name() if proposal.assigned_officer else ''
 
     context = {
         'proposal': proposal,
-        'url': url
+        'url': url,
+        'assessor_name': assessor_name,
+        'greeting': 'Assessor',
+        'proposal_assess_help_page': get_proposal_assess_help_url(),
+        'assessor_footer': True,
+        'DAS_sharepoint_page': get_das_sharepoint_url(),
+        'assessment_reminder_days': get_assessment_reminder_days(),
     }
 
     msg = email.send(proposal.assessor_recipients, context=context)
@@ -571,6 +704,158 @@ def send_assessment_reminder_email_notification(proposal):
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
     return msg
+
+def send_proposal_prefill_request_sent_email_notification(proposal, user):
+    email = ProposalPrefillRequestSentSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+    }
+
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_prefill_completed_email_notification(proposal, user):
+    email = ProposalPrefillCompletedSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+    }
+
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_prefill_error_email_notification(proposal, user, task_id):
+    email = ProposalPrefillErrorSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'task_id': task_id,
+        'greeting': 'Assessor',
+        'url': url,
+    }
+
+    msg = email.send(user.email, context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_refresh_request_sent_email_notification(proposal, user):
+    email = ProposalRefreshRequestSentSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+    }
+
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_refresh_completed_email_notification(proposal, user):
+    email = ProposalRefreshCompletedSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'url': url,
+    }
+
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_refresh_error_email_notification(proposal, user, task_id):
+    email = ProposalRefreshErrorSendNotificationEmail()
+    #base_url = settings.BASE_URL if settings.BASE_URL.endswith('/') else settings.BASE_URL + '/'
+    #url = base_url + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    url = settings.BASE_URL + reverse('external-proposal-detail',kwargs={'proposal_pk': proposal.id})
+    context = {
+        'proposal': proposal,
+        'task_id': task_id,
+        'greeting': 'Assessor',
+        'url': url,
+    }
+
+    msg = email.send(user.email, context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_test_sqq_request_sent_email_notification(proposal, user, task_id):
+    email = ProposalTestSqqRequestSentSendNotificationEmail()
+    context = {
+        'proposal': proposal,
+        'task_id': task_id,
+    }
+
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_test_sqq_completed_email_notification(proposal, user, task_id, data):
+    email = ProposalTestSqqCompletedSendNotificationEmail()
+    sqs_response = json.dumps(data, indent=4)
+    context = {
+        'proposal': proposal,
+        #'url': url,
+        'task_id': task_id,
+        'sqs_response': sqs_response,
+    }
+
+     # for attachment
+#    dt = datetime.now().strftime('%Y%m%dT%H%M%S')
+#    filename = f'TEST_SQQ_{proposal.lodgement_number}_{dt}.json'
+#    #attachment = MIMEText(sqs_response)
+#    attachment = sqs_response
+#    attachment.add_header('Content-Disposition', 'attachment', filename=filename)
+
+    msg = email.send(user.email, bcc=[], attachments=[], context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+def send_proposal_test_sqq_error_email_notification(proposal, user, task_id):
+    email = ProposalTestSqqErrorSendNotificationEmail()
+    context = {
+        'proposal': proposal,
+        'task_id': task_id,
+        'greeting': 'Assessor',
+    }
+
+    msg = email.send(user.email, context=context)
+    sender = get_sender_user()
+    _log_proposal_email(msg, proposal, sender=sender)
+    if proposal.applicant:
+        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
+
+
 
 def _log_proposal_referral_email(email_message, referral, sender=None):
     from disturbance.components.proposals.models import ProposalLogEntry
@@ -621,7 +906,6 @@ def _log_proposal_referral_email(email_message, referral, sender=None):
 def _log_proposal_email(email_message, proposal, sender=None):
     from disturbance.components.proposals.models import ProposalLogEntry
     if isinstance(email_message, (EmailMultiAlternatives, EmailMessage,)):
-        #import ipdb; ipdb.set_trace()
         # TODO this will log the plain text body, should we log the html instead
         text = email_message.body
         subject = email_message.subject

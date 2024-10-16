@@ -16,23 +16,32 @@
             <template v-if="help_text_assessor_url && assessorMode">
                 <HelpTextUrl  :help_text_url="help_text_assessor_url" assessorMode={assessorMode} isForAssessor={true} />
             </template> 
-
+            <template v-if="!assessorMode">
+                <RefreshSelect :parent_name="name" :parent_label="label" :assessorMode="assessorMode" :layer_data="layer_val" :proposal_id="proposal_id" :refresh_time_value="refresh_time_value" :isMultiple="isMultiple"/>
+            </template>
 
             <template v-if="assessorMode">
                 <template v-if="!showingComment">
                     <!-- <a v-if="comment_value != null && comment_value != undefined && comment_value != '' && comment_value['assessor']!=null && comment_value['assessor']!=undefined && comment_value['assessor']!= '' " href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
-                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
-                    <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
+                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment" class="noPrint"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                    <a v-else href="" @click.prevent="toggleComment" class="noPrint"><i class="fa fa-comment-o">&nbsp;</i></a>
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
+
+            <template>
+                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+            </template>
+
+            
+
      
             <template v-if="readonly">
                 <select v-if="!isMultiple" disabled ref="selectB" :id="selectid" :name="name" class="form-control" :data-conditions="cons" style="width:100%">
                     <option value="">Select...</option>
                     <option v-for="op in options"  :value="op.value" @change="handleChange" :selected="op.value == value">{{ op.label }}</option>
                 </select>
-                <select v-else disabled ref="selectB" :id="selectid" class="form-control" multiple style="width:100%">
+                <select v-else disabled ref="selectB" :id="selectid" :name="name" class="form-control" multiple style="width:100%">
                     <option value="">Select...</option>
                     <option v-for="op in options"  :value="op.value" :selected="multipleSelection(op.value)">{{ op.label }}</option>
                 </select>
@@ -54,6 +63,9 @@
                 </select>
             </template>
         </div>
+        <!-- <template>
+                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+        </template> -->
 
         
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
@@ -71,8 +83,10 @@ import Comment from './comment.vue'
 import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import LayerInfo from './layer_info.vue'
+import RefreshSelect from './refresh_select.vue'
 export default {
-    name:"Select",
+    name:"selectComp",
     props:{
         'name':String,
         'label':String,
@@ -83,6 +97,7 @@ export default {
         'help_text_url':String,
         'help_text_assessor_url':String,
         "value":[String,Array],
+        //"comment_value": String,
         "comment_value": [String, Object],
         "assessor_readonly": Boolean,
         "options":Array,
@@ -99,7 +114,15 @@ export default {
             }
         },
         'readonly': Boolean,
-        "comment_boxes":[String, Array],
+        "comment_boxes":"",
+        "layer_val": {
+            default:function () {
+                return false;
+            }
+        },
+        "refresh_time_value":"",
+        'proposal_id': Number,
+        //"comment_boxes":[String, Array],
     },
     data:function () {
         let vm =this;
@@ -139,7 +162,7 @@ export default {
             return has_value;
         },
     },
-    components: { Comment, HelpText, HelpTextUrl, CommentBox},
+    components: { Comment, HelpText, HelpTextUrl, CommentBox, LayerInfo, RefreshSelect},
     methods:{
         toggleComment(){
             this.showingComment = ! this.showingComment;
@@ -200,4 +223,9 @@ export default {
 input {
     box-shadow:none;
 }
+@media print { 
+        .noPrint { 
+        display: none;
+        }
+    }
 </style>

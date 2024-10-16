@@ -19,4 +19,15 @@ export default {
 .select2-container--disabled, .select2-container--focus{
     z-index: 1;
 }
+.logo-print {
+    display: none;
+ }
+@media print { 
+ .logo-link {
+    display: none;
+ }
+ .logo-print {
+    display: block;
+ }
+} 
 </style>

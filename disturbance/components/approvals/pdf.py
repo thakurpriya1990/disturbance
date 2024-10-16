@@ -201,7 +201,6 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
     #elements.append(Paragraph(title, styles['InfoTitleVeryLargeCenter']))
     #elements.append(Paragraph(approval.activity, styles['InfoTitleLargeLeft']))
     elements.append(Paragraph('APPROVAL OF PROPOSAL {} {} TO UNDERTAKE DISTURBANCE ACTIVITY IN {}'.format(title, proposal.lodgement_number, region_district), styles['InfoTitleLargeLeft']))
-    #import ipdb; ipdb.set_trace()
     #elements.append(Paragraph(approval.tenure if hasattr(approval, 'tenure') else '', styles['InfoTitleLargeRight']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -479,7 +478,6 @@ def create_approval_pdf_bytes(approval, proposal, copied_to_permit, user):
 
 
 def create_renewal_doc(approval,proposal):
-    #import ipdb; ipdb.set_trace()
     renewal_buffer = BytesIO()
 
     _create_renewal(renewal_buffer, approval, proposal)

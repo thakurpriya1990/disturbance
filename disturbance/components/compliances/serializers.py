@@ -30,7 +30,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
     proposal_lodgement_number = serializers.SerializerMethodField()
     district = serializers.CharField(source='proposal.district')
 
-
     class Meta:
         model = Compliance
         fields = (
@@ -58,7 +57,6 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'approval_lodgement_number',
             'proposal_lodgement_number',
             'district',
-
         )
 
     def get_documents(self,obj):

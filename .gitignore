@@ -7,7 +7,9 @@ node_modules/
 cronjobs
 mooring/cache/*
 tmp/
+geo_exports/
 disturbance/utils/csv
+!disturbance/utils/csv/CDDP_Layers_v4.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -36,6 +38,7 @@ var/
 *.bak
 *.csv
 *.xls*
+*.tgz*
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -83,6 +86,7 @@ target/
 
 **/local/
 *.map
+docker-compose.yml
 
 # media
 media/

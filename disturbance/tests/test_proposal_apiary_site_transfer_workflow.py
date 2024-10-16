@@ -349,7 +349,6 @@ class ApiarySiteTransferIntegrationTests(APITestSetup):
                     ]
                 }
             }
-        #import ipdb; ipdb.set_trace()
         #selected_licence_holder_str = '{{"licence_holder":{0},"type":"individual","id":{1},"lodgement_number":{2}}}'.format(
         #        self.customer2.email, proposal_2_obj.approval.id, proposal_2_obj.approval.lodgement_number)
         selected_licence_holder_dict = {

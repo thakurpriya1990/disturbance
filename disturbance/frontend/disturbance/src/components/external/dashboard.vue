@@ -10,9 +10,11 @@
             </div>
         </div>
     </div>
+    <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/>
     <ProposalDashTable level='external' :url='proposals_url'/>
     <ApprovalDashTable level='external' :url='approvals_url'/>
     <ComplianceDashTable level='external' :url='compliances_url'/>
+    <!-- <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/> -->
 </div>
 </template>
 <script>
@@ -21,6 +23,7 @@ import datatable from '@/utils/vue/datatable.vue'
 import ProposalDashTable from '@common-utils/proposals_dashboard.vue'
 import ApprovalDashTable from '@common-utils/approvals_dashboard.vue'
 import ComplianceDashTable from '@common-utils/compliances_dashboard.vue'
+import MapDashboard from '@/components/common/das/map_dashboard_internal.vue'
 import {
   api_endpoints,
   helpers
@@ -51,7 +54,8 @@ export default {
     components:{
         ProposalDashTable,
         ApprovalDashTable,
-        ComplianceDashTable
+        ComplianceDashTable,
+        MapDashboard
     },
     watch: {},
     computed: {
@@ -68,6 +72,13 @@ export default {
             }
             return welcomeText;
         },
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+            }
 
     },
     methods: {
