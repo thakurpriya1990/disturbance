@@ -543,7 +543,16 @@ export default {
         if (!['Apiary', 'Site Transfer', 'Temporary Use'].includes(vm.selected_application_name)) {
             // if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.approval_level == ''){
             //if (vm.behalf_of == '' || vm.selected_application_id == ''  || vm.approval_level == ''){
-            if (vm.behalf_of == '' || vm.selected_application_id == '' ||vm.selected_region == ''  || vm.selected_activity=='' ){
+            if (vm.behalf_of == '' || vm.selected_application_id == '' || vm.selected_region == '' || vm.selected_district == '' || vm.selected_activity=='' ){
+                if (vm.selected_sub_activity1==''){
+                    return true;
+                }
+            }
+            else if (vm.sub_activities1.length==0){
+                // vm.selected_sub_activity1 not required
+                return false;
+            }
+            else if ((vm.sub_activities1.length>0 && vm.selected_sub_activity1=='') || (vm.sub_activities2.length>0 && vm.selected_sub_activity2=='')){
                 return true;
             }
         } else {
