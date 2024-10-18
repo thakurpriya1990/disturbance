@@ -1480,7 +1480,8 @@
                         let customer_status_str = proposal.customer_status_display
                         let region_str = proposal.region_name
                         
-                        let proposal_type_str= proposal.proposal_type
+                        //let proposal_type_str= proposal.proposal_type
+                        let proposal_type_str= proposal.application_type_name
                         let lodgement_date_str= proposal.lodgement_date ? moment(proposal.lodgement_date).format('DD/MM/YYYY') : ''
                         let submitter_str=proposal.submitter_full_name
                         let applicant_name=proposal.applicant_name

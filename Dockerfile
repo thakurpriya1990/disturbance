@@ -125,6 +125,7 @@ ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
 echo $TZ > /etc/timezone && \
 touch /app/.env
 COPY .git ./.git
+COPY python-cron python-cron
 COPY disturbance ./disturbance
 RUN mkdir -p /app/disturbance/static/disturbance_vue/static
 RUN cd /app/disturbance/frontend/disturbance; npm install
