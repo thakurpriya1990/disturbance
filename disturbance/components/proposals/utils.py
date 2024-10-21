@@ -2246,7 +2246,7 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
                 gdf['proptype']   = p.application_type.name
                 #gdf['propurl']    = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id}))
                 gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
-                gdf['prop_activ'] = p.activity
+                gdf['activity'] = p.activity
 
                 #gdf.set_crs = settings.CRS
                 gdf_concat = pd.concat([gdf_concat, gdf[columns]], ignore_index=True)
