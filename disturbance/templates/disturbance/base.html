@@ -67,7 +67,8 @@
                                 </button>
 
                                 {% if not empty_menu %}
-                                    <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">{% if is_internal_login %}{% if TEMPLATE_GROUP == 'apiary' %}Applications{% else %}Proposals{% endif %}{% else %}Home {% endif %}</div></a>
+                                    <a class="navbar-brand" href="/external/" title="External Home View"><div style="inline"><img src="{% static 'disturbance/img/dpaw_small.png' %}">Home</div></a>
+                                    <a class="navbar-brand" href="{% url 'ds_home' %}"><div style="inline"><img>{% if TEMPLATE_GROUP == 'apiary' %}Applications{% else %}Proposals{% endif %}</div></a>
                                 {% endif %}
 
                             </div>
