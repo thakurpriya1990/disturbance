@@ -13,11 +13,13 @@
                     </h3>
                 </div>
                 <div class="panel-body collapse in" :id="pBody">
+                    <!--
                     <div class="row" v-if="is_external">
                         <div class="col-md-3">                            
                             <router-link  style="margin-top:25px;" class="btn btn-primary" :to="{ name: 'apply_proposal' }">{{newProposalText}}</router-link>
                         </div>
                     </div>
+                    -->
                     <div class="row">
                         <div v-if="!apiaryTemplateGroup">
                             <div class="col-md-3">

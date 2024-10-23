@@ -1,6 +1,6 @@
 <template>
 <div class="container" id="internalDash">
-    <MapDashboard v-if="show_das_map" level="internal" :is_internal="true" />
+    <MapDashboard v-if="show_das_map  && !apiaryTemplateGroup" level="internal" :is_internal="true" />
     <ProposalDashTable level="internal" :url="proposals_url"/>
     <ReferralDashTable :url="referrals_url"/>
     <!-- <MapDashboard v-if="show_das_map" level="internal" :is_internal="true" /> -->
@@ -26,6 +26,8 @@ export default {
             //proposals_url: api_endpoints.list_proposals,
             proposals_url: api_endpoints.proposals_paginated_internal,
             referrals_url: api_endpoints.referrals_paginated_internal,
+            apiaryTemplateGroup: false,
+            dasTemplateGroup: false,
         }
     
     },
@@ -46,6 +48,23 @@ export default {
     },
     methods: {},
     mounted: function () {
-    }
+    },
+
+    created: function() {
+        // retrieve template group
+        this.$http.get('/template_group',{
+            emulateJSON:true
+            }).then(res=>{
+                //this.template_group = res.body.template_group;
+                if (res.body.template_group === 'apiary') {
+                    this.apiaryTemplateGroup = true;
+                } else {
+                    this.dasTemplateGroup = true;
+                }
+        },err=>{
+        console.log(err);
+        });
+    },
+
 }
 </script>

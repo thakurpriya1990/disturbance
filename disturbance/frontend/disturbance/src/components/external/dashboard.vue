@@ -3,14 +3,21 @@
     <div class="row">
         <div class="col-sm-12">
             <div class="well well-sm">
-                <span v-html="welcomeMessage"></span>
+                <div class="col-md-9">
+                    <span v-html="welcomeMessage"></span>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 text-right">
+                        <router-link  style="margin-top:25px;" class="btn btn-primary" :to="{ name: 'apply_proposal' }">New Proposal</router-link>
+                    </div>
+                </div>
                 <!--p>
                     Welcome to the {{system_name}} online system dashboard.<br/><br/> Here you can access your existing approvals/licences, view any proposals/applications in progress, lodge new<br/> proposals/applications or submit information required to comply with requirements listed on your approval/license
                 </p-->
             </div>
         </div>
     </div>
-    <MapDashboard  v-if="show_das_map" level="external" :is_external="true"/>
+    <MapDashboard  v-if="show_das_map && !apiaryTemplateGroup" level="external" :is_external="true"/>
     <ProposalDashTable level='external' :url='proposals_url'/>
     <ApprovalDashTable level='external' :url='approvals_url'/>
     <ComplianceDashTable level='external' :url='compliances_url'/>
