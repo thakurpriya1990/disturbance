@@ -42,6 +42,12 @@ def is_internal(context):
     request = context['request']
     return disturbance_helpers.is_internal(request)
 
+@register.simple_tag(takes_context=True)
+def is_internal_path(context):
+    # checks if user is viewing page via '/internal/' or '/external/' url
+    return 'internal/' in context['url_path']
+
+
 
 @register.simple_tag(takes_context=True)
 def is_model_backend(context):
