@@ -114,7 +114,8 @@
                         <div class="row">
                             <div class="col-md-1"></div>
                             <div class="col-md-10">
-                                <select class="form-control" ref="select_answer" name="select-answer" v-model="filterMasterlistOption" :disabled="sqq_is_disabled()">
+                                <!--<select class="form-control" ref="select_answer" name="select-answer" v-model="filterMasterlistOption" :disabled="sqq_is_disabled()">-->
+                                <select class="form-control" ref="select_answer" name="select-answer" v-model="filterMasterlistOption">
                                     <option v-for="(o, oid) in masterlistQuestionOptions" :value="o.label" v-bind:key="`answer_${oid}`">{{o.label}}</option>
                                 </select>                         
                             </div>
@@ -133,7 +134,8 @@
                             <div class="col-md-1"></div>
                             <div class="row">
                                 <div class="col-md-3">
-                                    <label class="control-label pull-left" >Departmental custodian</label><label class="superscript">*</label>
+                                    <label class="control-label pull-left" >Departmental custodian
+                                    </label><label class="superscript">*</label>
                                 </div>
                             </div>
                         </div>

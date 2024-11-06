@@ -16,6 +16,7 @@ from django.db.models import F, Q
 from django.db import transaction, connection
 from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
+from django.db.utils import IntegrityError
 from rest_framework import viewsets, serializers, status, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes
 from rest_framework.response import Response
@@ -1523,6 +1524,12 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
             logger.exception(log)
             raise
 
+        except IntegrityError as e:
+            logger.exception(str(e))
+            if 'already exists' in str(e):
+                raise serializers.ValidationError('CDDP Question and Answer already exist. Must be a unique set')
+            raise serializers.ValidationError(str(e))
+            
         except ValidationError as e:
             if hasattr(e, 'error_dict'):
                 raise serializers.ValidationError(repr(e.error_dict))
@@ -1530,7 +1537,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
                 raise serializers.ValidationError(repr(e[0]))
 
         except Exception as e:
-            logger.exception()
+            logger.exception(str(e))
             raise serializers.ValidationError(str(e))
 
 #    @detail_route(methods=['POST', ])
