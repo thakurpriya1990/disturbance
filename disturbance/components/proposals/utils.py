@@ -2208,7 +2208,6 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
             OR
             gen_shapefile(user, filter_kwargs)
     '''
-    import ipdb; ipdb.set_trace()
     status_exc = [
         Proposal.PROCESSING_STATUS_TEMP,
         Proposal.PROCESSING_STATUS_DRAFT,

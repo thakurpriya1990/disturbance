@@ -246,7 +246,6 @@ def send_on_site_notification_email(request_data, sender, update=False):
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     #sender = settings.DEFAULT_FROM_EMAIL
-    import ipdb; ipdb.set_trace()
     cc = [approval.relevant_applicant.email] if hasattr(approval.relevant_applicant, 'email') and approval.relevant_applicant.email is not None else []
     msg = email.send(get_recipients(), cc=cc, context=context)
     
