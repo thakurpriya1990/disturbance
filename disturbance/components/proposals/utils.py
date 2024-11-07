@@ -2224,7 +2224,7 @@ def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=Fa
     t0 = time.time()
     logger.info('create_shapefile: 0')
 
-    columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','propstatus','assocprop','proptype','propurl','prop_activ','geometry']
+    columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','propstatus','assocprop','proptype','propurl','activity','geometry']
     gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry")
     for page_num in paginator.page_range:
         for p in paginator.page(page_num).object_list:
