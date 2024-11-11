@@ -1196,4 +1196,9 @@ export default {
   display: none;
  }
 } 
+
+.swal2-container {
+  z-index: 9999 !important;
+}
+
 </style>
