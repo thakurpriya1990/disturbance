@@ -19,7 +19,7 @@
                 <div class="noPrint">  
                      <File 
                         :name="map_doc_name" 
-                        label="Upload Shapefile" :id="map_doc_id"  
+                        label="Upload Shapefile jm" :id="map_doc_id"  
                         :isRepeatable="true" 
                         :readonly="proposal.readonly"   
                         :proposal_id="proposal.id" 
@@ -34,7 +34,7 @@
                                 The shapefile can be made up of one multi-part polygon.
                             </li>
                             <li>
-                                The Shapefile must be in GDA94 latitude/longitude only.
+                                It is preferable that the Shapefile is in GDA94 latitude/longitude only.
                             </li>
                             <li>
                                 Max file size is 10MB.
