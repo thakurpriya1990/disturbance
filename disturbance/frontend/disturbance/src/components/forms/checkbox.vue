@@ -4,7 +4,8 @@
             <div class="checkbox">
                 <label :id="id">
                 <input :onclick="isClickable" ref="Checkbox" :name="name" type="checkbox" :class="group" data-parsley-required :data-conditions="options" @change="handleChange" :checked="isChecked" :required="isRequired"/>
-                {{ label }}<span v-if="assessorMode && layer_value" style="color:blue" class="tab">{{layer_name }}</span>
+                <!--{{ label }}<span v-if="assessorMode && layer_value" style="color:blue" class="tab">{{layer_name }}</span>-->
+                {{ label }}<span v-if="layer_value" style="color:blue" class="tab">{{layer_name }}</span>
                 </label>
                 <template v-if="help_text">
                   <HelpText :help_text="help_text" />

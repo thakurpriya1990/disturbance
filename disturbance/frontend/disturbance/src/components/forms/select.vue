@@ -30,7 +30,8 @@
             </template>
 
             <template>
-                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+                <!--<LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>-->
+                <LayerInfo v-show="true" :layer_value="layer_val"  :assessorMode="true"/>
             </template>
 
             

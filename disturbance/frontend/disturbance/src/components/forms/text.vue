@@ -29,7 +29,8 @@
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
             <template>
-                <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode" />
+                <!--<LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode" />-->
+                <LayerInfo v-show="true" :layer_value="layer_val"  :assessorMode="true"/>
             </template>
             <input :readonly="readonly" :type="type" class="form-control" :name="name" :value="value" :required="isRequired" />
         </div>

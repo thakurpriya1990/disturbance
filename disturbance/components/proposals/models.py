@@ -1742,6 +1742,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def submit(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
         with transaction.atomic():
+            if not self.shapefile_json:
+                raise ValidationError('Error: Must first upload a shapefile')
+            
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)

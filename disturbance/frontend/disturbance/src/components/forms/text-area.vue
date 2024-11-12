@@ -29,7 +29,8 @@
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
-            <LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>
+            <!--<LayerInfo v-show="assessorMode" :layer_value="layer_val"  :assessorMode="assessorMode"/>-->
+            <LayerInfo v-show="true" :layer_value="layer_val"  :assessorMode="true"/>
             <textarea :readonly="readonly" class="form-control" rows="5" :name="name" :required="isRequired" :id="textarea_id">{{ value }} </textarea>
         </div>
         <!-- <Comment :question="label" :readonly="assessor_readonly" :name="name+'-comment-field'" v-show="showingComment && assessorMode" :value="comment_value"/>  -->
