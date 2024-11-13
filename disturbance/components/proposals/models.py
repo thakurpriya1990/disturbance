@@ -1595,9 +1595,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Explode multi-part geometries into multiple single geometries.
                 self.set_shapefile_geom()
 
-                self.save(version_comment='New Shapefile JSON saved.')
-                # else:
-                #     raise ValidationError('Please upload a valid shapefile')
+                self.save(version_comment='New Shapefile JSON saved.')                
             else:
                 raise ValidationError('Please upload a valid shapefile') 
         except Exception as e:
@@ -1614,7 +1612,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             self.shapefile_json=None
             self.shapefile_exp_json=None
             self.save(version_comment='Shapefile json cleared as invalid shapefile uploaded.')
-            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
+            raise ValidationError(f'{e}')
 
 
     def set_shapefile_geom(self):
