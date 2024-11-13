@@ -19,7 +19,7 @@
                 <div class="noPrint">  
                      <File 
                         :name="map_doc_name" 
-                        label="Upload Shapefile jm" :id="map_doc_id"  
+                        label="Upload Shapefile" :id="map_doc_id"  
                         :isRepeatable="true" 
                         :readonly="proposal.readonly"   
                         :proposal_id="proposal.id" 
