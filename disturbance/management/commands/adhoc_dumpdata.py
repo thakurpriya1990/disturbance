@@ -211,6 +211,8 @@ class Command(BaseCommand):
             # replace_by 17, (curent_pk on PROD)
             # version 13 (current_version + 1)
             # :%s/proposal_type": 26/proposal_type": 18/g
+            #
+            # from das-uat --> ./manage_ds.py loaddata proposal_type_das.json
 
             # 27 is the current pk of proposal_type on das_test for Ecological Thinning. 
             pk_proposal_type = 27
@@ -222,7 +224,7 @@ class Command(BaseCommand):
             # version 1 (current_version + 1)
             # :%s/proposal_type": 27/proposal_type": 19/g
             #
-            # from das-uat --> ./manage_ds.py loaddata shared/pt_v27_ET_15Oct2024.json
+            # from das-uat --> ./manage_ds.py loaddata proposal_type_et.json
 
 
             #version_proposal_type = 11
