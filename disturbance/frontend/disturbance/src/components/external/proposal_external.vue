@@ -884,6 +884,7 @@ export default {
             //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
+
         deficientFields() {
             let vm=this;
             let deficient_fields=[]
@@ -894,7 +895,11 @@ export default {
             }
             vm.highlight_deficient_fields(deficient_fields);
         },
+
         submit: function(){
+
+            // Expand all sections - forces components to be rendered for validation
+            $('.collapse').collapse('show')
 
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -1200,4 +1205,9 @@ export default {
   display: none;
  }
 } 
+
+.swal2-container {
+  z-index: 9999 !important;
+}
+
 </style>

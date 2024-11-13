@@ -34,7 +34,7 @@
                                 The shapefile can be made up of one multi-part polygon.
                             </li>
                             <li>
-                                The Shapefile must be in GDA94 latitude/longitude only.
+                                It is preferable that the Shapefile is in GDA94 latitude/longitude only.
                             </li>
                             <li>
                                 Max file size is 10MB.
@@ -260,6 +260,14 @@
                 let vm = this;
                 vm.showError=false;
                 vm.errorString='';
+                var inputOptions = {};
+
+                if(vm.proposal.data && vm.proposal.data.length > 0) {
+                    inputOptions = {
+                        'clear_sqs': 'Clear only Spatial data from the Proposal',
+                        'clear_all': 'Clear all Proposal data',
+                    }
+                }
                 
                 await swal({
                     title: "Prefill Proposal",
@@ -269,18 +277,17 @@
                     confirmButtonText: 'Prefill Proposal',
                     confirmButtonColor:'#d9534f',
                     input: 'radio',
-                    inputOptions: {
-                      'clear_sqs': 'Clear only Spatial data from the Proposal',
-                      'clear_all': 'Clear all Proposal data',
-                    }
+                    inputOptions: inputOptions,
                 }).then(async (result) => {
-                    if (!result) {
+                    if (Object.keys(inputOptions).length > 0 && !result) {
                         swal(
                             'Please select an option',
                             null,
                             'warning'
                         )
                         return;
+                    }  else if (Object.keys(inputOptions).length == 0) {
+                        result = 'clear_all';
                     }
                     //vm.prefilling=true;
                     swal({

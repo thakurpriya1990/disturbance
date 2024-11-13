@@ -31,7 +31,8 @@ class Command(BaseCommand):
             line = ['Applicant', 'Site ID', 'Lon/Lat', 'Site Status', 'Zone', 'Licensed Site']
             sheet.write_row(0, col, line)
             for row, asoa in enumerate(qs.order_by('approval__current_proposal__applicant'), 1):
-                line = [f'{asoa.approval.current_proposal.applicant}', f'{asoa.apiary_site_id}', f'{asoa.wkb_geometry.coords}', f'{asoa.site_status}', f'{asoa.zone}', f'{asoa.licensed_site}']
+                #line = [f'{asoa.approval.current_proposal.applicant}', f'{asoa.apiary_site_id}', f'{asoa.wkb_geometry.coords}', f'{asoa.site_status}', f'{asoa.zone}', f'{asoa.licensed_site}']
+                line = [f'{asoa.approval.relevant_applicant_name}', f'{asoa.apiary_site_id}', f'{asoa.wkb_geometry.coords}', f'{asoa.site_status}', f'{asoa.site_category.name}', f'{asoa.licensed_site}']
                 sheet.write_row(row, col, line)
 
         email = EmailMessage(

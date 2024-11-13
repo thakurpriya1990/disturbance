@@ -1595,9 +1595,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                 # Explode multi-part geometries into multiple single geometries.
                 self.set_shapefile_geom()
 
-                self.save(version_comment='New Shapefile JSON saved.')
-                # else:
-                #     raise ValidationError('Please upload a valid shapefile')
+                self.save(version_comment='New Shapefile JSON saved.')                
             else:
                 raise ValidationError('Please upload a valid shapefile') 
         except Exception as e:
@@ -1614,7 +1612,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
             self.shapefile_json=None
             self.shapefile_exp_json=None
             self.save(version_comment='Shapefile json cleared as invalid shapefile uploaded.')
-            raise ValidationError(f'Please upload a valid shapefile. \n{e}')
+            raise ValidationError(f'{e}')
 
 
     def set_shapefile_geom(self):
@@ -1742,6 +1740,9 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     def submit(self,request,viewset):
         from disturbance.components.proposals.utils import save_proponent_data
         with transaction.atomic():
+            if not self.shapefile_json:
+                raise ValidationError('Error: Must first upload a shapefile')
+            
             if self.can_user_edit:
                 # Save the data first
                 save_proponent_data(self,request,viewset)

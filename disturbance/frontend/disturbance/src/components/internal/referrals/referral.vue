@@ -804,4 +804,8 @@ export default {
     margin-bottom: 10px;
     width: 100%;
 }
+
+.swal2-container {
+  z-index: 9999 !important;
+}
 </style>
