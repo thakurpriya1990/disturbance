@@ -35,7 +35,16 @@ class PollSqsTasksException(Exception):
 
 
 class Command(BaseCommand):
+    """
+    Polls the SQS application to check for completed proposal tasks
+        Eg. python manage.py poll_sqs_tasks  (ALL QUEUED TASKS)
+            python manage.py poll_sqs_tasks --task_id 10 
+    """
+        
     help = 'Polls the SQS application to check for completed proposal tasks.'
+
+    def add_arguments(self, parser):
+        parser.add_argument('--task_id', type=int, help='Task ID', required=False)
 
     def handle(self, *args, **options):
         '''
@@ -70,11 +79,15 @@ class Command(BaseCommand):
                     send_proposal_prefill_error_email_notification(task.proposal, user, task_id)
                 task.save()
 
+        task_id = options['task_id']
         msg = None
         task = None
         statuses = [TaskMonitor.STATUS_CREATED, TaskMonitor.STATUS_RUNNING]
         try:
-            task_ids = list(TaskMonitor.objects.filter(status__in=statuses).values_list('task_id', flat=True))
+            if task_id:
+                task_ids = [task_id]
+            else:
+                task_ids = list(TaskMonitor.objects.filter(status__in=statuses).values_list('task_id', flat=True))
             
             if len(task_ids) > 0:
                 task_ids_str = ','.join(map(str, task_ids))
