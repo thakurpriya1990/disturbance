@@ -72,28 +72,39 @@ def check_missing_files(src_path, dst_path):
 
     return missing_files, found_files
 
-def copy_missing_files(src_path, dst_path, overwrite=False):
+def copy_missing_files(src_path, dst_path, overwrite=False, copy=False):
 
     missing_files, found_files = check_missing_files(src_path, dst_path)
 
-    print("\n\nFiles missing from destination directory:", missing_files)
-    print("Files found in destination directory:", found_files,"\n\n")
-
-    for i in missing_files:
-        copy_src_path = ROOT_MEDIA_PATH + i
-        copy_dst_path = ROOT_PRIVATE_MEDIA_PATH + i
-        os.makedirs(os.path.dirname(copy_dst_path), exist_ok=True)
-        shutil.copy(copy_src_path, copy_dst_path)
-        print(copy_src_path, "copied to", copy_dst_path, "\n")
-
-    #if overwrite is True then we also overwrite files that are not missing
-    if overwrite:
-        print("overwrite option active - overwriting all files in destination directory")
+    if missing_files:
+        print("\n\nFiles missing from destination directory:\n")
+        for i in missing_files:
+            print(i,"\n")
+    else:
+        print("\n\nNo files missing")
+    
+    if found_files:
+        print("\n\nFiles found in destination directory:\n")
         for i in found_files:
+            print(i,"\n")
+
+    if copy:
+        print("\n\ncopying files to destination directory\n\n")
+        for i in missing_files:
             copy_src_path = ROOT_MEDIA_PATH + i
             copy_dst_path = ROOT_PRIVATE_MEDIA_PATH + i
-            print(copy_src_path, "overwrites", copy_dst_path, "\n")
+            os.makedirs(os.path.dirname(copy_dst_path), exist_ok=True)
             shutil.copy(copy_src_path, copy_dst_path)
+            print(copy_src_path, "copied to", copy_dst_path, "\n")
+
+        #if overwrite is True then we also overwrite files that are not missing
+        if overwrite:
+            print("\n\noverwrite option active - overwriting all files in destination directory")
+            for i in found_files:
+                copy_src_path = ROOT_MEDIA_PATH + i
+                copy_dst_path = ROOT_PRIVATE_MEDIA_PATH + i
+                print(copy_src_path, "overwrites", copy_dst_path, "\n")
+                shutil.copy(copy_src_path, copy_dst_path)
 
 def __main__():
 
@@ -101,9 +112,16 @@ def __main__():
     parser.add_argument("src_path", help="file path of media directory or sub-directory, source path for checking/replacing missing files")
     parser.add_argument("dst_path", help="file path of private media directory or sub-directory, destination path for checking/replacing missing files")
     parser.add_argument("-o", "--overwrite", action="store_true", help="overwrite all files in specified destination path with those found in specified source path")
+    parser.add_argument("-c", "--copy", action="store_true", help="copy the files to the destination directory, otherwise missing and found files are just listed in a printout")
     args = parser.parse_args()
     
-    print(args.src_path, args.dst_path)
+    print("\nRunning media_file_check.py...")
+
+    if not args.copy:
+        print("\n\nOnly listing files, files will not be copied...\n\n")
+
+    print("Source Directory:",args.src_path)
+    print("Destination Directory:", args.dst_path)
     copy_missing_files(args.src_path, args.dst_path, args.overwrite)
 
 __main__()
