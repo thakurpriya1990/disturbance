@@ -1,0 +1,6 @@
+{%  extends 'disturbance/emails/base_email.txt' %}
+
+{%  block content %}
+       	Prefill request for proposal {{proposal.lodgement_number}} has been queued for processing. 
+        Please click {{url}} to review.
+{%  endblock %}

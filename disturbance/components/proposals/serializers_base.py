@@ -4,6 +4,12 @@ from rest_framework import serializers
 from disturbance.components.proposals.models import Proposal, Referral, ProposalDeclinedDetails
 
 
+class EmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailUser
+        fields = ('email',)
+
+
 class EmailUserSerializer(serializers.ModelSerializer):
     name = serializers.SerializerMethodField(read_only=True)
     class Meta:
@@ -22,15 +28,17 @@ class EmailUserSerializer(serializers.ModelSerializer):
         return obj.get_full_name()
 
 class BaseProposalSerializer(serializers.ModelSerializer):
+    in_prefill_queue = serializers.SerializerMethodField(read_only=True)
     readonly = serializers.SerializerMethodField(read_only=True)
     documents_url = serializers.SerializerMethodField()
     proposal_type = serializers.SerializerMethodField()
     allowed_assessors = EmailUserSerializer(many=True)
+    region_name=serializers.CharField(source='region.name', read_only=True)
+    district_name=serializers.CharField(source='district.name', read_only=True)
 
     get_history = serializers.ReadOnlyField()
 
 #    def __init__(self, *args, **kwargs):
-#        import ipdb; ipdb.set_trace()
 #        user = kwargs['context']['request'].user
 #
 #        super(BaseProposalSerializer, self).__init__(*args, **kwargs)
@@ -47,6 +55,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'region',
                 'district',
                 'tenure',
+                'gis_info',
                 #'assessor_data',
                 'data',
                 'schema',
@@ -64,6 +73,7 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 'modified_date',
                 'documents',
                 'requirements',
+                'in_prefill_queue',
                 'readonly',
                 'can_user_edit',
                 'can_user_view',
@@ -80,11 +90,15 @@ class BaseProposalSerializer(serializers.ModelSerializer):
                 # 'fee_invoice_reference',
                 'fee_invoice_references',
                 'fee_paid',
+                'reissued',
                 )
-        read_only_fields=('documents',)
+        read_only_fields=('documents', 'gis_info',)
 
     def get_documents_url(self,obj):
-        return '/media/proposals/{}/documents/'.format(obj.id)
+        return '/private-media/proposals/{}/documents/'.format(obj.id)
+
+    def get_in_prefill_queue(self,obj):
+        return obj.in_prefill_queue
 
     def get_readonly(self,obj):
         return False

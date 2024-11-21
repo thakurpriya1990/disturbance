@@ -1,6 +1,8 @@
 from __future__ import unicode_literals
 import os
+from datetime import date, datetime, timedelta
 
+from django.conf import settings
 from django.contrib.gis.db.models import MultiPolygonField
 from django.db import models
 from django.dispatch import receiver
@@ -9,7 +11,8 @@ from django.utils.encoding import python_2_unicode_compatible
 from django.core.exceptions import ValidationError
 from ledger.accounts.models import EmailUser, Document, RevisionedMixin
 from django.contrib.postgres.fields.jsonb import JSONField
-from datetime import date
+from django.utils import timezone
+from django.core.cache import cache
 
 from disturbance.components.main.utils import overwrite_regions_polygons, overwrite_districts_polygons
 
@@ -48,6 +51,30 @@ class MapColumn(models.Model):
 
     def __str__(self):
         return '{0}, {1}'.format(self.map_layer, self.name)
+
+class DASMapLayer(models.Model):
+    display_name = models.CharField(max_length=100)
+    layer_name = models.CharField(max_length=200)
+    layer_url = models.CharField(max_length=256, blank=True, null=True)
+    cache_expiry = models.IntegerField(default=300)
+    option_for_internal = models.BooleanField(default=True)
+    option_for_external = models.BooleanField(default=True)
+    display_all_columns = models.BooleanField(default=False)
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name = 'Disturbance map layer'
+
+    def __str__(self):
+        return '{0}, {1}'.format(self.display_name, self.layer_name)
+
+    def save(self, *args, **kwargs):
+        if not self.layer_url:
+            self.layer_url = settings.KB_LAYER_URL.replace('{{layer_name}}', self.layer_name)
+
+        cache.delete('utils_cache.get_proxy_cache()')
+        self.full_clean()
+        super(DASMapLayer, self).save(*args, **kwargs)
 
 
 @python_2_unicode_compatible
@@ -140,6 +167,7 @@ class ApplicationType(models.Model):
     DISTURBANCE = 'Disturbance'
     DISTURBANCE_UAT = 'Disturbance Training'
     DISTURBANCE_DEMO = 'Disturbance Demo'
+    DISTURBANCE_ECOLOGICAL = 'Ecological Thinning'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
     APIARY = 'Apiary'
     TEMPORARY_USE = 'Temporary Use'
@@ -150,6 +178,7 @@ class ApplicationType(models.Model):
         (DISTURBANCE, 'Disturbance'),
         (DISTURBANCE_UAT, 'Disturbance Training'),
         (DISTURBANCE_DEMO, 'Disturbance Demo'),
+        (DISTURBANCE_ECOLOGICAL, 'Ecological Thinning'),
         (POWERLINE_MAINTENANCE, 'Powerline Maintenance'),
         (APIARY, 'Apiary'),
         (TEMPORARY_USE, 'Temporary Use'),
@@ -200,7 +229,7 @@ class ActivityMatrix(models.Model):
     class Meta:
         app_label = 'disturbance'
         unique_together = ('name', 'version')
-        verbose_name_plural = "Activity matrix"
+        verbose_name_plural = "Approval matrix"
 
     def __str__(self):
         return '{} - v{}'.format(self.name, self.version)
@@ -366,18 +395,50 @@ class ApiaryGlobalSettings(models.Model):
     def __str__(self):
         return self.key
 
+from ckeditor.fields import RichTextField
 
 @python_2_unicode_compatible
 class GlobalSettings(models.Model):
     KEY_ASSESSMENT_REMINDER_DAYS = 'assessment_reminder_days'
+    DAS_SHAREPOINT_PAGE = 'das_sharepoint_page'
+    PROPOSAL_ASSESS_HELP_PAGE ='proposal_assess_help_page'
+    COMPLIANCE_ASSESS_HELP_PAGE='compliance_assess_help_page'
+    REFERRAL_ASSESS_HELP_PAGE='referral_assess_help_page'
+    PROPOSAL_APPROVER_HELP_PAGE ='proposal_approver_help_page'
+    SHAPEFILE_INFO='shapefile_info'
+    PROPOSAL_TYPE_HELP='proposal_type_help_url'
+    REGION_HELP='region_help_url'
+    DISTRICT_HELP='district_help_url'
+    ACTIVITY_TYPE_HELP='activity_type_help_url'
+    SUB_ACTIVITY_1_HELP='sub_activity_1_help_url'
+    SUB_ACTIVITY_2_HELP='sub_activity_2_help_url'
+    CATEGORY_HELP='category_help_url'
+    MAX_NO_POLYGONS='max_no_polygon'
 
     keys = (
         (KEY_ASSESSMENT_REMINDER_DAYS, 'Assessment reminder days'),
+        (DAS_SHAREPOINT_PAGE, 'DAS Sharepoint page'),
+        (PROPOSAL_ASSESS_HELP_PAGE, 'DAS Proposal assess help page'),
+        (COMPLIANCE_ASSESS_HELP_PAGE, 'DAS compliance assess help page'),
+        (REFERRAL_ASSESS_HELP_PAGE, 'DAS referral assess help page'),
+        (PROPOSAL_APPROVER_HELP_PAGE, 'DAS Proposal approver help page'),
+        (SHAPEFILE_INFO, 'Shapefile further information'),
+        (PROPOSAL_TYPE_HELP, 'Proposal Type help url'),
+        (REGION_HELP, 'Region help url'),
+        (DISTRICT_HELP, 'District help url'),
+        (ACTIVITY_TYPE_HELP, 'Activity type help url'),
+        (SUB_ACTIVITY_1_HELP, 'Sub activity 1 help url'),
+        (SUB_ACTIVITY_2_HELP, 'Sub activity 2 help url'),
+        (CATEGORY_HELP, 'Category help url'),
+        (MAX_NO_POLYGONS, 'Maximum number of polygons allowed in the Shapefile'),
+        
     )
     default_values = (
     )
     key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
     value = models.CharField(max_length=255)
+    help_text_required=models.BooleanField(default=False)
+    help_text=RichTextField(null=True, blank=True)
 
     class Meta:
         app_label = 'disturbance'
@@ -407,7 +468,77 @@ class TemporaryDocument(Document):
         app_label = 'disturbance'
 
 
+class ActiveTaskMonitorManager(models.Manager):
+    ''' filter queued tasks and omit old (stale) queued tasks '''
+    def get_queryset(self):
+        earliest_date = (datetime.now() - timedelta(days=7)).replace(tzinfo=timezone.utc)
+        return super().get_queryset().filter(status=TaskMonitor.STATUS_CREATED, created__gte=earliest_date)
+
+
+class RequestTypeEnum():
+    FULL = 'FULL'
+    PARTIAL = 'PARTIAL'
+    SINGLE = 'SINGLE'
+    REFRESH_PARTIAL = 'REFRESH_PARTIAL'
+    REFRESH_SINGLE = 'REFRESH_SINGLE'
+    TEST_GROUP = 'TEST_GROUP'
+    TEST_SINGLE = 'TEST_SINGLE'
+    REQUEST_TYPE_CHOICES = (
+        (FULL, 'FULL'),
+        (PARTIAL, 'PARTIAL'),
+        (SINGLE, 'SINGLE'),
+        (REFRESH_PARTIAL, 'REFRESH_PARTIAL'),
+        (REFRESH_SINGLE, 'REFRESH_SINGLE'),
+        (TEST_GROUP, 'TEST_GROUP'),
+        (TEST_SINGLE, 'TEST_SINGLE'),
+    )
+ 
+
+#class TaskMonitor(RevisionedMixin):
+class TaskMonitor(models.Model):
+    STATUS_FAILED = 'failed'
+    STATUS_CREATED = 'created'
+    STATUS_RUNNING = 'running'
+    STATUS_COMPLETED = 'completed'
+    STATUS_CANCELLED = 'cancelled'
+    STATUS_ERROR = 'error'
+    STATUS_MAX_QUEUE_TIME = 'max_queue_time'
+    STATUS_MAX_RUNNING_TIME = 'max_running_time'
+    STATUS_MAX_RETRIES_REACHED = 'max_retries'
+    STATUS_CHOICES = (
+        (STATUS_FAILED,    'Failed'),
+        (STATUS_CREATED,   'Created'),
+        (STATUS_RUNNING,   'Running'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_CANCELLED, 'Cancelled'),
+        (STATUS_ERROR,     'Error'),
+        (STATUS_MAX_QUEUE_TIME, 'Max_Queue_Time_Reached'),
+        (STATUS_MAX_RUNNING_TIME, 'Max_Running_Time_Reached'),
+        (STATUS_MAX_RETRIES_REACHED, 'Max_Retries_Reached'),
+    )
+
+    task_id = models.PositiveIntegerField()
+    status  = models.CharField('Task Status', choices=STATUS_CHOICES, default=STATUS_CREATED, max_length=32)
+    retries = models.PositiveSmallIntegerField(default=0)
+    proposal = models.ForeignKey('Proposal')
+    info = models.TextField(blank=True, null=True)
+    requester = models.ForeignKey(EmailUser, blank=False, null=False, related_name='+')
+    created = models.DateTimeField(default=timezone.now, editable=False)
+    request_type = models.CharField(max_length=40, choices=RequestTypeEnum.REQUEST_TYPE_CHOICES)
+    
+    objects = models.Manager()
+    queued_jobs = ActiveTaskMonitorManager()
+
+    class Meta:
+        app_label = 'disturbance'
+        verbose_name_plural = "Task Monitor"
+
+    def __str__(self):
+        return f'Task {self.task_id}, Proposal: {self.proposal}'
+
 
 
 import reversion
 reversion.register(ApiaryGlobalSettings)
+reversion.register(TaskMonitor)
+

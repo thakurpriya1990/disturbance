@@ -1,15 +1,20 @@
 import re
 from datetime import datetime
+import time
 
 import pytz
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.db import transaction
+from django.conf import settings
 from django.contrib.gis.geos import Point, GEOSGeometry
+from django.db.models import Q
+from django.urls import reverse
+from django.core.paginator import Paginator
 from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
-from disturbance.components.main.decorators import timeit
+from disturbance.components.main.decorators import timeit, traceback_exception_handler
 from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
     ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal, Proposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
@@ -25,6 +30,7 @@ from disturbance.components.proposals.models import (
     SectionQuestion,
     HelpPage,
     ApplicationType,
+    ExportDocument,
 )
 from disturbance.components.proposals.serializers_apiary import (
     ProposalApiarySerializer,
@@ -34,16 +40,18 @@ from disturbance.components.proposals.serializers_apiary import (
 )
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 from disturbance.components.organisations.models import Organisation
+#from disturbance.components.main.utils import sqs_query
 
 import traceback
 import os
 import json
-
-import logging
+import pandas as pd
+import geopandas as gpd
 
 from disturbance.settings import RESTRICTED_RADIUS, TIME_ZONE
-from disturbance.utils import convert_moment_str_to_python_datetime_obj
+from disturbance.utils import convert_moment_str_to_python_datetime_obj, search_keys
 
+import logging
 logger = logging.getLogger(__name__)
 
 richtext = u''
@@ -54,7 +62,11 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
     special_fields_list = []
     assessor_data_list = []
     comment_data_list = {}
+    add_info_applicant_list={}
     special_fields_search = SpecialFieldsSearch(special_fields)
+    add_info_applicant_search=AddInfoApplicantDataSearch()
+    refresh_timestamp_search= RefreshTimestampSearch()
+    add_info_assessor_search=AddInfoAssessorDataSearch()
     if assessor_data:
         assessor_fields_search = AssessorDataSearch()
         comment_fields_search = CommentDataSearch()
@@ -63,19 +75,26 @@ def create_data_from_form(schema, post_data, file_data, post_data_index=None,spe
             data.update(_create_data_from_item(item, post_data, file_data, 0, ''))
             #_create_data_from_item(item, post_data, file_data, 0, '')
             special_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
+            add_info_applicant_search.extract_special_fields(item, post_data, file_data, 0, '')
+            refresh_timestamp_search.extract_special_fields(item, post_data, file_data, 0, '')
+            add_info_assessor_search.extract_special_fields(item, post_data, file_data, 0, '')
             if assessor_data:
                 assessor_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
                 comment_fields_search.extract_special_fields(item, post_data, file_data, 0, '')
         special_fields_list = special_fields_search.special_fields
+        add_info_applicant_list = add_info_applicant_search.comment_data
+        refresh_timestamp_list = refresh_timestamp_search.comment_data
+        print('refresh', refresh_timestamp_list)
+        add_info_assessor_list = add_info_assessor_search.comment_data
         if assessor_data:
             assessor_data_list = assessor_fields_search.assessor_data
             comment_data_list = comment_fields_search.comment_data
     except:
         traceback.print_exc()
     if assessor_data:
-        return [data],special_fields_list,assessor_data_list,comment_data_list
+        return [data],special_fields_list,assessor_data_list,comment_data_list, add_info_assessor_list
 
-    return [data],special_fields_list
+    return [data],special_fields_list, add_info_applicant_list, refresh_timestamp_list
 
 
 def _extend_item_name(name, suffix, repetition):
@@ -256,7 +275,6 @@ class CommentDataSearch(object):
         return res
 
     def extract_comment_data(self,item,post_data):
-        #import ipdb; ipdb.set_trace()
         values = []
         res = {
             'name': item,
@@ -381,6 +399,202 @@ class SpecialFieldsSearch(object):
             item_data[item['name']] = item_data_list
         return item_data
 
+
+class AddInfoApplicantDataSearch(object):
+
+    def __init__(self,lookup_field='canBeEditedByAssessor'):
+        self.lookup_field = lookup_field
+        self.comment_data = {}
+        #self.comment_data = []
+
+    
+
+    def extract_add_info_applicant_data(self,item,post_data):
+        res = {}
+        values = []
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}'.format(item))
+                    if len(parts) > 1:
+                        ref_parts = parts[1].split('-add-info-applicant')
+                        if len(ref_parts) > 1:
+                            if len(ref_parts)==2 and ref_parts[0]=='' and ref_parts[1]=='':
+                                res = {'{}'.format(item):v}
+        return res
+
+    
+    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
+        item_data = {}
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            #print(item, extended_item_name)
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.update(self.extract_add_info_applicant_data(extended_item_name,post_data))
+
+        else:
+            if 'repetition' in item:
+                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
+            else:
+                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                for child in item['conditions'][condition]:
+                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
+                                                         '{}-{}'.format(suffix, rep)))
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
+
+
+class AddInfoAssessorDataSearch(object):
+
+    def __init__(self,lookup_field='canBeEditedByAssessor'):
+        self.lookup_field = lookup_field
+        self.comment_data = {}
+        #self.comment_data = []
+
+    
+
+    def extract_add_info_assessor_data(self,item,post_data):
+        res = {}
+        values = []
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}'.format(item))
+                    if len(parts) > 1:
+                        ref_parts = parts[1].split('-add-info-Assessor')
+                        if len(ref_parts) > 1:
+                            if len(ref_parts)==2 and ref_parts[0]=='' and ref_parts[1]=='':
+                                res = {'{}'.format(item):v}
+        return res
+
+    
+    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
+        item_data = {}
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            #print(item, extended_item_name)
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.update(self.extract_add_info_assessor_data(extended_item_name,post_data))
+
+        else:
+            if 'repetition' in item:
+                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
+            else:
+                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                for child in item['conditions'][condition]:
+                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
+                                                         '{}-{}'.format(suffix, rep)))
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
+
+class RefreshTimestampSearch(object):
+
+    def __init__(self,lookup_field='canBeEditedByAssessor'):
+        self.lookup_field = lookup_field
+        self.comment_data = {}
+        #self.comment_data = []
+
+    
+
+    def extract_refresh_timestamp_data(self,item,post_data):
+        res = {}
+        values = []
+        for k in post_data:
+            if re.match(item,k):
+                values.append({k:post_data[k]})
+        if values:
+            for v in values:
+                for k,v in v.items():
+                    parts = k.split('{}'.format(item))
+                    if len(parts) > 1:
+                        ref_parts = parts[1].split('-refresh-timestamp')
+                        if len(ref_parts) > 1:
+                            if len(ref_parts)==2 and ref_parts[0]=='' and ref_parts[1]=='':
+                                res = {'{}'.format(item):v}
+        return res
+
+    
+    def extract_special_fields(self,item, post_data, file_data, repetition, suffix):
+        item_data = {}
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            #print(item, extended_item_name)
+            #self.comment_data.update(self.extract_comment_data(extended_item_name,post_data))
+            self.comment_data.update(self.extract_refresh_timestamp_data(extended_item_name,post_data))
+
+        else:
+            if 'repetition' in item:
+                item_data = self.generate_item_data_special_field(extended_item_name,item,item_data,post_data,file_data,len(post_data[item['name']]),suffix)
+            else:
+                item_data = self.generate_item_data_special_field(extended_item_name, item, item_data, post_data, file_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                for child in item['conditions'][condition]:
+                    item_data.update(self.extract_special_fields(child, post_data, file_data, repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_special_field(self,item_name,item,item_data,post_data,file_data,repetition,suffix):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self.extract_special_fields(child_item, post_data, file_data, 0,
+                                                         '{}-{}'.format(suffix, rep)))
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
 
 # -------------------------------------------------------------------------------------------------------------
 # APIARY Section starts here
@@ -786,18 +1000,18 @@ def save_proponent_data_disturbance(instance,request,viewset):
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
 
-            extracted_fields,special_fields = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
+            extracted_fields,special_fields, add_info_applicant, refresh_timestamp = create_data_from_form(instance.schema, request.POST, request.FILES, special_fields=lookable_fields)
             instance.data = extracted_fields
 
             form_data=json.loads(request.POST['schema'])
             sub_activity_level1=form_data.get('sub_activity_level1')
-            print(sub_activity_level1)
 
             logger.info("Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
 
+            title = special_fields.get('isTitleColumnForDashboard',None)[:250] if special_fields.get('isTitleColumnForDashboard',None) else None 
             data1 = {
                 #'region': special_fields.get('isRegionColumnForDashboard',None),
-                'title': special_fields.get('isTitleColumnForDashboard',None),
+                'title': title,
                 'activity': special_fields.get('isActivityColumnForDashboard',None),
 
                 'data': extracted_fields,
@@ -808,9 +1022,11 @@ def save_proponent_data_disturbance(instance,request,viewset):
             }
             data = {
                 #'region': special_fields.get('isRegionColumnForDashboard',None),
-                'title': special_fields.get('isTitleColumnForDashboard',None),
+                'title': title,
 
                 'data': extracted_fields,
+                'add_info_applicant': add_info_applicant,
+                'refresh_timestamp': refresh_timestamp,
                 'processing_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.processing_status,
                 'customer_status': instance.PROCESSING_STATUS_CHOICES[1][0] if instance.processing_status == 'temp' else instance.customer_status,
                 # 'lodgement_sequence': 1 if instance.lodgement_sequence == 0 else instance.lodgement_sequence,
@@ -859,15 +1075,15 @@ def save_assessor_data(instance,request,viewset):
     with transaction.atomic():
         try:
             lookable_fields = ['isTitleColumnForDashboard','isActivityColumnForDashboard','isRegionColumnForDashboard']
-            extracted_fields,special_fields,assessor_data,comment_data = create_data_from_form(
+            extracted_fields,special_fields,assessor_data,comment_data, add_info_assessor = create_data_from_form(
                 instance.schema, request.POST, request.FILES,special_fields=lookable_fields,assessor_data=True)
 
             logger.info("ASSESSOR DATA - Region: {}, Activity: {}".format(special_fields.get('isRegionColumnForDashboard',None), special_fields.get('isActivityColumnForDashboard',None)))
-
             data = {
                 'data': extracted_fields,
                 'assessor_data': assessor_data,
                 'comment_data': comment_data,
+                'add_info_assessor': add_info_assessor,
             }
             serializer = SaveProposalSerializer(instance, data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -1080,23 +1296,49 @@ def clone_proposal_with_status_reset(proposal):
 help_site_url='site_url:/help/disturbance/user'
 help_site_assessor_url='site_url:/help/disturbance/assessor'
 
+def create_region_help():
+    #Function to add Region, District etc to help page as it is not a part of the schema
+    from disturbance.components.main.models import GlobalSettings
+    global richtext
+    global richtext_assessor
+
+    #Get the keys to add help text into help page
+    help_keys = [ 'region_help_url', 'district_help_url', 'activity_type_help_url','sub_activity_1_help_url','sub_activity_2_help_url','category_help_url']
+    
+    #Convert the Globale settings keys to dict so its easier to get value of the key for title'
+    gs_keys_dict= dict(GlobalSettings.keys)
+    for key in help_keys:
+        try:
+            gs_instance= GlobalSettings.objects.get(key=key)
+            if gs_instance.help_text_required and gs_instance.help_text:
+                title=gs_keys_dict[gs_instance.key]
+                richtext += u'<h1 style="text-align:justify"><span style="font-size:14px"><a id="{0}" name="{0}"><span style="color:#2980b9"> <strong> {1}</strong></span></a></span></h1>'.format(key, title.replace('help url',''))
+                richtext += gs_instance.help_text
+                richtext += u'<p>&nbsp;</p>'
+        except:
+            pass
+    return richtext
+
 def create_richtext_help(question, name):
     global richtext
     global richtext_assessor
     
     if question.help_text_url and question.help_text:
        
-        richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        # richtext += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext += u'<h1 style="text-align:justify"><span style="font-size:14px"><a id="{0}" name="{0}"><span style="color:#2980b9"> <strong> {1}</strong></span></a></span></h1>'.format(name, question.question)
         richtext += question.help_text
         richtext += u'<p>&nbsp;</p>'
 
     if question.help_text_assessor_url and question.help_text_assessor:
        
-        richtext_assessor += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        # richtext_assessor += u'<h1><a id="{0}" name="{0}"> {1} </a></h1>'.format(name, question.question)
+        richtext_assessor += u'<h1 style="text-align:justify"><span style="font-size:14px"><a id="{0}" name="{0}"><span style="color:#2980b9"> <strong> {1}</strong></span></a></span></h1>'.format(name, question.question)
         richtext_assessor += question.help_text_assessor
         richtext_assessor += u'<p>&nbsp;</p>'
 
     return richtext
+
 
 def create_helppage_object(proposal_type, help_type=HelpPage.HELP_TEXT_EXTERNAL):
     """
@@ -1529,12 +1771,18 @@ def generate_schema(proposal_type, request):
     richtext_assessor=u''
     help_site_url='site_url:/help/{}/user'.format(proposal_type.name)
     help_site_assessor_url='site_url:/help/{}/assessor'.format(proposal_type.name)
+    #Add the Region/ District etc help text to richtext first
+    create_region_help()
     for section in section_list:
+        section_name=section.section_label.replace(" ","")
+        section_name=section_name.replace(".","")
+        section_name=section_name.replace(",","")
         section_dict={
-            'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
+            # 'name': '{}{}'.format(section.section_label.replace(" ",""), section_count),
+            'name': '{}{}'.format(section_name, section_count),
             'type': 'section',
             'label': section.section_label,
-        }
+        } 
         section_children=[]
         section_questions=SectionQuestion.objects.filter(section=section,parent_question__isnull=True,parent_answer__isnull=True).order_by('order')
         if section_questions:
@@ -1608,3 +1856,587 @@ def generate_schema(proposal_type, request):
     if request.method=='POST':
         create_helppage_object(proposal_type)
     return new_Schema_return            
+
+
+# Populate data in Proposal using the CDDP configuration
+def prefill_data_from_shape_original(schema ):
+    data = {}
+    
+    try:
+        for item in schema:
+            data.update(_populate_data_from_item_original(item, 0, ''))
+           
+    except:
+        traceback.print_exc()
+    return [data]
+
+def _populate_data_from_item_original(item, repetition, suffix, sqs_value=None):
+    item_data = {}
+
+    if 'name' in item:
+        extended_item_name = item['name']
+    else:
+        raise Exception('Missing name in item %s' % item['label'])
+
+    if 'children' not in item:
+        if item['type'] =='checkbox':
+            if sqs_value:
+                for val in sqs_value:
+                    if val==item['label']:
+                        item_data[item['name']]='on'
+        elif item['type'] == 'file':
+            print('file item', item)
+        else:
+            try:
+                if item['type'] == 'multi-select':
+                    #Get value from SQS. Value should be an array of the correct options.
+                    sqs_value=item['options'][1]['value']
+                    sqs_value=[sqs_value]
+                    if sqs_value:
+                        item_data[item['name']]=[]
+                    for val in sqs_value:
+                        if item['options']:
+                            for op in item['options']:
+                                if val==op['value']:
+                                    item_data[item['name']].append(op['value'])
+
+                elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
+                    #Get value from SQS
+                    sqs_value=item['options'][1]['value']
+                    if item['options']:
+                        for op in item['options']:
+                            if sqs_value==op['value']:
+                                item_data[item['name']]=op['value']
+                                break
+                else:
+                    #All the other types e.g. textarea, text, date.
+                    #This is where we can add API call to SQS to get the answer.
+                    sqs_value="test"
+                    item_data[item['name']]= sqs_value
+                    #print(item)
+                    #print('radiobuttons/ textarea/ text/ date etc item', item)
+            except Exception as e:
+                logger.error(e)
+
+    else:
+        if 'repetition' in item:
+            item_data = generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
+        else:
+            #item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+            #Check if item has checkbox childer
+            if check_checkbox_item(extended_item_name, item, item_data,1,suffix):
+                #make a call to sqs for item
+                sqs_values=['first']
+                #pass sqs values as an attribute.
+                item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
+            else:
+                item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+
+
+    if 'conditions' in item:
+        for condition in list(item['conditions'].keys()):
+            if condition==item_data[item['name']]:
+                for child in item['conditions'][condition]:
+                    item_data.update(_populate_data_from_item(child,  repetition, suffix))
+
+    return item_data
+
+def generate_item_data_shape_original(item_name,item,item_data,repetition,suffix, sqs_value=None):
+    item_data_list = []
+    for rep in range(0, repetition):
+        child_data = {}
+        for child_item in item.get('children'):
+            child_data.update(_populate_data_from_item(child_item, 0,
+                                                     '{}-{}'.format(suffix, rep), sqs_value))
+            #print('child item in generate item data', child_item)
+        item_data_list.append(child_data)
+
+        item_data[item['name']] = item_data_list
+    return item_data
+
+def check_checkbox_item_original(item_name,item,item_data,repetition,suffix):
+    checkbox_item=False
+    for child_item in item.get('children'):
+        if child_item['type']=='checkbox':
+            checkbox_item=True        
+    return checkbox_item
+
+class PrefillData(object):
+    """
+    from disturbance.components.proposals.utils import PrefillData
+    pr=PrefillData()
+    pr.prefill_data_from_shape(p.schema)
+    """
+
+    def __init__(self, sqs_builder=None):
+        self.sqs_builder=sqs_builder
+        self.data={}
+        self.layer_data=[]
+        self.add_info_assessor={}
+
+    def prefill_data_from_shape(self, schema):
+        #data = {}
+        
+        try:
+            for item in schema:
+                self.data.update(self._populate_data_from_item(item, 0, ''))
+               
+        except:
+            traceback.print_exc()
+        return [self.data]
+
+    def _populate_data_from_item(self, item, repetition, suffix, sqs_value=None):
+        item_data = {}
+
+        if 'name' in item:
+            extended_item_name = item['name']
+        else:
+            raise Exception('Missing name in item %s' % item['label'])
+
+        if 'children' not in item:
+            if item['type'] =='checkbox':
+                if sqs_value:
+                    for val in sqs_value:
+                        if val==item['label']:
+                            item_data[item['name']]='on'
+                            item_layer_data={
+                            'name': item['name'],
+                            'layer_name': 'layer name',
+                            'layer_updated': 'layer updated',
+                            'new_layer_name': 'new layer name',
+                            'new_layer_updated': 'new layer updated'
+                            }
+                            self.layer_data.append(item_layer_data)
+            elif item['type'] == 'file':
+                print('file item', item)
+            else:
+                    if item['type'] == 'multi-select':
+                        #Get value from SQS. Value should be an array of the correct options.
+                        #sqs_value=item['options'][1]['value']
+                        #sqs_value=[sqs_value]
+                        sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
+                        sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                        
+                        if sqs_values:
+                            item_data[item['name']]=[]
+                        for val in sqs_values:
+                            if item['options']:
+                                for op in item['options']:
+                                    if val==op['value']:
+                                        item_data[item['name']].append(op['value'])
+                                        item_layer_data={
+                                        'name': item['name'],
+                                        'layer_name': 'layer name',
+                                        'layer_updated': 'layer updated',
+                                        'new_layer_name': 'new layer name',
+                                        'new_layer_updated': 'new layer updated'
+                                        }
+                                        self.layer_data.append(item_layer_data)
+                                        # add_info_asessor_item={
+                                        #     'name': item['name'],
+                                        #     'value': 'test'
+                                        # }
+                                        sqs_assessor_value='test'
+
+                                        self.add_info_assessor[item['name']]= sqs_assessor_value
+
+                    elif item['type'] == 'radiobuttons' or item['type'] == 'select' :
+                        #Get value from SQS
+                        #sqs_value=item['options'][1]['value']
+                        sqs_values = [self.sqs_builder.find(question=item['label'], answer=option['label'], widget_type=item['type']) for option in item['options']]
+                        sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                        sqs_value = self.get_first_radiobutton(sqs_values) if item['type']=='radiobuttons' else ''.join(sqs_values)
+                        if item['options']:
+                            for op in item['options']:
+                                #if sqs_value==op['value']:
+                                if sqs_value==op['label']:
+                                    item_data[item['name']]=op['value']
+                                    item_layer_data={
+                                        'name': item['name'],
+                                        'layer_name': 'layer name',
+                                        'layer_updated': 'layer updated',
+                                        'new_layer_name': 'new layer name',
+                                        'new_layer_updated': 'new layer updated'
+                                    }
+                                    self.layer_data.append(item_layer_data)
+                                    break
+                    else:
+                        #All the other types e.g. textarea, text, date.
+                        #This is where we can add API call to SQS to get the answer.
+                        #sqs_value="test"
+                        #sqs_value = [self.sqs_builder.find(question=item['label'], answer=option['label']) for option in item['options']]
+                        sqs_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
+                        item_data[item['name']]= sqs_value
+                        #item_layer_data = self.update_layer_info(list)
+                        item_layer_data={
+                        'name': item['name'],
+                        'layer_name': 'layer  name',
+                        'layer_updated': 'layer updated',
+                        'new_layer_name': 'new layer name',
+                        'new_layer_updated': 'new layer updated'
+                        }
+                        self.layer_data.append(item_layer_data)
+                        #sqs_assessor_value='test'
+                        sqs_assessor_value = self.sqs_builder.find(question=item['label'], answer='', widget_type='other')
+                        self.add_info_assessor[item['name']]= sqs_assessor_value
+                        #print(item)
+                        #print('radiobuttons/ textarea/ text/ date etc item', item)
+        else:
+            #sqs_values = []
+            if 'repetition' in item:
+                item_data = self.generate_item_data_shape(extended_item_name,item,item_data,1,suffix)
+            else:
+                #item_data = generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+                #Check if item has checkbox childer
+                if self.check_checkbox_item(extended_item_name, item, item_data,1,suffix):
+                    #make a call to sqs for item
+                    # 1. question      --> item['label']
+                    # 2. checkbox text --> item['children'][0]['label']
+                    # 3. request response for all checkbox's ie. send item['children'][all]['label']. 
+                    #    SQS will return a list of checkbox's answersfound eg. ['National park', 'Nature reserve']
+                    #sqs_values=['Nature reserve']
+                    #if item['label'] == 
+                    #sqs_values = sqs_query()['proponent_answer']
+                    #sqs_value = ['Nature reserve',2]
+                    sqs_values = [self.sqs_builder.find(question=item['label'], answer=child['label'], widget_type='checkbox') for child in item['children']]
+                    sqs_values = [i for i in sqs_values if i is not None] # drop None vlaues
+                    #pass sqs values as an attribute.
+                    item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix, sqs_values)
+                else:
+                    item_data = self.generate_item_data_shape(extended_item_name, item, item_data,1,suffix)
+
+
+        if 'conditions' in item:
+            for condition in list(item['conditions'].keys()):
+                if condition==item_data[item['name']]:
+                    for child in item['conditions'][condition]:
+                        item_data.update(self._populate_data_from_item(child,  repetition, suffix))
+
+        return item_data
+
+    def generate_item_data_shape(self, item_name,item,item_data,repetition,suffix, sqs_value=None):
+        item_data_list = []
+        for rep in range(0, repetition):
+            child_data = {}
+            for child_item in item.get('children'):
+                child_data.update(self._populate_data_from_item(child_item, 0,
+                                                         '{}-{}'.format(suffix, rep), sqs_value))
+                #print('child item in generate item data', child_item)
+            item_data_list.append(child_data)
+
+            item_data[item['name']] = item_data_list
+        return item_data
+
+    def check_checkbox_item(self, item_name,item,item_data,repetition,suffix):
+        checkbox_item=False
+        for child_item in item.get('children'):
+            if child_item['type']=='checkbox':
+                checkbox_item=True        
+        return checkbox_item
+
+    def get_first_radiobutton(self, _list):
+        """
+        If SQS JSON object has multiple radiobuttons returned - select the one with highest priority (1,2,3 --> 1 is highest)
+        """
+        if not _list:
+            return None
+         
+        tmp_dict = {}
+        for i in _list:
+            tmp_dict.update(i)
+        return tmp_dict.get(min(tmp_dict.keys()))
+
+    def update_layer_info(self, _list):
+        return {
+            'name': item['name'],
+            'layer_name': 'layer name',
+            'layer_updated': 'layer updated',
+            'new_layer_name': 'new layer name',
+            'new_layer_updated': 'new layer updated'
+            }
+        
+
+def save_prefill_data(proposal):
+    prefill_instance= PrefillData()
+    try:
+        prefill_data = prefill_instance.prefill_data_from_shape(proposal.schema)
+        if prefill_data:
+            proposal.data=prefill_data
+            proposal.layer_data= prefill_instance.layer_data
+            print(prefill_instance.add_info_assessor)
+            proposal.add_info_assessor=prefill_instance.add_info_assessor
+            proposal.save()
+            return proposal
+    except:
+        raise
+
+
+@traceback_exception_handler
+def search_schema(proposal_id, question):
+    ''' Checks if Question exists in proposal.schema
+
+    Eg.
+        from disturbance.components.proposals.utils import search_schema
+        search_schema(proposal_id=1250, question='1.2 In which Local Government Authority (LGA) is this proposal located?')
+
+        Out[5]: 
+        {'label': '1.2 In which Local Government Authority (LGA) is this proposal located?',
+         'type': 'multi-select'}
+    '''
+    
+    p=Proposal.objects.get(id=proposal_id)
+    flattened_schema = search_keys(p.schema, search_list=['type', 'label'])
+    #label = 'Will any of the sites require track or slre clearing'
+
+
+    try:
+        res = next(item for item in flattened_schema if item["label"] == question)
+    except StopIteration as e:
+        return None
+
+    return res
+
+
+def gen_shapefile(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=False):
+    '''
+        Generate and save shapefile from qs of Proposals
+        eg.
+            from disturbance.components.proposals.utils import gen_shapefile
+            filter_kwargs = {'region_id': 1, 'activity': 'Basic raw material', 'processing_status': 'approved', 'applicant_id': 163, 'submitter__email': 'jawaid.mushtaq@dbca.wa.gov.au', 
+                             'application_type__name': 'Disturbance', 'lodgement_date__gte': '2024-04-17', 'lodgement_date__lte': '2024-04-24'}
+            gen_shapefile(user, qs, filter_kwargs)
+            OR
+            gen_shapefile(user, filter_kwargs)
+    '''
+    status_exc = [
+        Proposal.PROCESSING_STATUS_TEMP,
+        Proposal.PROCESSING_STATUS_DRAFT,
+        Proposal.PROCESSING_STATUS_DECLINED, 
+        Proposal.PROCESSING_STATUS_DISCARDED,
+    ]
+
+    if qs.exists():
+        qs = qs.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+    else:
+        qs = Proposal.objects.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+    paginator = Paginator(qs, settings.QS_PAGINATOR_SIZE) # chunks
+
+    t0 = time.time()
+    logger.info('create_shapefile: 0')
+
+    columns = ['org','app_no','prop_title','appissdate','appstadate','appexpdate','appstatus','propstatus','assocprop','proptype','propurl','activity','geometry']
+    gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry")
+    for page_num in paginator.page_range:
+        for p in paginator.page(page_num).object_list:
+            try: 
+                gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)
+                gdf.set_crs = settings.CRS
+                #gdf['geometry'] = gdf['geometry']
+
+                gdf['org']        = p.applicant.name if p.applicant else None
+                gdf['app_no']     = p.approval.lodgement_number if p.approval else None
+                gdf['prop_title'] = p.title
+                gdf['appissdate'] = p.approval.issue_date.strftime("%Y-%d-%d") if p.approval else None
+                gdf['appstadate'] = p.approval.start_date.strftime("%Y-%d-%d") if p.approval else None
+                gdf['appexpdate'] = p.approval.expiry_date.strftime("%Y-%d-%d") if p.approval else None
+                gdf['appstatus']  =  p.approval.status if p.approval else None
+                gdf['propstatus'] =  p.processing_status
+                gdf['assocprop']  = list(Proposal.objects.filter(approval__lodgement_number=p.approval.lodgement_number).values_list('lodgement_number', flat=True)) if p.approval else None
+                gdf['proptype']   = p.application_type.name
+                #gdf['propurl']    = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id}))
+                gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
+                gdf['activity'] = p.activity
+
+                #gdf.set_crs = settings.CRS
+                gdf_concat = pd.concat([gdf_concat, gdf[columns]], ignore_index=True)
+
+            except Exception as ge:
+                logger.error(f'Cannot append proposal {p} to shapefile: {ge}')
+
+    t1 = time.time()
+    logger.info(f'create_shapefile: 1 - {t1 - t0}')
+    gdf_concat.set_crs = settings.CRS
+
+    if geojson:
+        # The .shz extension allows the GeoJSON file to be downloaded (rather than opened in browser)
+        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.geojson.shz'
+        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+        gdf_concat.to_file(f'private-media/{filepath}', driver='GeoJSON')
+    else:
+        # The .shz extension allows the shapefile to be zipped
+        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.shz'
+        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+        gdf_concat.to_file(f'private-media/{filepath}', driver='ESRI Shapefile')
+
+    t2 = time.time()
+    logger.info(f'create_shapefile: len(gdf_concat) - {len(gdf_concat)}')
+    logger.info(f'create_shapefile: 2 - {t2 - t1}')
+    doc = ExportDocument()
+    doc._file.name = filepath
+    doc._file = filepath
+    doc.requester = user
+    doc.save()
+
+    t3 = time.time()
+    logger.info(f'create_shapefile: 3 - {t3 - t2}')
+
+    return filename
+
+
+#def gen_shapefile_sql(user, qs=Proposal.objects.none(), filter_kwargs={}, geojson=False):
+#    '''
+#        Generate and save shapefile from qs of Proposals
+#        eg.
+#            from disturbance.components.proposals.utils import gen_shapefile
+#            filter_kwargs = {'region_id': 1, 'activity': 'Basic raw material', 'processing_status': 'approved', 'applicant_id': 163, 'submitter__email': 'jawaid.mushtaq@dbca.wa.gov.au', 
+#                             'application_type__name': 'Disturbance', 'lodgement_date__gte': '2024-04-17', 'lodgement_date__lte': '2024-04-24'}
+#            gen_shapefile(user, qs, filter_kwargs)
+#            OR
+#            gen_shapefile(user, filter_kwargs)
+#    '''
+#    status_exc = [
+#        Proposal.PROCESSING_STATUS_TEMP,
+#        #Proposal.PROCESSING_STATUS_DRAFT,
+#        Proposal.PROCESSING_STATUS_DECLINED, 
+#        Proposal.PROCESSING_STATUS_DISCARDED,
+#    ]
+#
+#    if qs.exists():
+#        qs = qs.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+#    else:
+#        qs = Proposal.objects.exclude(Q(processing_status__in=status_exc) | Q(shapefile_json__isnull=True)).filter(**filter_kwargs)
+#
+#    t0 = time.time()
+#    logger.info('create_shapefile: 0')
+#
+#    gdf_concat = gpd.GeoDataFrame(columns=["geometry"], crs=settings.CRS, geometry="geometry")
+#    for p in qs:
+#        try: 
+#            gdf = gpd.GeoDataFrame.from_features(p.shapefile_json)["geometry"] # only "geometry" is needed in addition proposal attrs
+#
+#            gdf['org']        = p.applicant.name if p.applicant else None
+#            gdf['app_no']     = p.approval.lodgement_number if p.approval else None
+#            gdf['prop_title'] = p.title
+#            gdf['appissdate'] = p.approval.issue_date.strftime("%Y-%d-%d") if p.approval else None
+#            gdf['appstadate'] = p.approval.start_date.strftime("%Y-%d-%d") if p.approval else None
+#            gdf['appexpdate'] = p.approval.expiry_date.strftime("%Y-%d-%d") if p.approval else None
+#            gdf['appstatus']  =  p.approval.status if p.approval else None
+#            gdf['assocprop']  = list(Proposal.objects.filter(approval__lodgement_number=p.approval.lodgement_number).values_list('lodgement_number', flat=True)) if p.approval else None
+#            gdf['proptype']   = p.proposal_type
+#            #gdf['propurl']    = request.build_absolute_uri(reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id}))
+#            gdf['propurl']    = settings.BASE_URL + reverse('internal-proposal-detail',kwargs={'proposal_pk': p.id})
+#            gdf['prop_activ'] = p.activity
+#
+#            gdf.set_crs = settings.CRS
+#            gdf_concat = pd.concat([gdf_concat, gdf], ignore_index=True)
+#
+#        except Exception as ge:
+#            logger.error(f'Cannot append proposal {p} to shapefile: {ge}')
+#
+#    t1 = time.time()
+#    logger.info(f'create_shapefile: 1 - {t1 - t0}')
+#    gdf_concat.set_crs = settings.CRS
+#
+#    if geojson:
+#        # The .shz extension allows the GeoJSON file to be downloaded (rather than opened in browser)
+#        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.geojson.shz'
+#        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+#        gdf_concat.to_file(f'private-media/{filepath}', driver='GeoJSON')
+#    else:
+#        # The .shz extension allows the shapefile to be zipped
+#        filename = f'DAS_layers_{datetime.now().strftime("%Y%m%dT%H%M%S")}.shz'
+#        filepath = f'{settings.GEO_EXPORT_FOLDER}/{filename}'
+#        gdf_concat.to_file(f'private-media/{filepath}', driver='ESRI Shapefile')
+#
+#    t2 = time.time()
+#    logger.info(f'create_shapefile: len(gdf_concat) - {len(gdf_concat)}')
+#    logger.info(f'create_shapefile: 2 - {t2 - t1}')
+#    doc = ExportDocument()
+#    doc._file.name = filepath
+#    doc._file = filepath
+#    doc.requester = user
+#    doc.save()
+#
+#    t3 = time.time()
+#    logger.info(f'create_shapefile: 3 - {t3 - t2}')
+#
+#    return filename
+
+
+
+#def prefill_payload(proposal):
+#    if proposal.apiary_group_application_type:
+#        return
+#
+#    if not instance.shapefile_json:
+#        raise serializers.ValidationError(str('Please upload a valid shapefile'))                   
+#
+#    try:
+#        start_time = time.time()
+#
+#        # current_ts = request.data.get('current_ts') # format required '%Y-%m-%dT%H:%M:%S'
+#        if proposal.prefill_timestamp:
+#            current_ts= proposal.prefill_timestamp.strftime('%Y-%m-%dT%H:%M:%S')
+#        else:
+#            current_ts = proposal.prefill_timestamp
+#        geojson=proposal.shapefile_json
+#
+#        masterlist_question_qs = SpatialQueryQuestion.current_questions.all() # exclude expired questions from SQS Query
+#        serializer = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data}, many=True)
+#        rendered = JSONRenderer().render(serializer.data).decode('utf-8')
+#        masterlist_questions = json.loads(rendered)
+#
+#        # ONLY include masterlist_questions that are present in proposal.schema to send to SQS
+#        schema_questions = get_schema_questions(proposal.schema) 
+#        questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions]
+#        #questions = [i['question'] for i in masterlist_questions if i['question'] in schema_questions and '1.2 In which' in i['question']]
+#        unique_questions = list(set(questions))
+#
+#        # group by question
+#        question_group_list = [{'question_group': i, 'questions': []} for i in unique_questions]
+#        for question_dict in question_group_list:
+#            for sqq_record in masterlist_questions:
+#                #print(j['layer_name'])
+#                if question_dict['question_group'] in sqq_record.values():
+#                    question_dict['questions'].append(sqq_record)
+#
+#        data = dict(
+#            proposal=dict(
+#                id=proposal.id,
+#                current_ts=current_ts,
+#                schema=proposal.schema,
+#                data=proposal.data,
+#            ),
+#            requester = request.user.email,
+#            request_type=self.FULL,
+#            system=settings.SYSTEM_NAME_SHORT,
+#            masterlist_questions = question_group_list,
+#            geojson = geojson,
+#        )
+#
+#
+#        #url = get_sqs_url('das/spatial_query/')
+#        url = get_sqs_url('das/task_queue')
+#        #url = get_sqs_url('das_queue/')
+#        resp = requests.post(url=url, data={'data': json.dumps(data)}, auth=HTTPBasicAuth(settings.SQS_USER,settings.SQS_PASS), verify=False)
+#        resp_data = resp.json()
+#        
+#        task, created = TaskMonitor.objects.get_or_create(
+#                task_id=resp_data['data']['task_id'], 
+#                defaults={
+#                    'proposal': proposal,
+#                    'requester': request.user,
+#                }
+#            )
+#        if not created and task.requester.email != request.user.email:
+#            # another user may attempt to Prefill, whilst job is still queued
+#            logger.info(f'Task ID {task.id}, Proposal {proposal.lodgement_number} requester updated. Prev {task.requester.email}, New {request.user.email}')
+#            task.requester = request.user
+#
+#        return Response(resp_data, status=resp.status_code)
+#
+#    except Exception as e:
+#        print(traceback.print_exc())
+#        raise serializers.ValidationError(str(e))
+
+

@@ -6,10 +6,12 @@ from disturbance.components.proposals.models import (
         ProposalApproverGroup, 
         HelpPage,
         ApiaryReferralGroup,
+        CddpQuestionGroup,
         MasterlistQuestion,
         QuestionOption,
         SectionQuestion,
         QuestionOption,
+        SpatialQueryQuestion,
         )
 from disturbance.components.main.models import SystemMaintenance
 from ckeditor.widgets import CKEditorWidget
@@ -17,6 +19,30 @@ from django.conf import settings
 import pytz
 from datetime import datetime, timedelta
 #from . import errors
+
+
+class CddpQuestionGroupAdminForm(forms.ModelForm):
+    class Meta:
+        model = CddpQuestionGroup
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super(CddpQuestionGroupAdminForm, self).__init__(*args, **kwargs)
+        if self.instance:
+            self.fields['members'].queryset = EmailUser.objects.filter(is_staff=True)
+
+    def clean(self):
+        super(CddpQuestionGroupAdminForm, self).clean()
+        if self.instance and CddpQuestionGroup.objects.all().exists():
+            try:
+                original_members = CddpQuestionGroup.objects.get(id=self.instance.id).members.all()
+                current_members = self.cleaned_data.get('members')
+                for o in original_members:
+                    if o not in current_members:
+                        if self.instance.member_is_assigned(o):
+                            raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
+            except:
+                pass
 
 
 class ProposalAssessorGroupAdminForm(forms.ModelForm):
@@ -167,7 +193,6 @@ class SectionQuestionAdminForm(forms.ModelForm):
         #if self.instance:
             #queryset_option=QuestionOption.objects.none()
             #self.fields['parent_question'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
-            #import ipdb; ipdb.set_trace()
             #self.fields['parent_question_another'].queryset = MasterlistQuestion.objects.filter(option__isnull=False).distinct()
 
 
@@ -200,3 +225,20 @@ class GenerateSchemaForm(ProposalTypeActionForm):
     )
     def form_action(self, proposal_type):
         return proposal_type
+
+
+class SpatialQueryQuestionAdminForm(forms.ModelForm):
+
+    class Meta:
+        model = SpatialQueryQuestion
+        fields = '__all__'
+        #fields= ('question', 'option', 'answer_type', 'help_text_url', 'help_text_assessor_url','help_text', 'help_text_assessor')
+        #fields= ('question', 'answer_mlq')
+        #fields= ('question',)
+
+#    def __init__(self, *args, **kwargs):
+#        super(SpatialQueryQuestionAdminForm, self).__init__(*args, **kwargs)
+#        if self.instance:
+#            self.fields['answer_mlq'].queryset = QuestionOption.objects.all()
+#            #self.fields['answer_mlq'] = QuestionOption.objects.all()
+

@@ -3,10 +3,31 @@
 {%  block content %}
 	The Compliance {{ compliance.reference }} has been submitted and can be assessed.
 
+    
     <p>
-    You can access this Compliance using the following link:
-    </p>
-    <a href="{{url}}">Access Compliance</a>
+		Region: {{proposal.region}}<br>
+		{% if proposal.district %}
+			District: {{proposal.district}}<br>
+		{% else %}
+			District: -<br>
+		{% endif %}
+        Approval No: {{ approval.lodgement_number}}
+        Proposal No: {{proposal.lodgement_number}}
+		Title: {{proposal.title}}<br>
+		Activity: {{proposal.activity}}<br>
+		Assessor: {{ assessor_name}}<br>
+        Compliance No: {{ compliance.reference }}<br>
+	</p>
 
-
+	<p>
+		You can access this Compliance using the following link:
+	</p>
+		<a href="{{url}}">Access Compliance</a>
+	
+    <p>
+		Note:
+		<ul>
+			<li>See <a href="{{ compliance_assess_help_page }}">DAS 06 how to assess a compliance with requirements</a> for full instructions.</li>
+		</ul>
+	</p>
 {%  endblock %}

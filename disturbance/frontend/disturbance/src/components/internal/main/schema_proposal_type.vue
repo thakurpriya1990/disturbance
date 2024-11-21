@@ -16,7 +16,7 @@
                     <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
-                                <label for="">Licence Proposal Type</label>
+                                <label for="">Proposal Type</label>
                                 <select class="form-control" v-model="filterTableProposalType" >
                                     <option value="All">All</option>
                                     <option v-for="(p, pid) in schemaProposalTypes" :value="p.value" v-bind:key="`purpose_${pid}`">{{p.label}}</option>
@@ -60,7 +60,7 @@
                 <form class="form-horizontal" name="schema_purpose">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="control-label pull-left" >Licence Proposal Type</label>
+                            <label class="control-label pull-left" >Proposal Type</label>
                         </div>
                         <div class="col-md-6">
                             <select class="form-control" ref="select_purpose" name="select-purpose" v-model="sectionProposalType.proposal_type" >
@@ -130,7 +130,7 @@ export default {
             filterTableProposalType: 'All',
             filterProposalTypeSection: 'All',
             // masterlist table
-            dtHeadersSchemaProposalType: ["ID", "Licence Proposal Type", "Section Label", "Index", "Action"],
+            dtHeadersSchemaProposalType: ["ID", "Proposal Type", "Section Label", "Index", "Action"],
             dtOptionsSchemaProposalType:{
                 language: {
                     processing: "<i class='fa fa-4x fa-spinner fa-spin'></i>"

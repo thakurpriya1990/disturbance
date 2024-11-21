@@ -27,7 +27,8 @@ class ComplianceSerializer(serializers.ModelSerializer):
     assigned_to = serializers.SerializerMethodField(read_only=True)
     requirement = serializers.CharField(source='requirement.requirement', required=False, allow_null=True)
     approval_lodgement_number = serializers.SerializerMethodField()
-
+    proposal_lodgement_number = serializers.SerializerMethodField()
+    district = serializers.CharField(source='proposal.district')
 
     class Meta:
         model = Compliance
@@ -53,8 +54,9 @@ class ComplianceSerializer(serializers.ModelSerializer):
             'submitter',
             'allowed_assessors',
             'lodgement_date',
-            'approval_lodgement_number'
-
+            'approval_lodgement_number',
+            'proposal_lodgement_number',
+            'district',
         )
 
     def get_documents(self,obj):
@@ -62,6 +64,9 @@ class ComplianceSerializer(serializers.ModelSerializer):
 
     def get_approval_lodgement_number(self,obj):
         return obj.approval.lodgement_number
+    
+    def get_proposal_lodgement_number(self,obj):
+        return obj.proposal.lodgement_number
 
     def get_assigned_to(self,obj):
         if obj.assigned_to:

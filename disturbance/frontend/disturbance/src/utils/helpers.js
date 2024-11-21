@@ -27,34 +27,50 @@ module.exports = {
     apiVueResourceError: function(resp){
         var error_str = '';
         var text = null;
-        if (resp.status === 400) {
-            if (Array.isArray(resp.body)){
-                text = resp.body[0];
-            }
-            else if (typeof resp.body == 'object'){
-                text = resp.body;
-            }
-            else{
-                text = resp.body;
-            }
-
-            if (typeof text == 'object'){
-                if (text.hasOwnProperty('non_field_errors')) {
-                    error_str = text.non_field_errors[0].replace(/[\[\]"]/g, '');
-                }
-                else{
-                    error_str = text;
-                }
-            }
-            else{
-                error_str = text.replace(/[\[\]"]/g,'');
-                error_str = text.replace(/^['"](.*)['"]$/, '$1');
-            }
+        console.error(JSON.stringify(resp));
+        try {
+          if (resp.status === 400) {
+              if (Array.isArray(resp.body)){
+                  text = resp.body[0];
+              }
+              else{
+                  text = resp.body;
+              }
+ 
+              if (typeof text == 'object'){
+                  if (text.hasOwnProperty('non_field_errors')) {
+                      error_str = text.non_field_errors[0].replace(/[\[\]"]/g, '');
+                  }
+		  else if (Array.isArray(text) && 'errors' in text) {
+	              error_str = text.errors
+	          }
+    	          else if ('errors' in text) {
+	              error_str = text.errors
+	          }
+                  else {
+                      error_str = text;
+                  }
+              }
+              else{
+                  error_str = text.replace(/[\[\]"]/g,'');
+                  error_str = text.replace(/^['"](.*)['"]$/, '$1');
+              }
+          }
+          else if ( resp.status === 404) {
+              error_str = 'The resource you are looking for does not exist.';
+          }
+          else {
+              try {
+                  error_str = JSON.stringify(resp.data.errors).substring(0, 400);
+              } catch (error) {
+                  error_str = JSON.stringify(resp).substring(0, 400);
+              }
+	  }
         }
-        else if ( resp.status === 404) {
-            error_str = 'The resource you are looking for does not exist.';
+        catch ( e ) {
+          error_str = JSON.stringify(resp).substring(0, 400);
         }
-        return error_str;
+        return (typeof text == 'object') ? JSON.stringify(error_str) : error_str
     },
 
   goBack: function ( vm ) {

@@ -87,12 +87,21 @@
                             <input type="checkbox" :value="true" v-model="masterlist.help_text_url" >&nbsp;&nbsp;&nbsp;<label>Help Text url?</label></input>
                         </div>
                     </div>
-                    <div class="row" v-if="isHelptextUrl">
+                    <!-- <div class="row" v-if="isHelptextUrl">
                         <div class="col-md-3">
                             <label class="control-label pull-left" >Help Text</label>
                         </div>
                         <div class="col-md-9">
                             <textarea class="form-control" name="question" v-model="masterlist.help_text"></textarea>
+                        </div>
+                    </div> -->
+                    <div class="row" v-if="isHelptextUrl">
+                        <div class="col-md-3">
+                            <label class="control-label pull-left" >Rich Help Text</label>
+                        </div>
+                        <div class="col-md-9">
+                            <!-- <textarea class="form-control" name="question" v-model="masterlist.help_text"></textarea> -->
+                            <ckeditor :config="editorConfig" name="question" v-model="masterlist.help_text"></ckeditor>
                         </div>
                     </div>
 
@@ -106,7 +115,9 @@
                             <label class="control-label pull-left" >Help Text assessor</label>
                         </div>
                         <div class="col-md-9">
-                            <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea>
+                            <!-- <textarea class="form-control" name="question" v-model="masterlist.help_text_assessor"></textarea> -->
+                        <!-- <ckeditor :config="editorConfigAssessor" @namespaceloaded="onNamespaceLoaded" name="question" v-model="masterlist.help_text_assessor"></ckeditor> -->
+                            <ckeditor :config="editorConfigAssessor" name="question" v-model="masterlist.help_text_assessor"></ckeditor>
                         </div>
                     </div>
 
@@ -148,6 +159,18 @@ export default {
     data:function () {
         let vm = this;
         vm.schema_masterlist_url = helpers.add_endpoint_join(api_endpoints.schema_masterlist_paginated, 'schema_masterlist_datatable_list/?format=datatables');
+        var toolbar_options = [
+                [ '-', 'Bold', 'Italic' ],
+                [ 'Format' ],
+                [ 'NumberedList', 'BulletedList' ],
+                [ 'Table' ],
+                ['Link' ],
+                ['Print'],
+                { name: 'editing', items: [ 'Find', 'Replace', '-' ] },
+                { name: 'document', items: [ 'Print', 'Source', 'Preview', 'Scayt' ] },
+                //[ 'Find' ],
+            ]
+        
         return {
             schema_masterlist_id: 'schema-materlist-datatable-'+vm._uid,
             pMasterListBody: 'pMasterListBody' + vm._uid,
@@ -157,6 +180,44 @@ export default {
             filterOptions: '',
             isModalOpen:false,
             missing_fields: [],
+            editorConfig: {
+                // The configuration of the editor.
+                //toolbar: toolbar_options,
+                format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
+                //add extra plugins for Print, formatting etc.
+                extraPlugins: 'find, colorbutton, copyformatting, font, preview, print, selectall',
+                externalPlugins: {
+                    'find': '/static/disturbance/js/ckeditor-plugins/find.js',
+                    'colorbutton': '/static/disturbance/js/ckeditor-plugins/colorbutton/plugin.js',
+                    'copyformatting': '/static/disturbance/js/ckeditor-plugins/copyformatting/plugin.js',
+                    'font': '/static/disturbance/js/ckeditor-plugins/font/plugin.js',
+                    'preview': '/static/disturbance/js/ckeditor-plugins/preview/plugin.js',
+                    'print': '/static/disturbance/js/ckeditor-plugins/print/plugin.js',
+                    'selectall': '/static/disturbance/js/ckeditor-plugins/selectall/plugin.js',
+                },
+                // remove bottom bar
+                removePlugins: 'elementspath',
+                resize_enabled: false, 
+            },
+            editorConfigAssessor: {
+                // The configuration of the editor.
+                //toolbar: toolbar_options,
+                format_tags: 'p;h1;h2;h3;h4;h5;h6;div',
+                //add extra plugins for Print, formatting etc.
+                extraPlugins: 'find, colorbutton, copyformatting, font, preview, print, selectall',
+                externalPlugins: {
+                    'find': '/static/disturbance/js/ckeditor-plugins/find.js',
+                    'colorbutton': '/static/disturbance/js/ckeditor-plugins/colorbutton/plugin.js',
+                    'copyformatting': '/static/disturbance/js/ckeditor-plugins/copyformatting/plugin.js',
+                    'font': '/static/disturbance/js/ckeditor-plugins/font/plugin.js',
+                    'preview': '/static/disturbance/js/ckeditor-plugins/preview/plugin.js',
+                    'print': '/static/disturbance/js/ckeditor-plugins/print/plugin.js',
+                    'selectall': '/static/disturbance/js/ckeditor-plugins/selectall/plugin.js',
+                },
+                // remove bottom bar
+                removePlugins: 'elementspath',
+                resize_enabled: false, 
+            },
             // masterlist table
             dtHeadersSchemaMasterlist: ["ID", "QuestionOP", "QuestionHD", "QuestionEX", "Question", "Answer Type", "Action"],
             dtOptionsSchemaMasterlist:{
@@ -289,6 +350,11 @@ export default {
         },
     },
     methods: {
+         onNamespaceLoaded( CKEDITOR ) {
+                // Add external `placeholder` plugin which will be available for each
+                // editor instance on the page.
+                CKEDITOR.plugins.addExternal( 'find', '/static/disturbance/js/ckeditor-plugins', 'find.js' );
+            },
         delay(callback, ms) {
             var timer = 0;
             return function () {
@@ -525,3 +591,9 @@ export default {
     }
 }
 </script>
+
+<style lang="css">
+  .cke_notifications_area {
+    display: none !important;
+  }
+</style>

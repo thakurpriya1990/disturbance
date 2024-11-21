@@ -201,7 +201,6 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
     #elements.append(Paragraph(title, styles['InfoTitleVeryLargeCenter']))
     #elements.append(Paragraph(approval.activity, styles['InfoTitleLargeLeft']))
     elements.append(Paragraph('APPROVAL OF PROPOSAL {} {} TO UNDERTAKE DISTURBANCE ACTIVITY IN {}'.format(title, proposal.lodgement_number, region_district), styles['InfoTitleLargeLeft']))
-    #import ipdb; ipdb.set_trace()
     #elements.append(Paragraph(approval.tenure if hasattr(approval, 'tenure') else '', styles['InfoTitleLargeRight']))
 
     elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
@@ -217,6 +216,8 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
     list_of_bullets.append('The proponent accepts responsibility for supervising and monitoring implementation of activity/ies to ensure compliance with this proposal. {} reserves the right to request documents and records demonstrating compliance for departmental monitoring and auditing.'.format(settings.DEP_NAME_SHORT))
     list_of_bullets.append('Non-compliance with the conditions of the proposal may trigger a suspension or withdrawal of the approval for this activity.')
     list_of_bullets.append('Management actions listed in Appendix 1 are implemented.')
+    if 'thinning' in proposal.activity.lower():
+        list_of_bullets.append('For an ecological thinning activity on State forest or timber reserve, consistent with the Forest Management Plan 2024-2033 and the Forest Management Regulations 1999, the Forest Enhancement Area is allocated to the Forest Products Commission for the purpose of felling, salvage and removal of forest products.')
 
     understandingList = ListFlowable(
             [ListItem(Paragraph(a, styles['Left']), bulletColour='black', value='circle') for a in list_of_bullets],
@@ -477,7 +478,6 @@ def create_approval_pdf_bytes(approval, proposal, copied_to_permit, user):
 
 
 def create_renewal_doc(approval,proposal):
-    #import ipdb; ipdb.set_trace()
     renewal_buffer = BytesIO()
 
     _create_renewal(renewal_buffer, approval, proposal)

@@ -7,6 +7,18 @@
     	<p>Your Approval has been surrendered:</p>
     {% endif %}
     <p><strong>Approval : {{ approval.lodgement_number}}</strong></p>
+    <p><strong>
+        Proposal: {{proposal.lodgement_number}}<br>
+        Region: {{proposal.region}}<br>
+        {% if proposal.district %}
+                District: {{proposal.district}}<br>
+        {% else %}
+                District: -<br>
+        {% endif %}
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+    </strong>
+    </p>
     <p><strong>Surrender Details : {{details}}</strong></p>
     <p><strong>Surrender Date : {{surrender_date}}</strong></p>
   

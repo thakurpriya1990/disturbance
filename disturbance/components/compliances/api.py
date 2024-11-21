@@ -49,7 +49,7 @@ from disturbance.components.compliances.serializers import (
 from disturbance.components.main.utils import handle_validation_error
 from disturbance.helpers import is_customer, is_internal
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
-from disturbance.components.proposals.api import ProposalFilterBackend, ProposalRenderer
+from disturbance.components.proposals.api import ProposalFilterBackend #, ProposalRenderer
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
 
@@ -92,17 +92,22 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
             else:
                 queryset = queryset.filter(processing_status=get_processing_choice(compliance_status))
 
-        date_from = request.GET.get('date_from')
-        date_to = request.GET.get('date_to')
-        #import ipdb; ipdb.set_trace()
-        if date_from:
-            queryset = queryset.filter(approval__start_date__gte=date_from)
-        if date_to:
-            queryset = queryset.filter(approval__expiry_date__lte=date_to)
+        start_date_from = request.GET.get('start_date_from')
+        start_date_to = request.GET.get('start_date_to')
+        if start_date_from:
+            queryset = queryset.filter(approval__start_date__gte=start_date_from)
+        if start_date_to:
+            queryset = queryset.filter(approval__start_date__lte=start_date_to)
+
+        due_date_from = request.GET.get('due_date_from')
+        due_date_to = request.GET.get('due_date_to')
+        if due_date_from:
+            queryset = queryset.filter(due_date__gte=due_date_from)
+        if due_date_to:
+            queryset = queryset.filter(due_date__lte=due_date_to)
 
         getter = request.query_params.get
         fields = self.get_fields(getter)
-        #import ipdb; ipdb.set_trace()
         ordering = self.get_ordering(getter, fields)
         queryset = queryset.order_by(*ordering)
         if len(ordering):
@@ -121,26 +126,24 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ComplianceRenderer(DatatablesRenderer):
-    def render(self, data, accepted_media_type=None, renderer_context=None):
-        #import ipdb; ipdb.set_trace()
-        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
-            data['recordsTotal'] = renderer_context['view']._datatables_total_count
-            #data.pop('recordsTotal')
-            #data.pop('recordsFiltered')
-        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
+#class ComplianceRenderer(DatatablesRenderer):
+#    def render(self, data, accepted_media_type=None, renderer_context=None):
+#        if 'view' in renderer_context and hasattr(renderer_context['view'], '_datatables_total_count'):
+#            data['recordsTotal'] = renderer_context['view']._datatables_total_count
+#            #data.pop('recordsTotal')
+#            #data.pop('recordsFiltered')
+#        return super(ComplianceRenderer, self).render(data, accepted_media_type, renderer_context)
 
 
 class CompliancePaginatedViewSet(viewsets.ModelViewSet):
     filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
-    renderer_classes = (ComplianceRenderer,)
+    #renderer_classes = (ComplianceRenderer,)
     page_size = 10
     queryset = Compliance.objects.none()
     serializer_class = ComplianceSerializer
 
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
             #return Compliance.objects.all()
             return Compliance.objects.all().exclude(processing_status='discarded')
@@ -171,7 +174,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
 
     @list_route(methods=['GET',])
     def compliances_external(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         """
         Paginated serializer for datatables - used by the external dashboard
 
@@ -185,7 +187,6 @@ class CompliancePaginatedViewSet(viewsets.ModelViewSet):
            template_group = 'apiary'
         else:
            template_group = 'das'
-        #import ipdb; ipdb.set_trace()
         if template_group == 'apiary':
             #qs = self.get_queryset().filter(application_type__apiary_group_application_type=True).exclude(processing_status='discarded')
             qs = self.get_queryset().filter(
@@ -220,7 +221,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     queryset = Compliance.objects.none()
 
     def get_queryset(self):
-        #import ipdb; ipdb.set_trace()
         if is_internal(self.request):
             #return Compliance.objects.all()
             return Compliance.objects.all().exclude(processing_status='discarded')
@@ -243,7 +243,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
         return Compliance.objects.none()
 
     #def get_queryset(self):
-    #    #import ipdb; ipdb.set_trace()
     #    if is_internal(self.request):
     #        return Compliance.objects.all().exclude(processing_status='discarded')
     #    elif is_customer(self.request):
@@ -251,6 +250,20 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     #        queryset =  Compliance.objects.filter( Q(proposal__applicant_id__in = user_orgs) | Q(proposal__submitter = self.request.user) ).exclude(processing_status='discarded')
     #        return queryset
     #    return Compliance.objects.none()
+
+    #TODO: review this - seems like a workaround at the moment
+    def get_serializer_class(self):
+        try:
+            compliance = self.get_object()
+            return ComplianceSerializer
+        except serializers.ValidationError:
+            print(traceback.print_exc())
+            raise
+        except ValidationError as e:
+            handle_validation_error(e)
+        except Exception as e:
+            print(traceback.print_exc())
+            raise serializers.ValidationError(str(e))
 
     def list(self, request, *args, **kwargs):
         queryset = self.get_queryset()
@@ -264,7 +277,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the external dashboard filters """
-        #import ipdb; ipdb.set_trace()
         region_qs =  self.get_queryset().filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
         activity_qs =  self.get_queryset().filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
         data = dict(
@@ -306,7 +318,6 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 #
 #        https://stackoverflow.com/questions/29128225/django-rest-framework-3-1-breaks-pagination-paginationserializer
 #        """
-#        #import ipdb; ipdb.set_trace()
 #        queryset = self.get_queryset().exclude(processing_status='future')
 #        paginator = DatatablesPageNumberPagination()
 #        paginator.page_size = queryset.count()
@@ -518,10 +529,10 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                 comms = serializer.save()
                 # Save the files
                 for f in request.FILES:
-                    document = comms.documents.create()
-                    document.name = str(request.FILES[f])
-                    document._file = request.FILES[f]
-                    document.save()
+                    document = comms.documents.create(
+                        name = str(request.FILES[f]),
+                        _file = request.FILES[f]
+                        )
                 # End Save Documents
 
                 return Response(serializer.data)
@@ -537,8 +548,18 @@ class ComplianceViewSet(viewsets.ModelViewSet):
 
 
 class ComplianceAmendmentRequestViewSet(viewsets.ModelViewSet):
-    queryset = ComplianceAmendmentRequest.objects.all()
+    queryset = ComplianceAmendmentRequest.objects.none()
     serializer_class = ComplianceAmendmentRequestSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return ComplianceAmendmentRequest.objects.all()
+        elif is_customer(self.request):
+            user_orgs = [org.id for org in user.disturbance_organisations.all()]
+            qs = ComplianceAmendmentRequest.objects.filter(Q(compliance_id__proposal_id__applicant_id__in=user_orgs)|Q(compliance_id__proposal_id__submitter_id=user.id))
+            return qs
+        return ComplianceAmendmentRequest.objects.none()
 
     def create(self, request, *args, **kwargs):
         try:

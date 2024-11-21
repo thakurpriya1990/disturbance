@@ -14,9 +14,11 @@
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
   "dependencies": {
+    "@mapbox/shp-write": "^0.4.3",
     "awesomplete": "^1.1.5",
     "babel-polyfill": "^6.26.0",
     "bootstrap": "^3.4.0",
+    "ckeditor4-vue": "^1.5.1",
     "cryptiles": "^4.1.2",
     "datatables.net": "^1.10.15",
     "datatables.net-bs": "^1.10.15",
@@ -26,6 +28,7 @@
     "diff": "^3.5.0",
     "eonasdan-bootstrap-datetimepicker": "^4.17.47",
     "extend": "^3.0.2",
+    "file-saver": "^2.0.5",
     "font-awesome": "^4.7.0",
     "jquery": "^3.4.0",
     "jquery-validation": "^1.16.0",

@@ -21,6 +21,38 @@ SPATIAL_DATA_DIR = env('SPATIAL_DATA_DIR', 'spatial_data')
 ANNUAL_RENTAL_FEE_GST_EXEMPT = True
 FILE_UPLOAD_MAX_MEMORY_SIZE = env('FILE_UPLOAD_MAX_MEMORY_SIZE', 15728640)
 APIARY_MIGRATED_LICENCES_APPROVER = env('APIARY_MIGRATED_LICENCES_APPROVER', 'jacinta.overman@dbca.wa.gov.au')
+SHOW_ROOT_API = env('SHOW_ROOT_API', False)
+
+SQS_POLLING_MAX_RETRIES = env('SQS_POLLING_MAX_RETRIES', 3)
+
+SQS_APIKEY = env('SQS_APIKEY', '')
+SQS_BASEURL = env('SQS_APIURL', '')
+#SQS_APIURL = SQS_BASEURL + SQS_APIKEY if SQS_BASEURL.endswith('/') else SQS_BASEURL + os.sep + SQS_APIKEY # adds the APIKEY TOKEN
+#SQS_APIURL = SQS_BASEURL if SQS_BASEURL.endswith('/') else SQS_BASEURL + os.sep
+SQS_APIURL = SQS_BASEURL
+
+LEDGER_USER = env('LEDGER_USER', '')
+LEDGER_PASS = env('LEDGER_PASS', '')
+
+SQS_USER = env('SQS_USER', LEDGER_USER)
+SQS_PASS = env('SQS_PASS', LEDGER_PASS)
+
+KMI_USER = env('KMI_USER', LEDGER_USER)
+KMI_PASSWORD = env('KMI_PASSWORD', LEDGER_PASS)
+
+KB_USER = env('KB_USER', LEDGER_USER)
+KB_PASSWORD = env('KB_PASSWORD', LEDGER_PASS)
+
+KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
+KMI_API_SERVER_URL = env('KMI_API_SERVER_URL', 'https://kmi-api.dbca.wa.gov.au/')
+# KB_SERVER_URL = env('KB_SERVER_URL', 'https://gis-kaartdijin-boodja-geoserver-api-dev.dbca.wa.gov.au/')
+KB_SERVER_URL = env('KB_SERVER_URL', 'https://kaartdijin-boodja-geoserver-api.dbca.wa.gov.au/')
+KB_API_URL=env("KMI_URL", 'https://kaartdijin-boodja.dbca.wa.gov.au/')
+
+KB_LAYER_URL = env('KB_LAYER_URL', 'https://kaartdijin-boodja.dbca.wa.gov.au/api/catalogue/entries/{{layer_name}}/layer/')
+SHOW_DAS_MAP = env('SHOW_DAS_MAP', True)
+SHOW_ROOT_API = env('SHOW_ROOT_API', False)
+MAX_LAYERS_PER_SQQ = env('MAX_LAYERS_PER_SQQ', 15)
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -42,6 +74,8 @@ INSTALLED_APPS += [
     'ckeditor',
     # 'corsheaders',
     'smart_selects',
+    'crispy_forms',
+    'appmonitor_client',
 ]
 
 ADD_REVERSION_ADMIN=True
@@ -52,7 +86,7 @@ WSGI_APPLICATION = 'disturbance.wsgi.application'
 '''REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'disturbance.perms.OfficerPermission',
-    )
+    ),
 }'''
 
 #REST_FRAMEWORK = {
@@ -72,10 +106,14 @@ REST_FRAMEWORK = {
     #),
     #'DEFAULT_PAGINATION_CLASS': 'rest_framework_datatables.pagination.DatatablesPageNumberPagination',
     #'PAGE_SIZE': 20,
+    #'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema'
 }
 
 USE_DJANGO_JQUERY= True
 # JQUERY_URL = True
+
+#CRISPY_TEMPLATE_PACK = 'uni_form'
+CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 MIDDLEWARE_CLASSES += [
     'disturbance.middleware.BookingTimerMiddleware',
@@ -108,8 +146,15 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
         'LOCATION': os.path.join(BASE_DIR, 'disturbance', 'cache'),
+        "OPTIONS": {"MAX_ENTRIES": 10000},
     }
 }
+SQS_LAYERS_CACHE_TIMEOUT = env('SQS_LAYERS_CACHE_TIMEOUT', 60*5) # 5 mins
+SQS_LAYER_EXISTS_CACHE_TIMEOUT = env('SQS_LAYER_EXISTS_CACHE_TIMEOUT', 60*5) # 5 mins
+SQS_RESPONSE_CACHE_TIMEOUT = env('SQS_RESPONSE_CACHE_TIMEOUT', 60*60) # 60 mins
+LAYERS_USED_CACHE_TIMEOUT = env('LAYERS_USED_CACHE_TIMEOUT', 60*15) # 15 mins
+REQUEST_TIMEOUT = env('REQUEST_TIMEOUT', 60*5) # 5mins
+
 STATIC_ROOT=os.path.join(BASE_DIR, 'staticfiles_ds')
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static')))
 STATICFILES_DIRS.append(os.path.join(os.path.join(BASE_DIR, 'disturbance', 'static', 'disturbance_vue', 'static')))
@@ -124,6 +169,7 @@ SYSTEM_NAME = env('SYSTEM_NAME', 'Disturbance Approval System')
 APIARY_SYSTEM_NAME = env('APIARY_SYSTEM_NAME', 'Apiary System')
 SYSTEM_NAME_SHORT = env('SYSTEM_NAME_SHORT', 'DAS')
 SITE_PREFIX = env('SITE_PREFIX')
+SITE_PREFIX_APIARY = env('SITE_PREFIX_APIARY')
 SITE_DOMAIN = env('SITE_DOMAIN')
 SUPPORT_EMAIL = env('SUPPORT_EMAIL', SYSTEM_NAME_SHORT.lower() + '@' + SITE_DOMAIN).lower()
 APIARY_SUPPORT_EMAIL = env('APIARY_SUPPORT_EMAIL', SUPPORT_EMAIL).lower()
@@ -147,6 +193,20 @@ APPROVED_APIARY_EXTERNAL_USERS_GROUP = env('APPROVED_APIARY_EXTERNAL_USERS_GROUP
 CRON_EMAIL = env('CRON_EMAIL', 'cron@' + SITE_DOMAIN).lower()
 TENURE_SECTION = env('TENURE_SECTION', None)
 ASSESSMENT_REMINDER_DAYS = env('ASSESSMENT_REMINDER_DAYS', 15)
+MAX_QUEUE_TIME = env('MAX_QUEUE_TIME', 24) # hours
+MAX_TASK_HISTORY = env('MAX_TASK_HISTORY', 60) # Days
+LOG_REQUEST_STATS = env('LOG_REQUEST_STATS', False)
+QS_PAGINATOR_SIZE = env('QS_PAGINATOR_SIZE', 400)
+
+CLEAR_AFTER_DAYS_FILE_EXPORT = env('CLEAR_AFTER_DAYS_FILE_EXPORT', 7) # Days
+GEO_EXPORT_FOLDER = env('GEO_EXPORT_FOLDER', 'geo_exports') # Days
+if not os.path.exists('private-media' + os.sep + GEO_EXPORT_FOLDER):
+    os.makedirs('private-media' + os.sep + GEO_EXPORT_FOLDER)
+
+CRS = env('CRS', 'epsg:4326')
+CRS_CARTESIAN = env('CRS_CARTESIAN', 'epsg:3043')
+OGR2OGR = env('OGR2OGR', '/usr/bin/ogr2ogr')
+#GEOM_PRECISION = env('GEOM_PRECISION', 5)
 
 OSCAR_BASKET_COOKIE_OPEN = 'das_basket'
 PAYMENT_SYSTEM_ID = env('PAYMENT_SYSTEM_ID', 'S517')
@@ -155,9 +215,13 @@ PAYMENT_SYSTEM_PREFIX = env('PAYMENT_SYSTEM_PREFIX', PAYMENT_SYSTEM_ID.replace('
 os.environ['LEDGER_PRODUCT_CUSTOM_FIELDS'] = "('ledger_description','quantity','price_incl_tax','price_excl_tax','oracle_code')"
 APIARY_URL = env('APIARY_URL', [])
 CRON_NOTIFICATION_EMAIL = env('CRON_NOTIFICATION_EMAIL', NOTIFICATION_EMAIL).lower()
+VERSION_NO="1.0.1"
 
-BASE_URL=env('BASE_URL')
+BASE_URL='https://' + SITE_PREFIX + '.' + SITE_DOMAIN
 
+CRON_CLASSES = [
+    'appmonitor_client.cron.CronJobAppMonitorClient',
+]
 
 
 CKEDITOR_CONFIGS = {
@@ -191,6 +255,7 @@ SITE_STATUS_SUSPENDED = 'suspended'
 SITE_STATUS_TRANSFERRED = 'transferred'  # This status 'transferred' is assigned to the old relationship (ApiarySiteOnApproval object)
 SITE_STATUS_VACANT = 'vacant'
 SITE_STATUS_DISCARDED = 'discarded'
+
 BASE_EMAIL_TEXT = ''
 BASE_EMAIL_HTML = ''
 
@@ -214,9 +279,24 @@ LOGGING['handlers']['file_apiary'] = {
     'formatter': 'verbose',
     'maxBytes': 5242880
 }
+
+# Add a handler
+LOGGING['handlers']['request_stats'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'requests.log'),
+    'formatter': 'verbose',
+    'maxBytes': 5242880
+}
+
+
 # define logger
 LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
+    'level': 'INFO'
+}
+LOGGING['loggers']['request_stats'] = {
+    'handlers': ['request_stats'],
     'level': 'INFO'
 }
 
@@ -238,10 +318,6 @@ LOGGING['loggers']['apiary'] = {
 #            },
 #        },
 #    }    
-
-KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
-
-DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
 
 #APPLICATION_TYPES_SQL='''
 #        SELECT name, name FROM disturbance_applicationtypechoice

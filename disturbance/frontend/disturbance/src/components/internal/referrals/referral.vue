@@ -643,7 +643,7 @@ export default {
                 vm.fetchReferral(vm.referral.id);
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
+                    'The referral has been recalled from '+r.referral,
                     'success'
                 )
             },
@@ -803,5 +803,9 @@ export default {
     margin-top: 15px;
     margin-bottom: 10px;
     width: 100%;
+}
+
+.swal2-container {
+  z-index: 9999 !important;
 }
 </style>

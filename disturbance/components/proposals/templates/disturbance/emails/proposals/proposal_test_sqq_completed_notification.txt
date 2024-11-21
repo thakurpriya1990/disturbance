@@ -1,0 +1,7 @@
+{%  extends 'disturbance/emails/base_email.txt' %}
+
+{%  block content %}
+       	TEST SQQ for proposal {{proposal.lodgement_number}} has been completed (task_id {{task_id}}). 
+
+        <pre>{{sqs_response}}</pre>
+{%  endblock %}

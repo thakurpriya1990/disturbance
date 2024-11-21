@@ -22,8 +22,8 @@
             <template v-if="assessorMode">
                 <template v-if="!showingComment">
                     <!-- <a v-if="comment_value != null && comment_value != undefined && comment_value != ''" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a> -->
-                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
-                    <a v-else href="" @click.prevent="toggleComment"><i class="fa fa-comment-o">&nbsp;</i></a>
+                    <a v-if="has_comment_value" href="" @click.prevent="toggleComment" class="noPrint"><i style="color:red" class="fa fa-comment-o">&nbsp;</i></a>
+                    <a v-else href="" @click.prevent="toggleComment" class="noPrint"><i class="fa fa-comment-o">&nbsp;</i></a>
                 </template>
                 <a href="" v-else  @click.prevent="toggleComment"><i class="fa fa-ban">&nbsp;</i></a>
             </template>
@@ -70,6 +70,7 @@ import Comment from './comment.vue'
 import CommentBox from './comment_box_referral.vue'
 import HelpText from './help_text.vue'
 import HelpTextUrl from './help_text_url.vue'
+import alert from '@vue-utils/alert.vue'
 export default {
     props:{
         proposal_id: null,
@@ -78,6 +79,7 @@ export default {
         label:String,
         id:String,
         isRequired:String,
+        //comment_value: String,
         comment_value: [String, Object],
         assessor_readonly: Boolean,
         help_text:String,
@@ -110,9 +112,10 @@ export default {
         isRepeatable: [String, Boolean],
         readonly:Boolean,
         docsUrl: String,
-        comment_boxes: [String, Array]
+        comment_boxes: "",
+        //comment_boxes: [String, Array]
     },
-    components: {Comment, HelpText, HelpTextUrl, CommentBox},
+    components: {Comment, HelpText, HelpTextUrl, CommentBox, alert },
     data:function(){
         return {
             repeat:1,
@@ -141,9 +144,10 @@ export default {
         },
         has_comment_value:function () {
             let has_value=false;
-            for(var i=0; i<this.comment_boxes.length; i++){
-                if(this.comment_boxes[i].hasOwnProperty('value')){
-                    if(this.comment_boxes[i].value!=null && this.comment_boxes[i].value!=undefined && this.comment_boxes[i].value!= '' ){
+            let boxes=JSON.parse(this.comment_boxes)
+            for(var i=0; i<boxes.length; i++){
+                if(boxes[i].hasOwnProperty('value')){
+                    if(boxes[i].value!=null && boxes[i].value!=undefined && boxes[i].value!= '' ){
                         has_value=true;
                     }
                 } 
@@ -329,5 +333,10 @@ export default {
 <style lang="css">
     input {
         box-shadow:none;
+    }
+    @media print { 
+        .noPrint { 
+        display: none;
+        }
     }
 </style>

@@ -1,0 +1,11 @@
+{%  extends 'disturbance/emails/base_email.html' %}
+
+{%  block content %}
+    <div>
+        <p>TEST SQQ for proposal <strong>{{proposal.lodgement_number}}</strong> has been completed. (task id {{task_id}})</p>
+    </div>
+	
+    <div>
+	    <pre><textarea id="output" cols="100" rows="35">{{sqs_response}}</textarea></pre>
+    </div>
+{%  endblock %}

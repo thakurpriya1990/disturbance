@@ -1,10 +1,16 @@
 import json
 import traceback
 
+from django.conf import settings
 from django.http import HttpResponse, JsonResponse, Http404
 from django.urls import reverse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import View, TemplateView
+from django.core.cache import cache
+from django.db.models import Q
+
+import requests
+from requests.auth import HTTPBasicAuth
 
 from disturbance.components.proposals.utils import create_data_from_form
 from disturbance.components.proposals.models import Proposal, Referral, ProposalType, HelpPage
@@ -12,6 +18,8 @@ from disturbance.components.approvals.models import Approval
 from disturbance.components.compliances.models import Compliance
 
 from reversion.models import Version
+import csv
+from datetime import datetime
 
 
 class ProposalView(TemplateView):
@@ -19,7 +27,6 @@ class ProposalView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         extracted_fields = []
-        #import ipdb; ipdb.set_trace()
         try:
             proposal_id = request.POST.pop('proposal_id')
             proposal = Proposal.objects.get(proposal_id)
@@ -57,7 +64,7 @@ class ProposalFilteredHistoryCompareView(HistoryCompareDetailView):
     """
 
     model = Proposal
-    template_name = 'commercialoperator/reversion_history.html'
+    template_name = 'disturbance/reversion_history.html'
 
     def _get_action_list(self,):
         """ Get only versions when processing_status changed, and add the most recent (current) version """
@@ -129,7 +136,6 @@ class HelpPageHistoryCompareView(HistoryCompareDetailView):
 
 class PreviewLicencePDFView(View):
     def post(self, request, *args, **kwargs):
-        #import ipdb; ipdb.set_trace()
         response = HttpResponse(content_type='application/pdf')
 
         proposal = self.get_object()
@@ -141,3 +147,5 @@ class PreviewLicencePDFView(View):
 
     def get_object(self):
         return get_object_or_404(Proposal, id=self.kwargs['proposal_pk'])
+
+

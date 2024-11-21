@@ -6,7 +6,11 @@
     <body>
         {% block greetings %}
             <p>
-                Dear Sir/Madam,
+                {% if greeting %}
+                    Dear {{ greeting }},   
+                {% else %}
+                    Dear Proponent,
+                {% endif %}
             </p>
         {% endblock %}
         {% block content %}
@@ -29,11 +33,26 @@
                 Biodiversity, Conservation and Attractions, please send emails to <a href="mailto:das@dpaw.wa.gov.au">das@dpaw.wa.gov.au</a> 
                 or call (08) 9219 9000.</em></strong>
                 -->
-
+                {% if assessor_footer %}
                 <strong><em>
+                    Please do not reply directly to this email. <br>If you require further assistance refer to the <a href="{{ DAS_sharepoint_page }}">DAS Sharepoint Page</a>, or contact  the respective district or regional manager, or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>. 
+                    <br>The DAS inbox ({{ settings.SUPPORT_EMAIL }}) is monitored from 0800 – 1600 Monday to Friday (except Public Holidays).
+                </em></strong>
+                {% else %}
+                <!-- <strong><em>
                     Please do not reply directly to this email. Should you need to contact the {{settings.DEP_NAME}}, 
                     please contact the respective DBCA region/district or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
+                </em></strong>  -->
+                <strong><em>
+                    Please do not reply directly to this email. For DAS enquiries, 
+                    please contact the relevant {{settings.DEP_NAME}} (DBCA) district or region or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
+                    <br>The DAS inbox ({{ settings.SUPPORT_EMAIL }}) is monitored from 0800 – 1600 Monday to Friday (except Public Holidays).
                 </em></strong> 
+                <!-- <strong><em>
+                    Please do not reply directly to this email. Should you need to contact the {{settings.DEP_NAME}}, 
+                    please contact the respective DBCA region/district or the DAS administrator on <a href="mailto:{{ settings.SUPPORT_EMAIL }}">{{ settings.SUPPORT_EMAIL }}</a>.
+                </em></strong>  -->
+                {% endif %}
             </p> 
         {% endblock %}
     </body> 

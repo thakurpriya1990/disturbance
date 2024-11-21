@@ -7,7 +7,11 @@ import logging
 from rest_framework import serializers
 
 from disturbance.components.organisations.models import Organisation
+from disturbance.components.main.models import DASMapLayer
+from django.core.cache import cache
+
 logger = logging.getLogger(__name__)
+logger_stats = logging.getLogger('request_stats')
 
 def belongs_to(user, group_name):
     """
@@ -18,25 +22,25 @@ def belongs_to(user, group_name):
     """
     return user.groups.filter(name=group_name).exists()
 
-def is_model_backend(request):
-    # Return True if user logged in via single sign-on (i.e. an internal)
-    return 'ModelBackend' in request.session.get('_auth_user_backend')
-
-def is_email_auth_backend(request):
-    # Return True if user logged in via social_auth (i.e. an external user signing in with a login-token)
-    return 'EmailAuth' in request.session.get('_auth_user_backend')
+#def is_model_backend(request):
+#    # Return True if user logged in via single sign-on (i.e. an internal)
+#    return 'ModelBackend' in request.session.get('_auth_user_backend')
+#
+#def is_email_auth_backend(request):
+#    # Return True if user logged in via social_auth (i.e. an external user signing in with a login-token)
+#    return 'EmailAuth' in request.session.get('_auth_user_backend')
 
 def is_disturbance_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
+    return request.user.is_authenticated() and in_dbca_domain(request) and (belongs_to(request.user, settings.ADMIN_GROUP))
 
 def is_apiary_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.APIARY_ADMIN_GROUP))
+    return request.user.is_authenticated() and in_dbca_domain(request) and (belongs_to(request.user, settings.APIARY_ADMIN_GROUP))
 
 def is_das_apiary_admin(request):
   #  #logger.info('settings.ADMIN_GROUP: {}'.format(settings.ADMIN_GROUP))
-    return request.user.is_authenticated() and is_model_backend(request) and in_dbca_domain(request) and (belongs_to(request.user, settings.DAS_APIARY_ADMIN_GROUP))
+    return request.user.is_authenticated() and in_dbca_domain(request) and (belongs_to(request.user, settings.DAS_APIARY_ADMIN_GROUP))
 
 def in_dbca_domain(request):
     user = request.user
@@ -63,10 +67,11 @@ def is_approved_external_user(request):
     return False
 
 def is_departmentUser(request):
-    return request.user.is_authenticated() and ( (is_model_backend(request) and in_dbca_domain(request)) or is_approved_external_user(request) )
+    return request.user.is_authenticated() and ( in_dbca_domain(request) or is_approved_external_user(request) )
 
 def is_customer(request):
-    return request.user.is_authenticated() and is_email_auth_backend(request)
+    #return request.user.is_authenticated() and is_email_auth_backend(request)
+    return request.user.is_authenticated() and not request.user.is_staff
 
 def is_internal(request):
     return is_departmentUser(request)
@@ -118,7 +123,7 @@ def is_authorised_to_modify(request, instance):
         raise serializers.ValidationError('You are not authorised to modify this application.')
 
 def is_authorised_to_modify_draft(request, instance):
-    #import ipdb; ipdb.set_trace()
+    return True
     authorised = True
 
     # Getting Organisation is different in DAS and Apiary
@@ -152,3 +157,24 @@ def is_authorised_to_modify_draft(request, instance):
 
     if not authorised:
         raise serializers.ValidationError('You are not authorised to modify this application.')
+
+
+def get_proxy_cache():
+    proxy_cache_dumped_data =cache.get('utils_cache.get_proxy_cache()')
+    proxy_cache_array = []
+    if proxy_cache_dumped_data is None:
+        proxy_cache_query = DASMapLayer.objects.all()
+        
+        for pr in proxy_cache_query:
+            proxy_cache_array.append({'layer_name': pr.layer_name, 'cache_expiry' : pr.cache_expiry})
+
+        cache.set('utils_cache.get_proxy_cache()', proxy_cache_array, 86400)
+    else:
+        proxy_cache_array =  proxy_cache_dumped_data
+    return proxy_cache_array
+
+def log_request(msg=''):
+    if settings.LOG_REQUEST_STATS:
+        logger_stats.info(msg)
+
+

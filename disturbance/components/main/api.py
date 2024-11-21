@@ -13,10 +13,10 @@ from rest_framework.pagination import PageNumberPagination
 from django.urls import reverse
 
 from disturbance.components.das_payments import reports
-from disturbance.components.main.models import Region, District, Tenure, ApplicationType, ActivityMatrix, MapLayer
+from disturbance.components.main.models import Region, District, Tenure, ApplicationType, ActivityMatrix, MapLayer, DASMapLayer, GlobalSettings
 from disturbance.components.main.serializers import RegionSerializer, DistrictSerializer, TenureSerializer, \
     ApplicationTypeSerializer, ActivityMatrixSerializer, BookingSettlementReportSerializer, OracleSerializer, \
-    MapLayerSerializer
+    MapLayerSerializer, DASMapLayerSerializer, GlobalSettingsSerializer
 from django.core.exceptions import ValidationError
 
 from disturbance.components.main.utils import handle_validation_error
@@ -30,8 +30,14 @@ class DistrictViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RegionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Region.objects.all().order_by('id')
+    queryset = Region.objects.none() 
     serializer_class = RegionSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated():
+            return Region.objects.all().order_by('id')
+        return Region.objects.none()
 
 
 class ActivityMatrixViewSet(viewsets.ReadOnlyModelViewSet):
@@ -62,8 +68,10 @@ class ApplicationTypeViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = ApplicationTypeSerializer
 
     def get_queryset(self):
-        my_list = ApplicationType.objects.order_by('order').filter(visible=True)
-        return my_list
+        user = self.request.user
+        if user.is_authenticated():
+            return ApplicationType.objects.order_by('order').filter(visible=True)
+        return ApplicationType.objects.none()
 
     @list_route(methods=['GET',])
     def searchable_application_types(self, request, *args, **kwargs):
@@ -149,3 +157,24 @@ class MapLayerViewSet(viewsets.ModelViewSet):
         queryset = self.get_queryset()
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+
+class DASMapLayerViewSet(viewsets.ModelViewSet):
+    queryset = DASMapLayer.objects.none()
+    serializer_class = DASMapLayerSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if is_internal(self.request):
+            return DASMapLayer.objects.filter(option_for_internal=True)
+        elif is_customer(self.request):
+            return DASMapLayer.objects.filter(option_for_external=True)
+        return DASMapLayer.objects.none()
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+class GlobalSettingsViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = GlobalSettings.objects.all().order_by('id')
+    serializer_class = GlobalSettingsSerializer

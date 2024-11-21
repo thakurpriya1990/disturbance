@@ -7,11 +7,12 @@
       <div class="row">
         <h3 v-if="proposal.migrated">Proposal: {{ proposal.lodgement_number }} (Migrated)</h3>
         <h3 v-else>Proposal: {{ proposal.lodgement_number }}</h3>
-        <h4>Proposal Type: {{proposal.proposal_type }}</h4>
-        <div v-if="proposal.application_type!='Apiary'">
+        <h4>Application Type: {{proposal.proposal_type }}</h4>
+        <h4>Proposal Type: {{proposal.application_type }}</h4>
+        <div v-if="proposal.application_type!='Apiary'" class="noPrint">
             <h4>Approval Level: {{proposal.approval_level }}</h4>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-3 noPrint">
             <CommsLogs :comms_url="comms_url" :logs_url="logs_url" :comms_add_url="comms_add_url" :disable_add_entry="false"/>
             <div class="row" v-if="canSeeSubmission || (!canSeeSubmission && showingProposal) || versionCurrentlyShowing>0">
                 <div class="panel panel-default">
@@ -175,12 +176,12 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12">
-                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')">Back To Processing</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary" :disabled="proposal.can_user_edit" @click.prevent="switchStatus('with_assessor')">Back To Assessing</button><br/>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-sm-12" v-if="requirementsComplete">
-                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Propose to Approve</button><br/>
+                                            <button style="width:80%;" class="btn btn-primary top-buffer-s" :disabled="proposal.can_user_edit" @click.prevent="proposedApproval()">Submit to Approver</button><br/>
                                         </div>
                                     </div>
                                 </template>
@@ -250,7 +251,7 @@
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Applicant
                                         <a class="panelClicker" :href="'#'+detailsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="true" :aria-controls="detailsBody">
-                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
@@ -279,7 +280,7 @@
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Address Details
                                         <a class="panelClicker" :href="'#'+addressBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="addressBody">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
@@ -324,7 +325,7 @@
                                 <div class="panel-heading">
                                     <h3 class="panel-title">Contact Details
                                         <a class="panelClicker" :href="'#'+contactsBody" data-toggle="collapse"  data-parent="#userInfo" expanded="false" :aria-controls="contactsBody">
-                                            <span class="glyphicon glyphicon-chevron-down pull-right "></span>
+                                            <span class="glyphicon glyphicon-chevron-up pull-right "></span>
                                         </a>
                                     </h3>
                                 </div>
@@ -344,6 +345,7 @@
                                     <ProposalApiary v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" ref="proposal_apiary" :is_external="false" :is_internal="true" :hasAssessorMode="hasAssessorMode"></ProposalApiary>
                                 </div>
                                 <div v-else>
+                                    <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" ref="mapSection" :is_internal="true"/>
                                     <ProposalDisturbance 
                                     ref="proposal_disturbance"
                                     :key="'proposal_disturbance' + uuid"
@@ -365,7 +367,9 @@
                                         <div class="navbar-inner">
                                             <div v-if="hasAssessorMode" class="container">
                                               <p class="pull-right">
-                                                <button class="btn btn-primary pull-right" style="margin-top:5px;" @click.prevent="save()">Save Changes</button>
+                                                <button class="btn btn-primary" style="margin-top:5px;" @click.prevent="save()">Save and Continue</button>
+                                                
+                                                <button class="btn btn-primary" style="margin-top:5px;" @click.prevent="save_exit()">Save and Exit</button>
                                               </p>
                                             </div>
                                         </div>
@@ -382,7 +386,7 @@
         </div>
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
-        <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" @refreshFromResponse="refreshFromResponse"/>
+        <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" :relevant_applicant_address="proposal.applicant.address" :relevant_applicant_name="proposal.applicant.name" :reissued="proposal.reissued" @refreshFromResponse="refreshFromResponse"/>
     
 
     
@@ -396,6 +400,7 @@ require("select2-bootstrap-theme/dist/select2-bootstrap.min.css");
 import ProposalDisturbance from '../../form.vue'
 import ProposalApiary from '@/components/form_apiary.vue'
 import NewApply from '../../external/proposal_apply_new.vue'
+import MapSection from '@/components/common/das/map_section.vue'
 import Vue from 'vue'
 import ProposedDecline from './proposal_proposed_decline.vue'
 import AmendmentRequest from './amendment_request.vue'
@@ -430,7 +435,8 @@ export default {
             contacts_table_initialised: false,
             initialisedSelects: false,
             showingProposal:false,
-            showingRequirements:false,
+            //showingRequirements:false,
+            showingRequirements:true,
             hasAmendmentRequest: false,
             requirementsComplete:true,
             state_options: ['requirements','processing'],
@@ -507,6 +513,7 @@ export default {
         RevisionHistory,
         MoreReferrals,
         NewApply,
+        MapSection,
     },
     filters: {
         formatDate: function(data){
@@ -547,6 +554,13 @@ export default {
         },
         hasAssessorMode:function(){
             return this.proposal && this.proposal.assessor_mode.has_assessor_mode ? true : false;
+        },
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
         },
         canAction: function(){
             if (this.proposal.processing_status == 'With Approver'){
@@ -871,6 +885,31 @@ export default {
             });
             return field.type;
         },
+        checkAssignedOfficer: function() {
+            if (this.proposal.processing_status == 'With Approver'){
+                if(this.proposal && this.proposal.assigned_approver==null){
+                    swal(
+                        'Error',
+                        'Please assign this proposal to yourself or an officer before proceeding',
+                        'error'
+                    )
+                    return false;
+                }
+                return true;
+            }
+            else{
+                if(this.proposal && this.proposal.assigned_officer==null){
+                    swal(
+                        'Error',
+                        'Please assign this proposal to yourself or an officer before proceeding',
+                        'error'
+                    )
+                    return false;
+                }
+                return true;
+            }
+            return true;
+        },
         checkAssessorData: function(){
             //check assessor boxes and clear value of hidden assessor boxes so it won't get printed on approval pdf.
 
@@ -905,29 +944,34 @@ export default {
             return s.replace(/[,;]/g, '\n');
         },
         proposedDecline: function(){
-            this.save_wo();
-            this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
-            this.$refs.proposed_decline.isModalOpen = true;
+            if(this.checkAssignedOfficer()){
+                this.save_wo();
+                this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
+                this.$refs.proposed_decline.isModalOpen = true;
+            }
         },
         proposedApproval: function(){
-            this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
-            if(this.proposal.proposed_issuance_approval == null){
-                var test_approval={
-                'cc_email': this.proposal.referral_email_list
-            };
-            this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
-                // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
+            if(this.checkAssignedOfficer()){
+                this.$refs.proposed_approval.approval = this.proposal.proposed_issuance_approval != null ? helpers.copyObject(this.proposal.proposed_issuance_approval) : {};
+                if(this.proposal.proposed_issuance_approval == null){
+                    var test_approval={
+                    'cc_email': this.proposal.referral_email_list
+                };
+                this.$refs.proposed_approval.approval=helpers.copyObject(test_approval);
+                    // this.$refs.proposed_approval.$refs.bcc_email=this.proposal.referral_email_list;
+                }
+                //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
+                // if(this.proposal.applicant.email){
+                //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
+                // }
+                this.$refs.proposed_approval.isModalOpen = true;
             }
-            //this.$refs.proposed_approval.submitter_email=helpers.copyObject(this.proposal.submitter_email);
-            // if(this.proposal.applicant.email){
-            //     this.$refs.proposed_approval.applicant_email=helpers.copyObject(this.proposal.applicant.email);
-            // }
-            this.$refs.proposed_approval.isModalOpen = true;
         },
         issueProposal:function(){
             //this.$refs.proposed_approval.approval = helpers.copyObject(this.proposal.proposed_issuance_approval);
 
             //save approval level comment before opening 'issue approval' modal
+            if(this.checkAssignedOfficer()){
             if(this.proposal && this.proposal.processing_status == 'With Approver' && this.proposal.approval_level != null && this.proposal.approval_level_document == null){
                 if (this.proposal.approval_level_comment!='')
                 {
@@ -974,22 +1018,27 @@ export default {
             // }
             this.$refs.proposed_approval.isModalOpen = true;
             }
+            }
 
         },
         declineProposal:function(){
-            this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
-            this.$refs.proposed_decline.isModalOpen = true;
+            if(this.checkAssignedOfficer()){
+                this.$refs.proposed_decline.decline = this.proposal.proposaldeclineddetails != null ? helpers.copyObject(this.proposal.proposaldeclineddetails): {};
+                this.$refs.proposed_decline.isModalOpen = true;
+            }
         },
         amendmentRequest: function(){
-            this.save_wo();
-            let values = '';
-            $('.deficiency').each((i,d) => {
-                values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
-            });
-            //this.deficientFields();
-            this.$refs.amendment_request.amendment.text = values;
+            if(this.checkAssignedOfficer()){
+                this.save_wo();
+                let values = '';
+                $('.deficiency').each((i,d) => {
+                    values +=  $(d).val() != '' ? `Question - ${$(d).data('question')}\nDeficiency - ${$(d).val()}\n\n`: '';
+                });
+                //this.deficientFields();
+                this.$refs.amendment_request.amendment.text = values;
 
-            this.$refs.amendment_request.isModalOpen = true;
+                this.$refs.amendment_request.isModalOpen = true;
+            }
         },
         highlight_deficient_fields: function(deficient_fields){
             let vm = this;
@@ -1023,6 +1072,18 @@ export default {
               )
           },err=>{
           });
+        },
+        save_exit: function(e) {
+          let vm = this;
+          vm.checkAssessorData();
+          let formData = new FormData(vm.form);
+          vm.$http.post(vm.proposal_form_url,formData).then(res=>{
+          },err=>{
+          });
+          // redirect back to dashboard
+            vm.$router.push({
+                name: 'internal-dashboard'
+            });
         },
         save_wo: function() {
           let vm = this;
@@ -1091,7 +1152,7 @@ export default {
             let vm = this;
             let unassign = true;
             let data = {};
-            if (vm.processing_status == 'With Approver'){
+            if (vm.proposal.processing_status == 'With Approver'){
                 unassign = vm.proposal.assigned_approver != null && vm.proposal.assigned_approver != 'undefined' ? false: true;
                 data = {'assessor_id': vm.proposal.assigned_approver};
             }
@@ -1103,6 +1164,7 @@ export default {
                 vm.$http.post(helpers.add_endpoint_json(api_endpoints.proposals,(vm.proposal.id+'/assign_to')),JSON.stringify(data),{
                     emulateJSON:true
                 }).then((response) => {
+                    console.log('data', data);
                     vm.proposal = response.body;
                     vm.original_proposal = helpers.copyObject(response.body);
                     vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
@@ -1141,6 +1203,7 @@ export default {
             let vm = this;
             //vm.save_wo();
             //let vm = this;
+            if(vm.checkAssignedOfficer()){
             if(vm.proposal.processing_status == 'With Assessor' && status == 'with_assessor_requirements'){
             vm.checkAssessorData();
             let formData = new FormData(vm.form);
@@ -1227,6 +1290,7 @@ export default {
                     'error'
                 )
             });
+            }
             }
         },
         /*
@@ -1430,7 +1494,7 @@ export default {
                 vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
                 swal(
                     'Referral Recall',
-                    'The referall has been recalled from '+r.referral,
+                    'The referral has been recalled from '+r.referral,
                     'success'
                 )
             },
@@ -1479,8 +1543,19 @@ export default {
             });
             */
         },
+        beforePrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "none" );
+        },
+        afterPrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "" );
+        }
     },
     mounted: function() {
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
+        
     },
     updated: function(){
         let vm = this;
@@ -1488,7 +1563,7 @@ export default {
             $('.panelClicker[data-toggle="collapse"]').on('click', function () {
                 var chev = $(this).children()[0];
                 window.setTimeout(function () {
-                    $(chev).toggleClass("glyphicon-chevron-down glyphicon-chevron-up");
+                    $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
                 },100);
             });
             vm.panelClickersInitialised = true;
@@ -1501,6 +1576,8 @@ export default {
                 vm.deficientFields();
             }
         });
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
     },
     created: function() {
         Vue.http.get(`/api/proposal/${this.proposalId}/internal_proposal.json`).then(res => {
@@ -1576,5 +1653,10 @@ export default {
     padding:10px;
     margin:0 0 0 -15px;
 }
+@media print { 
+.noPrint { 
+  display: none;
+ }
+} 
 
 </style>

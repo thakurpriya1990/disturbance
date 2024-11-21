@@ -7,15 +7,21 @@
                     <div class="panel panel-default">
                         <div class="panel-heading">
                             <h3 class="panel-title">Region, District, Activity Type, Sub Activity, ...
-                                <a :href="'#'+pBody2" data-toggle="collapse"  data-parent="#userInfo2" expanded="true" :aria-controls="pBody2">
-                                    <span class="glyphicon glyphicon-chevron-up pull-right "></span>
+                                <a class="panelClicker" :href="'#'+pBody2" data-toggle="collapse"  data-parent="#userInfo2" expanded="true" :aria-controls="pBody2">
+                                    <span class="glyphicon glyphicon-chevron-down pull-right "></span>
                                 </a>
                             </h3>
                         </div>
-                        <div class="panel-body collapse in" :id="pBody2">
+                        
+                        <div class="panel-body panel-collapse collapse in" :id="pBody2">
                             <div v-if="proposal">
                                 <label for="" class="control-label" >Region * <a :href="region_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a> </label>
-                                <div class="col-sm-12">
+                                <div v-if="proposal.readonly" class="col-sm-12">
+                                    <div class="form-group">
+                                        <label for="" class="control-label" >{{proposal.region_name}}</label>
+                                    </div>
+                                </div>
+                                <div v-else class="col-sm-12">
                                     <div class="form-group">
                                         <select v-model="proposal.region" class="form-control" style="width:40%" @change="chainedSelectDistricts(proposal.region)" :disabled="proposal.readonly">
 											<option value="" selected disabled>Select region</option>
@@ -29,7 +35,12 @@
 
                             <div v-if="proposal.region">
                                 <label for="" class="control-label" style="font-weight: normal;">District <a :href="district_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
-                                <div class="col-sm-12">
+                                <div v-if="proposal.readonly" class="col-sm-12">
+                                        <div class="form-group">
+                                            <label for="" class="control-label" >{{proposal.district_name}}</label>
+                                        </div>
+                                </div>
+                                <div v-else class="col-sm-12">
                                     <div class="form-group">
                                         <select  v-model="proposal.district" class="form-control" style="width:40%" :disabled="proposal.readonly">
 											<option value="" selected disabled>Select district</option>
@@ -44,7 +55,12 @@
                             <div v-if="display_activity_matrix_selectbox">
 								<div v-if="activities.length > 0">
 									<label for="" class="control-label" >Activity Type * <a :href="activity_type_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
-									<div class="col-sm-12">
+									<div v-if="proposal.readonly" class="col-sm-12">
+                                        <div class="form-group">
+                                            <label for="" class="control-label" >{{proposal.activity}}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else class="col-sm-12">
 										<div class="form-group">
 											<select v-model="proposal.activity" @change="chainedSelectSubActivities1(proposal.activity)" class="form-control" style="width:40%" :disabled="proposal.readonly">
 												<option value="" selected disabled>Select activity</option>
@@ -58,7 +74,12 @@
 
 								<div v-if="sub_activities1.length > 0">
 									<label for="" class="control-label" >Sub Activity 1 * <a :href="sub_activity_1_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
-									<div class="col-sm-12">
+									<div v-if="proposal.readonly" class="col-sm-12">
+                                        <div class="form-group">
+                                            <label for="" class="control-label" >{{proposal.sub_activity_level1}}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else class="col-sm-12">
 										<div class="form-group">
 											<select v-model="proposal.sub_activity_level1" @change="chainedSelectSubActivities2(proposal.sub_activity_level1)" class="form-control" style="width:40%" :disabled="proposal.readonly">
 												<option value="" selected disabled>Select sub_activity 1</option>
@@ -72,7 +93,12 @@
 
 								<div v-if="sub_activities2.length > 0">
 									<label for="" class="control-label" >Sub Activity 2 * <a :href="sub_activity_2_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
-									<div class="col-sm-12">
+									<div v-if="proposal.readonly" class="col-sm-12">
+                                        <div class="form-group">
+                                            <label for="" class="control-label" >{{proposal.sub_activity_level2}}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else class="col-sm-12">
 										<div class="form-group">
 											<select v-model="proposal.sub_activity_level2" @change="chainedSelectCategories(proposal.sub_activity_level2)" class="form-control" style="width:40%" :disabled="proposal.readonly">
 												<option value="" selected disabled>Select sub_activity 2</option>
@@ -86,7 +112,12 @@
 
 								<div v-if="categories.length > 0">
 									<label for="" class="control-label" >Category * <a :href="category_help_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a></label>
-									<div class="col-sm-12">
+									<div v-if="proposal.readonly" class="col-sm-12">
+                                        <div class="form-group">
+                                            <label for="" class="control-label" >{{proposal.management_area}}</label>
+                                        </div>
+                                    </div>
+                                    <div v-else class="col-sm-12">
 										<div class="form-group">
 											<select v-model="proposal.management_area" @change="get_approval_level(proposal.management_area)" class="form-control" style="width:40%" :disabled="proposal.readonly">
 												<option value="" selected disabled>Select category</option>
@@ -124,6 +155,7 @@ export default {
     props:{
             proposal:{
                 type:Object,
+                default: null,
             },
     },
   data: function() {
@@ -161,6 +193,8 @@ export default {
         display_region_selectbox: false,
         display_activity_matrix_selectbox: false,
         site_url: (api_endpoints.site_url.endsWith("/")) ? (api_endpoints.site_url): (api_endpoints.site_url + "/"),
+        global_settings:[],
+        panelClickersInitialised: false,
     }
   },
   components: {
@@ -180,26 +214,91 @@ export default {
       return this.districts.length > 1;
     },
     proposal_type_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_proposal_type"
+        //return this.site_url + "help/disturbance/user/#apply_proposal_type"
+        let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='proposal_type_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     region_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_region"
+      //return this.site_url + "help/disturbance/user/#apply_region"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='region_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     district_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_district"
+      //return this.site_url + "help/disturbance/user/#apply_district"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='district_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     activity_type_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_activity_type"
+      //return this.site_url + "help/disturbance/user/#apply_activity_type"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='activity_type_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
+
     },
     sub_activity_1_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_sub_activity_1"
+      //return this.site_url + "help/disturbance/user/#apply_sub_activity_1"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='sub_activity_1_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     sub_activity_2_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_sub_activity_2"
+      //return this.site_url + "help/disturbance/user/#apply_sub_activity_2"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='sub_activity_2_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     },
     category_help_url: function() {
-      return this.site_url + "help/disturbance/user/#apply_category"
+      //return this.site_url + "help/disturbance/user/#apply_category"
+      let vm=this;
+        if(vm.global_settings){
+            for(var i=0; i<vm.global_settings.length; i++){
+                if(vm.global_settings[i].key=='category_help_url'){
+                    return vm.global_settings[i].value;
+                    }
+                }
+            }
+        return '';
     }
+
 
   },
   methods: {
@@ -278,6 +377,15 @@ export default {
 		})
         
 	},
+    fetchGlobalSettings: function(){
+                let vm = this;
+                vm.$http.get('/api/global_settings.json').then((response) => {
+                    vm.global_settings = response.body;
+                    
+                },(error) => {
+                    console.log(error);
+                } );
+    },
 
 	searchList: function(id, search_list){
         /* Searches for dictionary in list */
@@ -309,6 +417,11 @@ export default {
                 this.districts.push( {text: api_districts[i].name, value: api_districts[i].id} );
             }
         }
+        // if(this.proposal && this.proposal.region && this.proposal.district){
+        //     if(this.proposal.region == region_id){
+        //         console.log('here for the first time')
+        //     }
+        // }
     },
     fetchApplicationTypes: function(){
 		let vm = this;
@@ -565,8 +678,10 @@ export default {
                 vm.display_region_selectbox = true;
                 vm.display_activity_matrix_selectbox = true;
             }
-            
-            vm.chainedSelectDistricts2(vm.proposal.region, regions);
+            if(vm.proposal.region){
+                vm.chainedSelectDistricts2(vm.proposal.region, regions);
+            }
+            // vm.chainedSelectDistricts2(vm.proposal.region, regions);
             if(vm.activity_matrix){
                 vm.chainedSelectSubActivities1(vm.proposal.activity, true);
             }
@@ -588,9 +703,23 @@ export default {
     //vm.fetchRegions();
     vm.fetchApplicationTypes();
     //vm.fetchActivityMatrix();
+    vm.fetchGlobalSettings();
     vm.form = document.forms.new_proposal;
   },
-  
+
+//    updated: function(){
+//        let vm = this;
+//        if (!vm.panelClickersInitialised){
+//            $('.panelClicker[data-toggle="collapse"]').on('click', function () {
+//                var chev = $(this).children()[0];
+//                window.setTimeout(function () {
+//                    $(chev).toggleClass("glyphicon-chevron-up glyphicon-chevron-down");
+//                },100);
+//            });
+//            vm.panelClickersInitialised = true;
+//        }
+//    },
+
   beforeRouteEnter: function(to, from, next) {
 
     let initialisers = [

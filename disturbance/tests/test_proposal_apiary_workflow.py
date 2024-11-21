@@ -152,7 +152,6 @@ class ApiaryIntegrationTests(APITestSetup):
                 )
         self.assertEqual(final_approval_response.status_code, 200)
         #proposal_1 = Proposal.objects.get(id=proposal_id)
-        #import ipdb; ipdb.set_trace()
 
         print("new apiary proposal for same licence")
         self.client.login(email=self.customer, password='pass')
@@ -266,7 +265,6 @@ class ApiaryIntegrationTests(APITestSetup):
         self.assertEqual(add_requirements_response_4.status_code, 201)
 
         ## delete requirement
-        #import ipdb; ipdb.set_trace()
         requirement_to_delete_id = Proposal.objects.get(id=proposal_id_2).requirements.filter(standard_requirement__code="A1")[0].id
         delete_requirement_response_2 = self.client.get(
                 '/api/proposal_requirements/{}/discard.json'.format(requirement_to_delete_id),
@@ -341,7 +339,6 @@ class ApiaryIntegrationTests(APITestSetup):
         # Reissue approval with new expiry date
         reissue_payload = {"status": "with_approver"}
         #url = '/api/proposal_apiary/{}/reissue_approval.json'.format(final_proposal_proposal_apiary_id)
-        #import ipdb; ipdb.set_trace()
         reissue_response = self.client.post(
                 '/api/proposal/{}/reissue_approval/'.format(final_proposal.id),
                 reissue_payload,
@@ -356,7 +353,6 @@ class ApiaryIntegrationTests(APITestSetup):
                 "start_date": self.today_str,
                 "apiary_sites": apiary_sites_2
                 }
-        #import ipdb; ipdb.set_trace()
         reissue_final_approval_response = self.client.post(
                 '/api/proposal_apiary/{}/final_approval/'.format(final_proposal.id),
                 #final_approval_data, 

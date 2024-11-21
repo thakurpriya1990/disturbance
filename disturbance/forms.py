@@ -1,9 +1,11 @@
 from __future__ import unicode_literals
 from crispy_forms.bootstrap import FormActions
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import Layout, Submit
+from crispy_forms.layout import Layout, Submit, Div, Row, Column, Field
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.forms import Form, ModelForm, CharField, ValidationError, EmailField
+from django import forms
 
 from ledger.accounts.models import Profile, Address, Organisation
 
@@ -121,3 +123,94 @@ class UnlinkDelegateForm(ModelForm):
         self.helper = BaseFormHelper(self)
         self.helper.add_input(Submit('unlink', 'Unlink user', css_class='btn-lg btn-danger'))
         self.helper.add_input(Submit('cancel', 'Cancel'))
+
+
+
+class BaseFormHelper(FormHelper):
+    """
+    Base helper class for rendering forms via crispy_forms.
+    To remove the default "Save" button from the helper, instantiate it with
+    inputs=[]
+    E.g. helper = BaseFormHelper(inputs=[])
+    """
+    def __init__(self, *args, **kwargs):
+        super(BaseFormHelper, self).__init__(*args, **kwargs)
+        self.form_class = 'horizontal col-lg-2'
+        self.help_text_inline = True
+        self.form_method = 'POST'
+        save_btn = Submit('submit', 'Save')
+        save_btn.field_classes = 'btn btn-primary'
+        cancel_btn = Submit('cancel', 'Cancel')
+        self.add_input(save_btn)
+        self.add_input(cancel_btn)
+ 
+ 
+class HelperModelForm(forms.ModelForm):
+    """
+    Stock ModelForm with a property named ``helper`` (used by crispy_forms to
+    render in templates).
+    """
+    @property
+    def helper(self):
+        helper = BaseFormHelper()
+        return helper
+
+
+from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_CURRENT, SITE_STATUS_DENIED, SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_VACANT, SITE_STATUS_TRANSFERRED, SITE_STATUS_DISCARDED, SITE_STATUS_SUSPENDED
+class ApiarySiteStatusForm(forms.Form):
+
+    SITE_STATUS_CHOICES = (
+        ('', 'Select status ...'),
+        #(SITE_STATUS_DRAFT, 'Draft'),
+        #(SITE_STATUS_PENDING, 'Pending'),
+        #(SITE_STATUS_APPROVED, 'Approved'),
+        (SITE_STATUS_DENIED, 'Denied'),
+        (SITE_STATUS_CURRENT, 'Current'),
+        (SITE_STATUS_NOT_TO_BE_REISSUED, 'Not to be reissued'),
+        (SITE_STATUS_SUSPENDED, 'Suspended'),
+        #(SITE_STATUS_TRANSFERRED, 'Transferred'),
+        #(SITE_STATUS_VACANT, 'Vacant'),
+        (SITE_STATUS_DISCARDED, 'Discarded'),
+    )
+
+    site_id = forms.IntegerField(widget=forms.NumberInput(attrs={'placeholder': 'Site ID'}))
+    status = forms.ChoiceField(choices=SITE_STATUS_CHOICES)
+
+    def __init__(self, *args, **kwargs):
+        super(ApiarySiteStatusForm, self).__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.id = 'id_apiary_site_status_form'
+        #self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Field('site_id', wrapper_class='col-md-4'),
+                Field('status', wrapper_class='col-md-4'),
+                css_class = "row"
+            ),
+            Submit('submit_apiary_site_status_form', 'Update'),
+        )
+
+
+class ApiarySiteLonLatForm(forms.Form):
+    site_id = forms.IntegerField(widget=forms.NumberInput(attrs={'placeholder': 'Site ID'}))
+    longitude = forms.FloatField(widget=forms.NumberInput(attrs={'placeholder': 'Site Longitude'}))
+    latitude = forms.FloatField(widget=forms.NumberInput(attrs={'placeholder': 'Site Latitude'}))
+
+    def __init__(self, *args, **kwargs):
+        super(ApiarySiteLonLatForm, self).__init__(*args, **kwargs)
+
+        self.helper = FormHelper()
+        self.helper.id = 'id_apiary_site_lonlat_form'
+        #self.helper.form_tag = False
+        self.helper.layout = Layout(
+            Row(
+                Field('site_id', wrapper_class='col-md-4'),
+                Field('longitude', wrapper_class='col-md-4'),
+                Field('latitude', wrapper_class='col-md-4'),
+                css_class = "row"
+            ),
+            Submit('submit_apiary_site_lonlat_form', 'Update'),
+        )
+
+

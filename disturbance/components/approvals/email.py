@@ -188,15 +188,19 @@ def send_on_site_notification_email(request_data, sender, update=False):
                 no_region_district_name = region.name + ' Region'
                 district = District.objects.get(name=no_region_district_name)
             except:
-                logger.error('Error sending onsite-notification email - District not found: {rd}')
-                raise Exception(f'District not found: {rd}')
+                #logger.error('Error sending onsite-notification email - District not found: {rd}')
+                #raise Exception(f'District not found: {rd}')
+                logger.warn('Warning sending onsite-notification email - District not found: {rd} - sending notification Apiary Admin Group')
         
         try:
             recipients = ApiaryReferralGroup.objects.get(district=district).members_email
-            return recipients
         except:
-            logger.error('Error sending onsite-notification email - Cannot find Apiary Referral Group for District {district.name}')
-            raise Exception(f'Cannot find Apiary Referral Group for District {district.name}')
+            #logger.error('Error sending onsite-notification email - Cannot find Apiary Referral Group for District {district.name}')
+            #raise Exception(f'Cannot find Apiary Referral Group for District {district.name}')
+            logger.warn('Warning sending onsite-notification email - Cannot find Apiary Referral Group for District {rd}. Sending notification to {settings.APIARY_SUPPORT_EMAIL}')
+            recipients = [settings.APIARY_SUPPORT_EMAIL]
+
+        return recipients
             
 
     email = OnSiteNotificationUpdateEmail() if update else OnSiteNotificationEmail()
@@ -208,16 +212,20 @@ def send_on_site_notification_email(request_data, sender, update=False):
     period_from = request_data.get('period_from')
     period_to = request_data.get('period_to')
     comments = request_data.get('comments')
+    hives_loc = request_data.get('hives_loc')
+    hives_num = request_data.get('hives_num')
+    people_names = request_data.get('people_names')
+    flora = request_data.get('flora')
     approval = asoa.approval
     proposal = asoa.approval.current_proposal
 
-    applicant = approval.relevant_applicant if isinstance(approval.relevant_applicant, Organisation) else approval.relevant_applicant.get_full_name(),
+    applicant = approval.relevant_applicant if isinstance(approval.relevant_applicant, Organisation) else approval.relevant_applicant.get_full_name()
     if isinstance(approval.relevant_applicant, Organisation):
         applicant = approval.relevant_applicant.name
         delegate = approval.relevant_applicant.delegates.all()[0]
         contact = delegate.phone_number if delegate.phone_number else delegate.mobile_number
     else:
-        applicant = approval.relevant_applicant.get_full_name(),
+        applicant = approval.relevant_applicant.get_full_name()
         contact = approval.relevant_applicant.phone_number if approval.relevant_applicant.phone_number else approval.relevant_applicant.mobile_number
 
     context = {
@@ -228,13 +236,19 @@ def send_on_site_notification_email(request_data, sender, update=False):
         'period_from': period_from,
         'period_to': period_to,
         'comments': comments,
+        'hives_loc': hives_loc,
+        'hives_num': hives_num,
+        'people_names': people_names,
+        'flora': flora,
         'sender': sender,
+        'licence_url': SITE_URL + f'{reverse("external")}approval/{approval.id}'
     }
 
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     #sender = settings.DEFAULT_FROM_EMAIL
-    cc = []
+    cc = [approval.relevant_applicant.email] if hasattr(approval.relevant_applicant, 'email') and approval.relevant_applicant.email is not None else []
     msg = email.send(get_recipients(), cc=cc, context=context)
+    
     _log_approval_email(msg, approval, sender=sender)
     if proposal.applicant:
         _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
@@ -391,7 +405,8 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
         'details': approval.suspension_details['details'],
         'from_date': approval.suspension_details['from_date'],
         'to_date': approval.suspension_details['to_date'],
-        'future_suspend': future_suspend       
+        'future_suspend': future_suspend,
+        'proposal': proposal,
     }
 
     all_ccs = []
@@ -428,7 +443,8 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
         'approval': approval,
         'details': approval.surrender_details['details'],
         'surrender_date': approval.surrender_details['surrender_date'], 
-        'future_surrender': future_surrender           
+        'future_surrender': future_surrender  ,
+        'proposal' : proposal,
     }
     all_ccs = []
     #if proposal.applicant and proposal.applicant.email:
@@ -453,7 +469,6 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
 
 #approval renewal notice
 def send_approval_renewal_email_notification(approval):
-    #import ipdb; ipdb.set_trace()
     if approval.apiary_approval:
         email = ApiaryApprovalRenewalNotificationEmail()
     else:
@@ -462,7 +477,8 @@ def send_approval_renewal_email_notification(approval):
 
     context = {
         'approval': approval,
-        'proposal': approval.current_proposal
+        'proposal': approval.current_proposal,
+        'submitter': approval.current_proposal.submitter.get_full_name(),
                     
     }
     all_ccs = []

@@ -184,8 +184,14 @@
                 </div>
             </template>
             <template v-else>
+                <MapSection v-if="proposal && show_das_map" :proposal="proposal" @refreshFromResponse="refreshFromResponse" @refreshFromResponseProposal="refreshFromResponseProposal" ref="mapSection" :is_external="true" />
+                <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow" :key="proposalComponentMapKey">
+                <NewApply v-if="proposal" :proposal="proposal" ref="proposal_apply"></NewApply>
+
+                <!-- From master 28-Mar-2024 TODO remove this commented section
                 <ProposalDisturbance v-if="proposal" :proposal="proposal" id="proposalStart" :showSections="sectionShow">
-                <NewApply v-if="proposal" :proposal="proposal"></NewApply>
+                <NewApply v-if="proposal" :proposal="proposal" ref="proposal_apply"></NewApply>
+                -->
                 <div>
                     <input type="hidden" name="csrfmiddlewaretoken" :value="csrf_token"/>
                     <input type='hidden' name="schema" :value="JSON.stringify(proposal)" />
@@ -246,6 +252,7 @@ import ProposalDisturbance from '../form.vue'
 import ProposalApiary from '../form_apiary.vue'
 import ApiarySiteTransfer from '../form_apiary_site_transfer.vue'
 import NewApply from './proposal_apply_new.vue'
+import MapSection from '@/components/common/das/map_section.vue'
 import Vue from 'vue'
 import {
   api_endpoints,
@@ -257,8 +264,10 @@ export default {
         return {
             "proposal": null,
             "loading": [],
+            original_proposal: null,
             form: null,
             amendment_request: [],
+            proposalComponentMapKey: 0,
             //isDataSaved: false,
             proposal_readonly: true,
             hasAmendmentRequest: false,
@@ -304,8 +313,16 @@ export default {
         ProposalApiary,
         NewApply,
         ApiarySiteTransfer,
+        MapSection,
     },
     computed: {
+        show_das_map : function(){
+                if (env && env['show_das_map'] &&  env['show_das_map'].toLowerCase()=="true"  ){
+                    return true;
+                } else {
+                    return false;
+                }
+        },
         amendmentRequestText: function() {
             let requestText = 'An amendment has been requested for this proposal';
             if (this.apiaryTemplateGroup) {
@@ -808,6 +825,33 @@ export default {
                     blank_fields.push(' You must select at least one site to transfer')
                 }
              }
+             else{
+                if((!vm.proposal.region) || (!vm.proposal.district) || (vm.proposal.approval_level=='')) {
+                    if(vm.$refs.proposal_apply.sub_activities1.length>0 && vm.proposal.sub_activity_level1=='') {
+                        blank_fields.push('Sub Activity-1 cannot be blank')
+                    }
+                    if(vm.$refs.proposal_apply.sub_activities2.length>0 && vm.proposal.sub_activity_level2=='') {
+                        blank_fields.push('Sub Activity-2 cannot be blank')
+                    }
+                    if(vm.$refs.proposal_apply.categories.length>0 && vm.proposal.management_area=='') {
+                        blank_fields.push('Category/Management Area cannot be blank')
+                    }
+                }
+             }
+
+             if(vm.proposal.application_type == 'Disturbance'){
+                if(vm.proposal && vm.proposal.region && vm.proposal.district){
+                    let districts=vm.$refs.proposal_apply.districts
+                    let district_exists=false;
+                    if(districts){
+                        district_exists = [...districts.filter(district => district.value == vm.proposal.district)]
+                    }
+                    if(!district_exists || district_exists.length<1){
+                        vm.proposal.district=null;
+                        blank_fields.push(' You must select at least one District')
+                    }
+                }
+             }
 
             if(blank_fields.length==0){
                 return true;
@@ -824,11 +868,12 @@ export default {
             }
         },
 
-        deficientFields(){
+        deficientFieldsLegacy(){
             let vm=this;
-            //console.log("I am here");
+            console.log("I am here");
             let deficient_fields=[]
             $('.deficiency').each((i,d) => {
+                console.log('inside deficient')
                 if($(d).val() != ''){
                     var name=$(d)[0].name
                     var tmp=name.replace("-comment-field","")
@@ -839,8 +884,22 @@ export default {
             //console.log('deficient fields', deficient_fields);
             vm.highlight_deficient_fields(deficient_fields);
         },
+
+        deficientFields() {
+            let vm=this;
+            let deficient_fields=[]
+            if(vm.proposal.comment_data){
+                deficient_fields= vm.proposal.comment_data
+                    .filter(item => item.assessor !== '')
+                    .map(item => item.name);
+            }
+            vm.highlight_deficient_fields(deficient_fields);
+        },
+
         submit: function(){
-            console.log('in submit');
+
+            // Expand all sections - forces components to be rendered for validation
+            $('.collapse').collapse('show')
 
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -884,13 +943,11 @@ export default {
                 showCancelButton: true,
                 confirmButtonText: 'Submit'
             }).then(async () => {
-                console.log('in then()');
                 vm.submittingProposal = true;
                 // Only Apiary has an application fee
                 //if (!vm.proposal.fee_paid && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                 if (['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
                     //if (this.submit_button_text === 'Pay and submit' && ['Apiary', 'Site Transfer'].includes(vm.proposal.application_type)) {
-                    console.log('--- save and pay ---')
                     vm.save_and_redirect();
                 } else {
                     /* just save and submit - no payment required (probably application was pushed back by assessor for amendment */
@@ -934,7 +991,6 @@ export default {
         },
         // Apiary submission
         save_and_redirect: async function(e) {
-            console.log('in save_and_redirect');
             this.isSaving = true;
             let vm = this;
             vm.form=document.forms.new_proposal;
@@ -962,10 +1018,8 @@ export default {
                 },
                 err=>{
                     if (err.body.type && err.body.type[0] === 'site_no_longer_available'){
-                        console.log('1')
                         vm.display_site_no_longer_available_modal(err)
                     } else {
-                        console.log('2')
                         helpers.processError(err)
                         vm.submittingProposal = false
                     }
@@ -1020,14 +1074,43 @@ export default {
             $('body').append(formElement);
             $(formElement).submit();
         },
+        incrementProposalComponentMapKey: function() {
+                this.proposalComponentMapKey++;
+            },
+        refreshFromResponse:function(response){
+            let vm = this;
+            vm.original_proposal = helpers.copyObject(response.body);
+            vm.proposal = helpers.copyObject(response.body);
+            this.incrementProposalComponentMapKey();
+            // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+            
+        },
+        refreshFromResponseProposal:function(new_proposal){
+            let vm = this;
+            vm.original_proposal = helpers.copyObject(new_proposal);
+            vm.proposal = helpers.copyObject(new_proposal);
+            vm.setdata(vm.proposal.readonly);
+            this.incrementProposalComponentMapKey();
+            // vm.proposal.applicant.address = vm.proposal.applicant.address != null ? vm.proposal.applicant.address : {};
+            
+        },
+        beforePrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "none" );
+        },
+        afterPrinting: function() {
+            let sysname = $('#' + 'sysname');
+            sysname.css( "display", "" );
+        }
     },
     mounted: function() {
-        console.log('in mounted')
 
         let vm = this;
         vm.form = document.forms.new_proposal;
         window.addEventListener('beforeunload', vm.leaving);
         window.addEventListener('onblur', vm.leaving);
+        // window.addEventListener('beforeprint', this.beforePrinting);
+        // window.addEventListener('afterprint', this.afterPrinting);
         // this.$nextTick(() => {
         //   console.log("I am here1");
         //         if(vm.hasAmendmentRequest){
@@ -1045,7 +1128,7 @@ export default {
         });
     },
     created: function() {
-        console.log('in created')
+
         console.log('proposal_id: ' + this.$route.params.proposal_id)
         let proposal_id = this.$route.params.proposal_id
 
@@ -1117,4 +1200,14 @@ export default {
     opacity: .25;
     z-index: 2000;
 }
+@media print { 
+.noPrint { 
+  display: none;
+ }
+} 
+
+.swal2-container {
+  z-index: 9999 !important;
+}
+
 </style>

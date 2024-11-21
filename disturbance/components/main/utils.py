@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime
 
 import requests
@@ -13,11 +12,15 @@ from django.db.models.query_utils import Q
 from rest_framework import serializers
 from ledger.accounts.models import EmailUser
 
+from rest_framework.renderers import JSONRenderer
+#from disturbance.components.proposals.serializers import SpatialQueryQuestionSerializer
+
 from disturbance.components.main.decorators import timeit
 from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_STATUS_TRANSFERRED, RESTRICTED_RADIUS, \
     SITE_STATUS_PENDING, SITE_STATUS_DISCARDED, SITE_STATUS_VACANT, SITE_STATUS_DENIED, SITE_STATUS_CURRENT, \
     SITE_STATUS_NOT_TO_BE_REISSUED, SITE_STATUS_SUSPENDED
 
+import logging
 logger = logging.getLogger(__name__)
 
 
@@ -42,6 +45,15 @@ logger = logging.getLogger(__name__)
 #    except:
 #        raise
 #
+
+
+def retrieve_department_users():
+    try:
+        res = requests.get('{}/api/users?minimal'.format(settings.CMS_URL), auth=(settings.LEDGER_USER,settings.LEDGER_PASS), verify=False)
+        res.raise_for_status()
+        cache.set('department_users',json.loads(res.content).get('objects'),10800)
+    except:
+        raise
 
 
 def get_department_user(email):

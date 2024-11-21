@@ -1,7 +1,7 @@
 <template lang="html">
 
   
-        <span v-if="help_text">
+        <span v-if="help_text" class="noPrint">
             <template v-if="!isForAssessor">
                 <template v-if="!showingHelpText">
                     <a href="" @click.prevent="toggleHelpText"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
@@ -48,6 +48,12 @@ data: function() {
 </script>
 
 <style lang="css">
+@media print { 
+.noPrint { 
+  display: none;
+ }
+
+} 
 </style>
 
 

@@ -6,7 +6,19 @@
 	{% else %}
     	<p>Your Approval has been cancelled:</p>
     {% endif %}
-    <p><strong>Approval : {{ approval.lodgement_number}}</strong></p>
+    <!-- <p><strong>Approval : {{ approval.lodgement_number}}</strong></p> -->
+    <p>
+        Approval : {{ approval.lodgement_number}}<br>
+        Proposal No: {{proposal.lodgement_number}}<br>
+        Title: {{proposal.title}}<br>
+        Activity: {{proposal.activity}}<br>
+		Region: {{proposal.region}}<br>
+		{% if proposal.district %}
+			District: {{proposal.district}}<br>
+		{% else %}
+			District: -<br>
+		{% endif %}
+	</p>
     <p><strong>Cancellation Details : {{ approval.cancellation_details}}</strong></p>
     <p><strong>Cancellation Date : {{ approval.cancellation_date}}</strong></p>
     

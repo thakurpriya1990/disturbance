@@ -836,7 +836,6 @@ class ApiarySiteOnProposalProcessedLicensedSiteSaveSerializer(serializers.ModelS
     For saving as 'processed'
     """
 #    def validate(self, attrs):
-#        import ipdb; ipdb.set_trace()
 #        attrs['licensed_site'] = attrs['licensed_site']
 #        attrs['batch_no'] = attrs['batch_no']
 #        return attrs
@@ -1198,7 +1197,6 @@ class ProposalApiarySerializer(serializers.ModelSerializer):
         referral_list = []
         for referral in obj.proposal.referrals.all():
             for site in obj.apiary_sites.all():
-                #import ipdb; ipdb.set_trace()
                 qs = ApiaryChecklistAnswerSerializer(
                     #obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).order_by('question__order'),
                     obj.apiary_checklist.filter(apiary_referral_id=referral.apiary_referral.id).filter(question__checklist_type='apiary_per_site').filter(apiary_site=site).order_by('question__order'),
@@ -1547,7 +1545,7 @@ class ProposalApiaryTypeSerializer(serializers.ModelSerializer):
         read_only_fields=('documents',)
 
     def get_documents_url(self,obj):
-        return '/media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
+        return '/private-media/{}/proposals/{}/documents/'.format(settings.MEDIA_APP_DIR, obj.id)
 
     def get_readonly(self,obj):
         return obj.can_user_view
