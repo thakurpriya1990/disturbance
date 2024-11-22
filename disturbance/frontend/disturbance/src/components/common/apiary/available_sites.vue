@@ -1655,7 +1655,7 @@
     }
     .filter_search_wrapper {
         position: relative;
-        z-index: 1100;
+        z-index: 1030;
     }
     /*
     .table_apiary_site {
