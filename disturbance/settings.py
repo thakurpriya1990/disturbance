@@ -268,8 +268,9 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 
 # Additional logging for commercialoperator
 LOGGING['loggers']['disturbance'] = {
-            'handlers': ['file'],
-            'level': 'INFO'
+            'handlers': ['file', 'console',],
+            'level': 'DEBUG',
+            'propagate': False,
         }
 # Add a formatter
 LOGGING['formatters']['verbose2'] = {
@@ -305,38 +306,3 @@ LOGGING['loggers']['request_stats'] = {
     'handlers': ['request_stats'],
     'level': 'INFO'
 }
-
-# Add a debug level logger for development
-#if DEBUG:
-#    LOGGING = {
-#        'version': 1,
-#        'disable_existing_loggers': True,
-#        'handlers': {
-#            'console': {
-#                'class': 'logging.StreamHandler',
-#            },
-#        },
-#        'loggers': {
-#            'disturbance': {
-#                'handlers': ['console'],
-#                'level': 'DEBUG',
-#                'propagate': False,
-#            },
-#        },
-#    }    
-
-#APPLICATION_TYPES_SQL='''
-#        SELECT name, name FROM disturbance_applicationtypechoice
-#        WHERE archive_date IS NULL OR archive_date > now()
-#    '''
-
-#from django.db import connection
-#def run_select_sql(sql):
-#    try:
-#        with connection.cursor() as cursor:
-#            cursor.execute(sql)
-#            row = cursor.fetchall()
-#        return row
-#    except:
-#        return []
-
