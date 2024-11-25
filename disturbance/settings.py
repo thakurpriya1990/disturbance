@@ -205,8 +205,9 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 
 # Additional logging for commercialoperator
 LOGGING['loggers']['disturbance'] = {
-            'handlers': ['file'],
-            'level': 'INFO'
+            'handlers': ['file', 'console',],
+            'level': 'DEBUG',
+            'propagate': False,
         }
 # Add a formatter
 LOGGING['formatters']['verbose2'] = {
@@ -241,6 +242,7 @@ LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
     'level': 'INFO'
 }
+<<<<<<< HEAD
 
 # Add a debug level logger for development
 #if DEBUG:
@@ -280,3 +282,9 @@ DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by 
 #    except:
 #        return []
 
+=======
+LOGGING['loggers']['request_stats'] = {
+    'handlers': ['request_stats'],
+    'level': 'INFO'
+}
+>>>>>>> 1ac071070 (Configure loggers...)
