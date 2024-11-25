@@ -1199,7 +1199,6 @@
                         let available = feature.get('available')
                         if (available){
                             let display_text = 'Contact licence holder'
-                            //let ret = '<a data-contact-licence-holder="' + feature.id_ + '" :onclick="this.contactLicenceHolder(' + feature.id_ + ')">' + display_text + '</a>';
                             let ret = '<a data-contact-licence-holder="' + feature.id_ + '">' + display_text + '</a>';
                             action_list.push(ret);
                         }
