@@ -609,6 +609,7 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @detail_route(methods=['POST',])
     @basic_exception_handler
     def contact_licence_holder(self, request, *args, **kwargs):
+        logger.info('contact_licence_holder')
         apiary_site = self.get_object()
         comments = request.data.get('comments', '')
         sender = request.user

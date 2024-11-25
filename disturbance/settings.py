@@ -208,15 +208,34 @@ LOGGING['loggers']['disturbance'] = {
             'handlers': ['file'],
             'level': 'INFO'
         }
+# Add a formatter
+LOGGING['formatters']['verbose2'] = {
+    "format": "%(levelname)s %(asctime)s %(name)s [Line:%(lineno)s][%(funcName)s] %(message)s"
+}
 
 # Add a handler
 LOGGING['handlers']['file_apiary'] = {
     'level': 'INFO',
     'class': 'logging.handlers.RotatingFileHandler',
     'filename': os.path.join(BASE_DIR, 'logs', 'apiary.log'),
+    'formatter': 'verbose2',
+    'maxBytes': 5242880
+}
+<<<<<<< HEAD
+=======
+
+# Add a handler
+LOGGING['handlers']['request_stats'] = {
+    'level': 'INFO',
+    'class': 'logging.handlers.RotatingFileHandler',
+    'filename': os.path.join(BASE_DIR, 'logs', 'requests.log'),
     'formatter': 'verbose',
     'maxBytes': 5242880
 }
+# Add a handler
+LOGGING['handlers']['console']['formatter'] = 'verbose2'
+
+>>>>>>> dbc912f8e (Tweak logger for debugging purpose.)
 # define logger
 LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
