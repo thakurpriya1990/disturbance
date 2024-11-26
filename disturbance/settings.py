@@ -222,8 +222,6 @@ LOGGING['handlers']['file_apiary'] = {
     'formatter': 'verbose2',
     'maxBytes': 5242880
 }
-<<<<<<< HEAD
-=======
 
 # Add a handler
 LOGGING['handlers']['request_stats'] = {
@@ -236,13 +234,11 @@ LOGGING['handlers']['request_stats'] = {
 # Add a handler
 LOGGING['handlers']['console']['formatter'] = 'verbose2'
 
->>>>>>> dbc912f8e (Tweak logger for debugging purpose.)
 # define logger
 LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
     'level': 'INFO'
 }
-<<<<<<< HEAD
 
 # Add a debug level logger for development
 #if DEBUG:
@@ -282,9 +278,3 @@ DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by 
 #    except:
 #        return []
 
-=======
-LOGGING['loggers']['request_stats'] = {
-    'handlers': ['request_stats'],
-    'level': 'INFO'
-}
->>>>>>> 1ac071070 (Configure loggers...)

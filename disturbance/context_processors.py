@@ -1,12 +1,8 @@
 from confy import env
 from django.conf import settings
 from ledger.payments.helpers import is_payment_admin
-<<<<<<< HEAD
-from disturbance.settings import KMI_SERVER_URL
-=======
 from disturbance.settings import KMI_SERVER_URL, SQS_APIURL
 import logging
->>>>>>> dbc912f8e (Tweak logger for debugging purpose.)
 
 
 logger = logging.getLogger(__name__)
