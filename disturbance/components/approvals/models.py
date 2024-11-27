@@ -241,11 +241,18 @@ class Approval(RevisionedMixin):
 
     @property
     def relevant_applicant_name(self):
+        logger.info(f'in relevant_applicant_name')
+        logger.info(f'self: {self}')
         if self.applicant:
+            logger.info(f'1')
+            logger.info(f'{self.applicant}')
             return self.applicant.name
         elif self.proxy_applicant:
+            logger.info(f'2')
+            logger.info(f'{self.proxy_applicant}')
             return self.proxy_applicant.get_full_name()
         else:
+            logger.info(f'3')
             return self.current_proposal.submitter.get_full_name()
 
     @property
