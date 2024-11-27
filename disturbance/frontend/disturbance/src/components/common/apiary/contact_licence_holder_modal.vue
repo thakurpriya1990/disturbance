@@ -37,7 +37,6 @@
         },
         watch:{
             okButtonDisabled: function(){
-                console.log('parent okButtonDisabled: ' + this.okButtonDisabled)
                 this.$refs.contact_modal.okButtonDisabled = this.okButtonDisabled
             }
         },
@@ -46,7 +45,6 @@
                 return 'Contact Licence Holder'
             },
             okButtonDisabled: function(){
-                console.log(this.comments)
                 return this.comments.length > 0 ? false : true
             }
         },
