@@ -618,6 +618,8 @@ class ApiarySiteViewSet(viewsets.ModelViewSet):
     @basic_exception_handler
     def contact_licence_holder(self, request, *args, **kwargs):
         apiary_site = self.get_object()
+        logger.info('Contacting licence holder for apiary site:[{}] for the user: [{}]...'.format(apiary_site, request.user))
+
         comments = request.data.get('comments', '')
         sender = request.user
         email_data = send_contact_licence_holder_email(apiary_site.latest_approval_link, comments, sender)
