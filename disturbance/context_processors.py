@@ -1,7 +1,7 @@
 from confy import env
 from django.conf import settings
 from ledger.payments.helpers import is_payment_admin
-from disturbance.settings import KMI_SERVER_URL, SQS_APIURL
+from disturbance.settings import KMI_SERVER_URL
 import logging
 
 

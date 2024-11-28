@@ -1269,7 +1269,7 @@
                     this.content_element.innerHTML = content;
                     this.overlay.setPosition(coord);
 
-                    this.$http.get('/api/apiary_site/' + feature.id_ + '/relevant_applicant_name').then(
+                    this.$http.get('/api/apiary_site/' + feature.id_ + '/relevant_applicant_name/').then(
                         res => {
                             let applicant_name = res.body.relevant_applicant
                             $('#' + unique_id).text(applicant_name)
