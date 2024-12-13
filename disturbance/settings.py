@@ -207,7 +207,7 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 LOGGING['loggers']['disturbance'] = {
             'handlers': ['file', 'console',],
             'level': 'DEBUG',
-            'propagate': False,
+            # 'propagate': False,
         }
 # Add a formatter
 LOGGING['formatters']['verbose2'] = {
@@ -233,12 +233,16 @@ LOGGING['handlers']['request_stats'] = {
 }
 # Add a handler
 LOGGING['handlers']['console']['formatter'] = 'verbose2'
+LOGGING['handlers']['file']['formatter'] = 'verbose2'
 
 # define logger
 LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
     'level': 'INFO'
 }
+
+import json
+print(json.dumps(LOGGING, indent=4))
 
 # Add a debug level logger for development
 #if DEBUG:

@@ -247,6 +247,9 @@ def send_on_site_notification_email(request_data, sender, update=False):
     # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
     #sender = settings.DEFAULT_FROM_EMAIL
     cc = [approval.relevant_applicant.email] if hasattr(approval.relevant_applicant, 'email') else []
+
+    logger.info('cc: {}'.format(cc))
+
     msg = email.send(get_recipients(), cc=cc, context=context)
     _log_approval_email(msg, approval, sender=sender)
     if proposal.applicant:
