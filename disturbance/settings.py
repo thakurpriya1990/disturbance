@@ -268,9 +268,9 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 
 # Additional logging for commercialoperator
 LOGGING['loggers']['disturbance'] = {
-            'handlers': ['file', 'console',],
+            'handlers': [],
             'level': 'DEBUG',
-            'propagate': False,
+            'propagate': True,
         }
 # Add a formatter
 LOGGING['formatters']['verbose2'] = {
@@ -296,6 +296,7 @@ LOGGING['handlers']['request_stats'] = {
 }
 # Add a handler
 LOGGING['handlers']['console']['formatter'] = 'verbose2'
+LOGGING['handlers']['file']['formatter'] = 'verbose2'
 
 # define logger
 LOGGING['loggers']['apiary'] = {
@@ -306,3 +307,10 @@ LOGGING['loggers']['request_stats'] = {
     'handlers': ['request_stats'],
     'level': 'INFO'
 }
+# LOGGING['loggers']['']['propagate'] = False
+
+import json
+print(json.dumps(LOGGING, indent=4))
+
+KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
+DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
