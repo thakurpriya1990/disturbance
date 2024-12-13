@@ -205,9 +205,9 @@ HTTP_HOST_FOR_TEST = 'localhost:8071'
 
 # Additional logging for commercialoperator
 LOGGING['loggers']['disturbance'] = {
-            'handlers': ['file', 'console',],
+            'handlers': [],
             'level': 'DEBUG',
-            # 'propagate': False,
+            'propagate': True,
         }
 # Add a formatter
 LOGGING['formatters']['verbose2'] = {
@@ -240,45 +240,10 @@ LOGGING['loggers']['apiary'] = {
     'handlers': ['file_apiary'],
     'level': 'INFO'
 }
+# LOGGING['loggers']['']['propagate'] = False
 
 import json
 print(json.dumps(LOGGING, indent=4))
 
-# Add a debug level logger for development
-#if DEBUG:
-#    LOGGING = {
-#        'version': 1,
-#        'disable_existing_loggers': True,
-#        'handlers': {
-#            'console': {
-#                'class': 'logging.StreamHandler',
-#            },
-#        },
-#        'loggers': {
-#            'disturbance': {
-#                'handlers': ['console'],
-#                'level': 'DEBUG',
-#                'propagate': False,
-#            },
-#        },
-#    }    
-
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
-
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
-
-#APPLICATION_TYPES_SQL='''
-#        SELECT name, name FROM disturbance_applicationtypechoice
-#        WHERE archive_date IS NULL OR archive_date > now()
-#    '''
-
-#from django.db import connection
-#def run_select_sql(sql):
-#    try:
-#        with connection.cursor() as cursor:
-#            cursor.execute(sql)
-#            row = cursor.fetchall()
-#        return row
-#    except:
-#        return []
-
