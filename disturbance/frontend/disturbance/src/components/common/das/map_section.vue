@@ -18,6 +18,7 @@
                 </div>
                 <div class="noPrint">  
                      <File 
+                        ref="map_doc"
                         :name="map_doc_name" 
                         label="Upload Shapefile" :id="map_doc_id"  
                         :isRepeatable="true" 

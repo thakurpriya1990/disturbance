@@ -700,7 +700,8 @@ module.exports = {
                 // }
                 var assessor_visibility = assessor_mode == 'assessor' && this.status_data.assessorStatus.has_assessor_mode && !this.status_data.assessorStatus.status_without_assessor? true : false;
                 assessor_visibility = !assessor_visibility;
-                var assessor_visibility_always=assessor_visibility;
+                // var assessor_visibility_always=assessor_visibility;
+                var assessor_visibility_always=true;
                 boxes.push(
                     // {
                     //     "box_view": box_visibility,
