@@ -44,6 +44,9 @@
                                 Valid shapefile must include 4 files, in .dbf .prj .shp and .shx format.
                             </li>
                             <li>
+                                You must validate the shapefile and prefill the proposal before proceeding.
+                            </li>
+                            <li>
                                 Further information <a :href="shapefile_info_url" target="_blank"><i class="fa fa-question-circle" style="color:blue">&nbsp;</i></a>
                             </li>
                         </ul>
