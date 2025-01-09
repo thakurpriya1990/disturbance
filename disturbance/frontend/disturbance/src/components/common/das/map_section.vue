@@ -265,17 +265,24 @@
                 vm.showError=false;
                 vm.errorString='';
                 var inputOptions = {};
-
+                var html_text='<p>Are you sure you want to prefill this Proposal?</p>'
                 if(vm.proposal.data && vm.proposal.data.length > 0) {
+                    // inputOptions = {
+                    //     'clear_sqs': 'Clear only Spatial data from the Proposal',
+                    //     'clear_all': 'Clear all Proposal data',
+                    // }
                     inputOptions = {
-                        'clear_sqs': 'Clear only Spatial data from the Proposal',
-                        'clear_all': 'Clear all Proposal data',
+                        'clear_sqs': 'Refresh/ Renew GIS data only',
+                        'clear_all': 'Clear ALL information from the Proposal',
                     }
+                    html_text ='<p>Are you sure you want to prefill this Proposal?<br>Select the Applicable:</p>'
                 }
                 
+
                 await swal({
                     title: "Prefill Proposal",
-                    html: '<p>Are you sure you want to prefill this Proposal?<br>Select the Applicable:</p>',
+                    //html: '<p>Are you sure you want to prefill this Proposal?<br>Select the Applicable:</p>',
+                    html: html_text,
                     type: "warning",
                     showCancelButton: true,
                     confirmButtonText: 'Prefill Proposal',
