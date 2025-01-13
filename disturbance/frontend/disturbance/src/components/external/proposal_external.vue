@@ -899,8 +899,8 @@ export default {
             let vm=this;
             let blank_fields = []
             if(vm.proposal.application_type == 'Disturbance'){
-                if(vm.proposal && vm.$refs.mapSection.$refs.map_doc.documents.length == 0 || vm.proposal.shapefile_json==null){
-                    blank_fields.push(' You must upload and validate the shapefile');
+                if(vm.proposal && vm.$refs.mapSection.$refs.map_doc.documents.length == 0 || vm.proposal.shapefile_json==null || vm.proposal.prefill_requested == false){
+                    blank_fields.push(' You must upload and validate the shapefile. Please Prefill the Proposal after validating the shapefile.');
                 }
              }
             if(blank_fields.length==0){
