@@ -549,7 +549,8 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
     migrated = models.BooleanField(default=False)
     shapefile_json = JSONField('Source/Submitter (multi) polygon geometry', blank=True, null=True)
     shapefile_geom = MultiPolygonField('Source/Submitter gdf.exploded (multi) polygon geometry', srid=4326, blank=True, null=True) # for 'pgsql2shp' from KB
-    reissued = models.BooleanField(default=False)
+    reissued = models.BooleanField(default=False)  
+    prefill_requested = models.BooleanField(default=False)           
 
     class Meta:
         app_label = 'disturbance'
@@ -1574,6 +1575,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
                         if 'id' in shapefile_json['features'][0]:
                             shapefile_json['features'][0]['id']=self.id
                         self.shapefile_json=shapefile_json
+                        self.prefill_requested=False
                     else:
                         msg = 'no features found in shapefile' if num_features == 0 else f'too many features: {num_features} (max {MAX_NO_POLYGONS})' 
                         raise ValidationError(f'Cannot upload a Shapefile - {msg}')
