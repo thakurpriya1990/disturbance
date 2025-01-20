@@ -201,8 +201,10 @@ class Command(BaseCommand):
             update_retries(msg)
 
     def update_layer_data(self, layer_data, new_layer_data):
-        # Convert layer_data to a dictionary for easier updates
-        layer_data_dict = {layer['name']: layer for layer in layer_data}
+        layer_data_dict={}
+        if layer_data:
+            # Convert layer_data to a dictionary for easier updates
+            layer_data_dict = {layer['name']: layer for layer in layer_data}
         for new_layer in new_layer_data:
             name = new_layer['name']
             if name in layer_data_dict:
