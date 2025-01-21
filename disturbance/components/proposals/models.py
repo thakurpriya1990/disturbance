@@ -780,6 +780,13 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
         return False
     
     @property
+    def has_prefilled_once(self):
+        """
+        :return: True if the application is atleast prefilled once. Otherwise, make the proposal readonly
+        """
+        return True if self.shapefile_json and self.prefill_timestamp else False
+
+    @property
     def is_discardable(self):
         """
         An application can be discarded by a customer if:

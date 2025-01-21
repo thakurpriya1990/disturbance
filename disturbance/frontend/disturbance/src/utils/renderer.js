@@ -58,7 +58,8 @@ module.exports = {
 
         // Editablility
         // readonly = !visibility.editable;
-        var orig_readonly = !visibility.editable;
+        // var orig_readonly = !visibility.editable
+        var orig_readonly = (this.status_data.has_prefilled_once)? !visibility.editable : true;
 
         var val = (data) ? (data[c.name]) ? data[c.name] : null : null;
         var layer_val = (layerData) ? layerData.find(at => at.name == c.name) : null;
@@ -442,9 +443,10 @@ module.exports = {
         return boxes;
     },
     status_data : {},
-    store_status_data(readonly,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,historyAddInfoAssessor, refreshTimeStamp,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
+    store_status_data(readonly,has_prefilled_once,assessorData,layerData,commentData,addInfoApplicant,addInfoAssessor,historyAddInfoAssessor, refreshTimeStamp,assessorEmail,assessorMode,can_user_edit,docs_url, proposalId, applicationType, proposalLodgementDate){
         this.status_data = {
             'readonly': readonly,
+            'has_prefilled_once': has_prefilled_once,
             'assessorData': assessorData,
             'layerData': layerData,
             'commentData': commentData,
