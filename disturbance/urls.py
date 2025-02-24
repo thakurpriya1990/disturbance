@@ -5,10 +5,9 @@ from django.conf.urls.static import static
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
-from disturbance.components.main.views import deed_poll_url, GeocodingAddressSearchTokenView, FileDownloadView, FileListView
+from disturbance.components.main.views import GeocodingAddressSearchTokenView, FileDownloadView, FileListView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
-from disturbance.components.das_payments import views as payment_views
 from disturbance.components.proposals.views import ExternalProposalTemporaryUseSubmitSuccessView
 
 from disturbance.components.users import api as users_api
@@ -24,9 +23,9 @@ from ledger.urls import urlpatterns as ledger_patterns
 from django_media_serv.urls import urlpatterns as media_serv_patterns
 
 # API patterns
-from disturbance.management.default_data_manager import DefaultDataManager
-from disturbance.utils import are_migrations_running
-from disturbance.views import LedgerPayView
+#from disturbance.management.default_data_manager import DefaultDataManager
+#from disturbance.utils import are_migrations_running
+#from disturbance.views import LedgerPayView
 
 router = routers.DefaultRouter()
 router.include_root_view = settings.SHOW_ROOT_API
@@ -34,9 +33,6 @@ router.include_root_view = settings.SHOW_ROOT_API
 router.register(r'organisations',org_api.OrganisationViewSet,"organisations")
 router.register(r'proposal',proposal_api.ProposalViewSet,"proposal")
 router.register(r'proposal_sqs',proposal_sqs_api.ProposalSqsViewSet,"proposal_sqs")
-router.register(r'proposal_apiary', proposal_api.ProposalApiaryViewSet,"proposal_apiary")
-router.register(r'on_site_information', proposal_api.OnSiteInformationViewSet,"on_site_information")
-router.register(r'apiary_site', proposal_api.ApiarySiteViewSet,"apiary_site")
 router.register(r'proposal_paginated',proposal_api.ProposalPaginatedViewSet,"proposal_paginated")
 router.register(r'approval_paginated',approval_api.ApprovalPaginatedViewSet,"approval_paginated_view")
 router.register(r'compliance_paginated',compliances_api.CompliancePaginatedViewSet,"compliance_paginated")
@@ -56,9 +52,6 @@ router.register(r'activity_matrix', main_api.ActivityMatrixViewSet,"activity_mat
 #router.register(r'tenure', main_api.TenureViewSet)
 router.register(r'global_settings', main_api.GlobalSettingsViewSet, "global_settings")
 router.register(r'application_types', main_api.ApplicationTypeViewSet,"application_types")
-router.register(r'apiary_referral_groups', proposal_api.ApiaryReferralGroupViewSet,"apiary_referral_groups")
-router.register(r'apiary_referrals',proposal_api.ApiaryReferralViewSet,"apiary_referrals")
-router.register(r'apiary_site_fees',proposal_api.ApiarySiteFeeViewSet,"apiary_site_fees")
 #router.register(r'payment',payment_api.PaymentViewSet)
 router.register(r'proposal_type_sections', proposal_api.ProposalTypeSectionViewSet,"proposal_type_sections")
 router.register(r'search_proposal_types', proposal_api.SearchProposalTypeViewSet)
@@ -104,7 +97,6 @@ api_patterns = [
     url(r'^api/proposal_type$', proposal_api.GetProposalType.as_view(), name='get-proposal-type'),
     url(r'^api/empty_list$', proposal_api.GetEmptyList.as_view(), name='get-empty-list'),
     url(r'^api/organisation_access_group_members',org_api.OrganisationAccessGroupMembers.as_view(),name='organisation-access-group-members'),
-    url(r'^api/apiary_organisation_access_group_members',org_api.ApiaryOrganisationAccessGroupMembers.as_view(),name='apiary-organisation-access-group-members'),
     url(r'^api/',include(router.urls)),
     url(r'^api/amendment_request_reason_choices',proposal_api.AmendmentRequestReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
     url(r'^api/compliance_amendment_reason_choices',compliances_api.ComplianceAmendmentReasonChoicesView.as_view(),name='amendment_request_reason_choices'),
@@ -113,7 +105,6 @@ api_patterns = [
     url(r'^api/search_sections',proposal_api.SearchSectionsView.as_view(),name='search_sections'),
     url(r'^api/get_search_geojson',proposal_api.GetSearchGeoJsonView.as_view(),name='get_search_geojson'),
     #url(r'^api/reports/payment_settlements$', main_api.PaymentSettlementReportView.as_view(),name='payment-settlements-report'),
-    url(r'^api/deed_poll_url', deed_poll_url, name='deed_poll_url'),
 #    url(r'^api/das/spatial_query$' proposal_api.SpatialQueryQuestionViewSet, name='sqs_spatial_query'),
 
     url(r'^api/history/compare/serialized/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<newer_version>\d+)/(?P<older_version>\d+)/$',
@@ -159,19 +150,6 @@ urlpatterns = [
     #following url is used to include url path when sending Proposal amendment request to user.
     url(r'^proposal/$', proposal_views.ProposalView.as_view(), name='proposal'),
     url(r'^preview/licence-pdf/(?P<proposal_pk>\d+)',proposal_views.PreviewLicencePDFView.as_view(), name='preview_licence_pdf'),
-    url(r'^ledgerpay/(?P<payment_item>.+)', views.LedgerPayView.as_view(), name='ledgerpay-view'),
-    url(r'^validate_invoice_details/$', views.validate_invoice_details, name='validate-invoice-details'),
-    url(r'^invoice_payment/(?P<invoice_reference>\d+)/$', payment_views.InvoicePaymentView.as_view(), name='invoice_payment'),
-
-    url(r'^application_fee/(?P<proposal_pk>\d+)/$', payment_views.ApplicationFeeView.as_view(), name='application_fee'),
-    url(r'^annual_rental_fee/(?P<annual_rental_fee_id>\d+)/$', payment_views.AnnualRentalFeeView.as_view(), name='annual_rental_fee'),
-    url(r'^success/fee/$', payment_views.ApplicationFeeSuccessView.as_view(), name='fee_success'),
-    url(r'^success/site_transfer_fee/$', payment_views.SiteTransferApplicationFeeSuccessView.as_view(), name='site_transfer_fee_success'),
-    url(r'^success/annual_rental_fee/$', payment_views.AnnualRentalFeeSuccessView.as_view(), name='annual_rental_fee_success'),
-    url(r'^success/invoice_payment/$', payment_views.InvoicePaymentSuccessView.as_view(), name='invoice_payment_success'),
-    url(r'payments/invoice-pdf/(?P<reference>\d+)', payment_views.InvoicePDFView.as_view(), name='invoice-pdf'),
-    url(r'payments/awaiting-payment-pdf/(?P<annual_rental_fee_id>\d+)', payment_views.AwaitingPaymentPDFView.as_view(), name='awaiting-payment-pdf'),
-    url(r'payments/confirmation-pdf/(?P<reference>\d+)', payment_views.ConfirmationPDFView.as_view(), name='confirmation-pdf'),
 
     # following url is defined so that to include url path when sending Proposal amendment request to user.
     url(r'^external/proposal/(?P<proposal_pk>\d+)/$', views.ExternalProposalView.as_view(), name='external-proposal-detail'),
@@ -180,8 +158,6 @@ urlpatterns = [
     url(r'^internal/compliance/(?P<compliance_pk>\d+)/$', views.InternalComplianceView.as_view(), name='internal-compliance-detail'),
     url(r'filelist/$', FileListView.as_view(), name='file-list'),
     url(r'filedownload/(?P<filename>[\w\s ().-]+)/$', FileDownloadView.as_view(), name='file-download'),
-    
-    url(r'apiary_admin', views.ApiarySiteStatusView.as_view(), name='apiary_admin'),
 
     #url(r'^organisations/(?P<pk>\d+)/confirm-delegate-access/(?P<uid>[0-9A-Za-z]+)-(?P<token>.+)/$', views.ConfirmDelegateAccess.as_view(), name='organisation_confirm_delegate_access'),
     # reversion history-compare
@@ -197,10 +173,7 @@ urlpatterns = [
     url(r'^template_group$', views.TemplateGroupView.as_view(), name='template-group'),
     url(r'^private-media/', views.getPrivateFile, name='view_private_file'),
 
-                  # Reports
-    url(r'^api/oracle_job$', main_api.OracleJob.as_view(), name='get-oracle'),
-    url(r'^api/reports/booking_settlements$', main_api.BookingSettlementReportView.as_view(),
-        name='booking-settlements-report'),
+    # Reports
     # url('kmi-proxy/(?P<path>.*)', views.kmiProxyView),
     # url('kb-proxy/(?P<path>.*)', views.kbProxyView),
     url('kmi-proxy/(?P<path>.*)', views.mapProxyView),
@@ -209,8 +182,8 @@ urlpatterns = [
                   # url(r'^external/proposal/(?P<proposal_pk>\d+)/submit_temp_use_success/$', success_view, name='external-proposal-temporary-use-submit-success'),
 ] + ledger_patterns #+ media_serv_patterns
 
-if not are_migrations_running():
-    DefaultDataManager()
+#if not are_migrations_running():
+#    DefaultDataManager()
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

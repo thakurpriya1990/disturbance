@@ -5,14 +5,8 @@ from disturbance.components.main.models import TemporaryDocument
 from disturbance.components.approvals import models #TODO: improvable - this should be imported from a common source instead of one of many models
 from django.conf import settings
 
-from disturbance.components.proposals.models import (
-    ProposalApiaryTemporaryUse,
-    ProposalApiary,
-    Proposal,
-    PublicLiabilityInsuranceDocument,
-    DeedPollDocument,
-    SupportingApplicationDocument
-    )
+from disturbance.components.proposals.models import Proposal
+    
 
 private_storage = models.private_storage
 
@@ -47,11 +41,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
             return {'filedata': returned_file_data, 'comms_instance_id': comms_instance.id}
         # example document_type
         elif input_name:
-            if document_type == DeedPollDocument.DOC_TYPE_NAME:
-                documents_qs = instance.deed_poll_documents
-            elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-                documents_qs = instance.public_liability_insurance_documents
-            elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+            if document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
                 documents_qs = instance.supporting_application_documents
 
             returned_file_data = [dict(file=d._file.url, id=d.id, name=d.name,) for d in documents_qs.filter(input_name=input_name) if d._file]
@@ -68,13 +58,7 @@ def process_generic_document(request, instance, document_type=None, *args, **kwa
 def delete_document(request, instance, comms_instance, document_type, input_name=None):
     # example document_type
     if 'document_id' in request.data:
-        if document_type == DeedPollDocument.DOC_TYPE_NAME:
-            document_id = request.data.get('document_id')
-            document = instance.deed_poll_documents.get(id=document_id)
-        elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-            document_id = request.data.get('document_id')
-            document = instance.public_liability_insurance_documents.get(id=document_id)
-        elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+        if document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
             document_id = request.data.get('document_id')
             document = instance.supporting_application_documents.get(id=document_id)
 
@@ -97,11 +81,7 @@ def delete_document(request, instance, comms_instance, document_type, input_name
 
 
 def cancel_document(request, instance, comms_instance, document_type, input_name=None):
-        if document_type == DeedPollDocument.DOC_TYPE_NAME:
-            document_list = instance.deed_poll_documents.all()
-        elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-            document_list = instance.public_liability_insurance_documents.all()
-        elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+        if document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
             document_list = instance.supporting_application_documents.all()
         elif comms_instance:
             document_list = comms_instance.documents.all()
@@ -127,24 +107,17 @@ def save_document(request, instance, comms_instance, document_type, input_name=N
             filename = request.data.get('filename')
             _file = request.data.get('_file')
 
-            if document_type == DeedPollDocument.DOC_TYPE_NAME:
-                document = instance.deed_poll_documents.get_or_create(input_name=input_name, name=filename)[0]
-                path_format_string = '{}/proposals/{}/deed_poll_documents/{}'
-            elif document_type == PublicLiabilityInsuranceDocument.DOC_TYPE_NAME:
-                document = instance.public_liability_insurance_documents.get_or_create(input_name=input_name, name=filename)[0]
-                path_format_string = '{}/proposals/{}/public_liability_insurance_documents/{}'
-            elif document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
+            if document_type == SupportingApplicationDocument.DOC_TYPE_NAME:
                 document = instance.supporting_application_documents.get_or_create(input_name=input_name, name=filename)[0]
                 path_format_string = '{}/proposals/{}/supporting_application_documents/{}'
 
-            if isinstance(instance, ProposalApiary) or isinstance(instance, ProposalApiaryTemporaryUse):
-                id_number = instance.proposal.id
             elif isinstance(instance, Proposal):
                 id_number = instance.id
             else:
                 raise('Object type is wrong')
 
-            path = private_storage.save(path_format_string.format(settings.MEDIA_APIARY_DIR, id_number, filename), ContentFile(_file.read()))
+            #path = private_storage.save(path_format_string.format(settings.MEDIA_APIARY_DIR, id_number, filename), ContentFile(_file.read()))
+            path = private_storage.save(path_format_string.format(settings.MEDIA_DIR, id_number, filename), ContentFile(_file.read()))
             print(path)
             document._file = path
             document.save()
@@ -213,21 +186,3 @@ def save_default_document_obj(instance, temp_document):
     document._file = path
     document.save()
 
-## For transferring files from temp doc objs to physical artifact renderer objs
-#def save_renderer_document_obj(instance, temp_document, input_name):
-#    document = instance.renderer_documents.get_or_create(
-#            input_name=input_name,
-#            name=temp_document.name)[0]
-#    path = private_storage.save(
-#        'disturbance/{}/{}/renderer_documents/{}/{}'.format(
-#            instance._meta.model_name,
-#            instance.id,
-#            input_name,
-#            temp_document.name
-#            ),
-#            temp_document._file
-#        )
-#
-#    document._file = path
-#    document.save()
-#

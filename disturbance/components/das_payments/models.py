@@ -11,7 +11,7 @@ from ledger.accounts.models import EmailUser, RevisionedMixin
 from ledger.payments.models import Invoice
 
 from disturbance.components.approvals.models import Approval
-from disturbance.components.proposals.models import Proposal, ApiarySite
+from disturbance.components.proposals.models import Proposal
 from decimal import Decimal as D
 from ledger.checkout.utils import calculate_excl_gst
 

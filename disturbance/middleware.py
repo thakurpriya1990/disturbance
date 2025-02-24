@@ -11,58 +11,12 @@ from django.http import HttpResponseRedirect
 from django.utils import timezone
 
 from django.conf import settings
-from disturbance.components.das_payments.models import ApplicationFee
+#from disturbance.components.das_payments.models import ApplicationFee
 from reversion.middleware  import RevisionMiddleware
 from reversion.views import _request_creates_revision
 
 
 logger = logging.getLogger(__name__)
-
-
-CHECKOUT_PATH = re.compile('^/ledger/checkout/checkout')
-
-class FirstTimeNagScreenMiddleware(object):
-    def process_request(self, request):
-        #print ("FirstTimeNagScreenMiddleware: REQUEST SESSION")
-        if 'static' in request.path:
-            return
-        if request.user.is_authenticated() and request.method == 'GET' and 'api' not in request.path and 'admin' not in request.path:
-            #print('DEBUG: {}: {} == {}, {} == {}, {} == {}'.format(request.user, request.user.first_name, (not request.user.first_name), request.user.last_name, (not request.user.last_name), request.user.dob, (not request.user.dob) ))
-            if (not request.user.first_name) or (not request.user.last_name):# or (not request.user.dob):
-                path_ft = reverse('first_time')
-                path_logout = reverse('accounts:logout')
-                if request.path not in (path_ft, path_logout):
-                    return redirect(reverse('first_time')+"?next="+urlquote_plus(request.get_full_path()))
-
-
-class BookingTimerMiddleware(object):
-    def process_request(self, request):
-        #print ("BookingTimerMiddleware: REQUEST SESSION")
-        #print request.session['ps_booking']
-        if 'das_app_invoice' in request.session:
-            #print ("BOOKING SESSION : "+str(request.session['ps_booking']))
-            try:
-                application_fee = ApplicationFee.objects.get(pk=request.session['das_app_invoice'])
-            except:
-                # no idea what object is in self.request.session['ps_booking'], ditch it
-                del request.session['das_app_invoice']
-                return
-            if application_fee.payment_type != 3:
-                # booking in the session is not a temporary type, ditch it
-                del request.session['das_app_invoice']
-        if 'db_process' in request.session:
-            #print ("BOOKING SESSION : "+str(request.session['ps_booking']))
-            try:
-                application_fee = ApplicationFee.objects.get(pk=request.session['db_process'])
-            except:
-                # no idea what object is in self.request.session['ps_booking'], ditch it
-                del request.session['db_process']
-                return
-            if application_fee.payment_type != 3:
-                # booking in the session is not a temporary type, ditch it
-                del request.session['db_process']
-
-        return
 
 
 class RevisionOverrideMiddleware(RevisionMiddleware):
@@ -103,13 +57,6 @@ class DomainDetectMiddleware(object):
         http_host = request.META.get('HTTP_HOST', None)
 
         logger.debug(f'http_host: {http_host}')
-        
-        if http_host and http_host in settings.APIARY_URL:
-            settings.DOMAIN_DETECTED = 'apiary'
-            settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
-            settings.SYSTEM_NAME_SHORT = 'Apiary'
-            settings.BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
-            settings.BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
 
         return None
 

@@ -14,9 +14,6 @@ from django.contrib.postgres.fields.jsonb import JSONField
 from django.utils import timezone
 from django.core.cache import cache
 
-from disturbance.components.main.utils import overwrite_regions_polygons, overwrite_districts_polygons
-
-
 class MapLayer(models.Model):
     display_name = models.CharField(max_length=100, blank=True, null=True)
     layer_name = models.CharField(max_length=200, blank=True, null=True)
@@ -26,7 +23,7 @@ class MapLayer(models.Model):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = 'apiary map layer'
+        verbose_name = 'map layer'
 
     def __str__(self):
         return '{0}, {1}'.format(self.display_name, self.layer_name)
@@ -47,7 +44,7 @@ class MapColumn(models.Model):
 
     class Meta:
         app_label = 'disturbance'
-        verbose_name = 'apiary map column'
+        verbose_name = 'map column'
 
     def __str__(self):
         return '{0}, {1}'.format(self.map_layer, self.name)
@@ -112,56 +109,6 @@ class District(models.Model):
         return self.name
 
 
-class DistrictDbca(models.Model):
-    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
-    district_name = models.CharField(max_length=200, blank=True, null=True)
-    office = models.CharField(max_length=200, blank=True, null=True)
-    object_id = models.PositiveIntegerField(blank=True, null=True)
-    enabled = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ['object_id', ]
-        app_label = 'disturbance'
-        verbose_name_plural = "Apiary DBCA Districts"
-
-
-class RegionDbca(models.Model):
-    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
-    region_name = models.CharField(max_length=200, blank=True, null=True)
-    office = models.CharField(max_length=200, blank=True, null=True)
-    object_id = models.PositiveIntegerField(blank=True, null=True)
-    enabled = models.BooleanField(default=True)
-
-    class Meta:
-        ordering = ['object_id', ]
-        app_label = 'disturbance'
-        verbose_name_plural = "Apiary DBCA Regions"
-
-
-class CategoryDbca(models.Model):
-    '''
-    This model is used for defining the categories
-    '''
-    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
-    category_name = models.CharField(max_length=20, blank=True, null=True)
-
-    class Meta:
-        app_label = 'disturbance'
-
-
-class WaCoast(models.Model):
-    '''
-    This model is used for validating if the apiary site is in the valid area
-    '''
-    wkb_geometry = MultiPolygonField(srid=4326, blank=True, null=True)
-    type = models.CharField(max_length=30, blank=True, null=True)
-    source = models.CharField(max_length=50, blank=True, null=True)
-    smoothed = models.BooleanField(default=False)
-
-    class Meta:
-        app_label = 'disturbance'
-
-
 @python_2_unicode_compatible
 class ApplicationType(models.Model):
     DISTURBANCE = 'Disturbance'
@@ -169,9 +116,6 @@ class ApplicationType(models.Model):
     DISTURBANCE_DEMO = 'Disturbance Demo'
     DISTURBANCE_ECOLOGICAL = 'Ecological Thinning'
     POWERLINE_MAINTENANCE = 'Powerline Maintenance'
-    APIARY = 'Apiary'
-    TEMPORARY_USE = 'Temporary Use'
-    SITE_TRANSFER = 'Site Transfer'
     FIRE = 'Prescribed Burning'
 
     APPLICATION_TYPES = (
@@ -180,17 +124,12 @@ class ApplicationType(models.Model):
         (DISTURBANCE_DEMO, 'Disturbance Demo'),
         (DISTURBANCE_ECOLOGICAL, 'Ecological Thinning'),
         (POWERLINE_MAINTENANCE, 'Powerline Maintenance'),
-        (APIARY, 'Apiary'),
-        (TEMPORARY_USE, 'Temporary Use'),
-        (SITE_TRANSFER, 'Site Transfer'),
         (FIRE, 'Prescribed Burning'),
     )
 
-    APIARY_APPLICATION_TYPES = (APIARY, TEMPORARY_USE, SITE_TRANSFER,)
-
     DOMAIN_USED_CHOICES = (
         ('das', 'DAS'),
-        ('apiary', 'Apiary'),
+        ('dummy', 'DUMMY'),
     )
 
     # name = models.CharField(max_length=64, unique=True)
@@ -201,9 +140,6 @@ class ApplicationType(models.Model):
     )
     order = models.PositiveSmallIntegerField(default=0)
     visible = models.BooleanField(default=True)
-    application_fee = models.DecimalField(max_digits=6, decimal_places=2)
-    oracle_code_application = models.CharField(max_length=50)
-    is_gst_exempt = models.BooleanField(default=True)
     domain_used = models.CharField(max_length=40, choices=DOMAIN_USED_CHOICES, default=DOMAIN_USED_CHOICES[0][0])
     searchable = models.BooleanField(default=True)
 
@@ -222,7 +158,7 @@ class ActivityMatrix(models.Model):
                             choices=[('Disturbance', u'Disturbance'), ('Ecological Thinning', u'Ecological Thinning') ], default='Disturbance')
     description = models.CharField(max_length=256, blank=True, null=True)
     schema = JSONField()
-    replaced_by = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True)
+    replaced_by = models.ForeignKey('self', on_delete=models.CASCADE , blank=True, null=True)
     version = models.SmallIntegerField(default=1, blank=False, null=False)
     ordered = models.BooleanField('Activities Ordered Alphabetically', default=False)
 
@@ -354,56 +290,6 @@ class SystemMaintenance(models.Model):
         return 'System Maintenance: {} ({}) - starting {}, ending {}'.format(self.name, self.description,
                                                                              self.start_date, self.end_date)
 
-
-@python_2_unicode_compatible
-class ApiaryGlobalSettings(models.Model):
-    KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE = 'oracle_code_apiary_site_annural_rental_fee'  # ApplicationType object has an attribute 'oracle_code_application' to store oracle account code
-                                                                                                  # However for the annual rental fee, there are not proposals, which means no ApplicationType objects related.
-                                                                                                  # Therefore we store oracle account code for the annual site fee here.
-    KEY_APIARY_SITES_LIST_TOKEN = 'apiary_sites_list_token'
-    KEY_APIARY_LICENCE_TEMPLATE_FILE = 'apiary_licence_template_file'
-    KEY_PRINT_DEED_POLL_URL = 'print_deed_poll_url'
-    KEY_DBCA_DISTRICTS_FILE = 'dbca_districts_file'
-    KEY_DBCA_REGIONS_FILE = 'dbca_regions_file'
-
-    keys = (
-        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'Oracle code for the apiary site annual site fee'),
-        (KEY_APIARY_SITES_LIST_TOKEN, 'Token to import the apiary sites list'),
-        (KEY_APIARY_LICENCE_TEMPLATE_FILE, 'Apiary licence template file'),
-        (KEY_PRINT_DEED_POLL_URL, 'URL of the deed poll'),
-        (KEY_DBCA_DISTRICTS_FILE, 'DBCA districts geojson file'),
-        (KEY_DBCA_REGIONS_FILE, 'DBCA regions geojson file'),
-    )
-
-    default_values = (
-        (KEY_ORACLE_CODE_APIARY_SITE_ANNUAL_RENTAL_FEE, 'T1 EXEMPT'),
-        (KEY_APIARY_SITES_LIST_TOKEN, 'abc123'),
-        (KEY_APIARY_LICENCE_TEMPLATE_FILE, ''),
-        (KEY_DBCA_DISTRICTS_FILE, ''),
-        (KEY_DBCA_REGIONS_FILE, ''),
-        (KEY_PRINT_DEED_POLL_URL, 'https://parks.dpaw.wa.gov.au/sites/default/files/downloads/know/DBCA%20apiary%20deed%20poll.pdf')
-    )
-    key = models.CharField(max_length=255, choices=keys, blank=False, null=False, unique=True)
-    value = models.CharField(max_length=255)
-    _file = models.FileField(upload_to='apiary_licence_template', null=True, blank=True)
-
-    class Meta:
-        app_label = 'disturbance'
-        verbose_name_plural = "Apiary Global Settings"
-
-    def save(self, force_insert=False, force_update=False, using=None,
-             update_fields=None):
-        super(ApiaryGlobalSettings, self).save(force_insert, force_update, using, update_fields)
-
-        if self._file:
-            # When regions/districts file has been updated, update polygons for it.
-            if self.key == ApiaryGlobalSettings.KEY_DBCA_REGIONS_FILE:
-                overwrite_regions_polygons(self._file.path)
-            elif self.key == ApiaryGlobalSettings.KEY_DBCA_DISTRICTS_FILE:
-                overwrite_districts_polygons(self._file.path)
-
-    def __str__(self):
-        return self.key
 
 from ckeditor.fields import RichTextField
 
@@ -549,6 +435,5 @@ class TaskMonitor(models.Model):
 
 
 import reversion
-reversion.register(ApiaryGlobalSettings)
 reversion.register(TaskMonitor)
 

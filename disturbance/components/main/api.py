@@ -12,10 +12,9 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser, B
 from rest_framework.pagination import PageNumberPagination
 from django.urls import reverse
 
-from disturbance.components.das_payments import reports
 from disturbance.components.main.models import Region, District, Tenure, ApplicationType, ActivityMatrix, MapLayer, DASMapLayer, GlobalSettings
 from disturbance.components.main.serializers import RegionSerializer, DistrictSerializer, TenureSerializer, \
-    ApplicationTypeSerializer, ActivityMatrixSerializer, BookingSettlementReportSerializer, OracleSerializer, \
+    ApplicationTypeSerializer, ActivityMatrixSerializer, \
     MapLayerSerializer, DASMapLayerSerializer, GlobalSettingsSerializer
 from django.core.exceptions import ValidationError
 
@@ -118,38 +117,6 @@ class BookingSettlementReportView(views.APIView):
             raise
         except Exception as e:
             traceback.print_exc()
-
-
-def oracle_integration(date, override):
-    system = PAYMENT_SYSTEM_PREFIX
-    #oracle_codes = oracle_parser(date, system, 'Commercial Operator Licensing', override=override)
-    # oracle_codes = oracle_parser(date, system, 'WildlifeCompliance', override=override)
-    oracle_codes = oracle_parser(date, system, 'Apiary Licensing System', override=override)
-
-
-class OracleJob(views.APIView):
-    renderer_classes = [JSONRenderer]
-
-    def get(self, request, format=None):
-        try:
-            data = {
-                "date":request.GET.get("date"),
-                "override": request.GET.get("override")
-            }
-            serializer = OracleSerializer(data=data)
-            serializer.is_valid(raise_exception=True)
-            oracle_integration(serializer.validated_data['date'].strftime('%Y-%m-%d'),serializer.validated_data['override'])
-            data = {'successful':True}
-            return Response(data)
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            handle_validation_error(e)
-            # raise serializers.ValidationError(repr(e.error_dict)) if hasattr(e, 'error_dict') else serializers.ValidationError(e)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e[0]))
 
 
 class MapLayerViewSet(viewsets.ModelViewSet):

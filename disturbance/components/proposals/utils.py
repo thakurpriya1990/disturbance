@@ -15,15 +15,11 @@ from ledger.accounts.models import EmailUser, Document
 from rest_framework import serializers
 
 from disturbance.components.main.decorators import timeit, traceback_exception_handler
-from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, ApiarySite, SiteCategory, \
-    ProposalApiaryTemporaryUse, TemporaryUseApiarySite, ApiarySiteOnProposal, Proposal
+from disturbance.components.proposals.models import ProposalDocument, ProposalUserAction, Proposal
 from disturbance.components.proposals.serializers import SaveProposalSerializer
 
 from disturbance.components.approvals.models import Approval
 from disturbance.components.proposals.models import (
-    SiteTransferApiarySite,
-    ApiaryChecklistQuestion,
-    ApiaryChecklistAnswer,
     QuestionOption,
     MasterlistQuestion,
     ProposalTypeSection,
@@ -32,12 +28,7 @@ from disturbance.components.proposals.models import (
     ApplicationType,
     ExportDocument,
 )
-from disturbance.components.proposals.serializers_apiary import (
-    ProposalApiarySerializer,
-    ProposalApiaryTemporaryUseSerializer,
-    ApiarySiteSerializer, TemporaryUseApiarySiteSerializer,
-    ApiarySiteOnProposalDraftGeometrySaveSerializer
-)
+
 from disturbance.components.proposals.email import send_submit_email_notification, send_external_submit_email_notification
 from disturbance.components.organisations.models import Organisation
 #from disturbance.components.main.utils import sqs_query

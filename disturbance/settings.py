@@ -64,7 +64,7 @@ INSTALLED_APPS += [
     'disturbance.components.proposals',
     'disturbance.components.approvals',
     'disturbance.components.compliances',
-    'disturbance.components.das_payments',
+    #'disturbance.components.das_payments',
     'disturbance.components.history',
     'taggit',
     'rest_framework',
@@ -116,11 +116,6 @@ USE_DJANGO_JQUERY= True
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 MIDDLEWARE_CLASSES += [
-    'disturbance.middleware.BookingTimerMiddleware',
-    'disturbance.middleware.FirstTimeNagScreenMiddleware',
-    'disturbance.middleware.RevisionOverrideMiddleware',
-    'disturbance.middleware.DomainDetectMiddleware',
-    'disturbance.middleware.CacheControlMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     # 'corsheaders.middleware.CorsMiddleware',
 ]
@@ -309,8 +304,8 @@ LOGGING['loggers']['request_stats'] = {
 }
 # LOGGING['loggers']['']['propagate'] = False
 
-import json
-print(json.dumps(LOGGING, indent=4))
+#import json
+#print(json.dumps(LOGGING, indent=4))
 
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express

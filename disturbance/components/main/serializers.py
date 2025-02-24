@@ -4,33 +4,8 @@ from rest_framework.reverse import reverse_lazy
 import requests
 
 from disturbance.components.main.models import CommunicationsLogEntry, Region, District, Tenure, ApplicationType, \
-    ActivityMatrix, WaCoast, MapLayer, MapColumn, DASMapLayer, GlobalSettings
+    ActivityMatrix, MapLayer, MapColumn, DASMapLayer, GlobalSettings
 from ledger.accounts.models import EmailUser
-
-
-class WaCoastOptimisedSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = WaCoast
-        fields = (
-            'id',
-            'type',
-            # 'source',
-            # 'smoothed',
-        )
-
-
-class WaCoastSerializer(GeoFeatureModelSerializer):
-
-    class Meta:
-        model = WaCoast
-        geo_field = 'wkb_geometry'
-        fields = (
-            'id',
-            'type',
-            # 'source',
-            # 'smoothed',
-        )
 
 
 class CommunicationLogEntrySerializer(serializers.ModelSerializer):
@@ -76,13 +51,6 @@ class ActivityMatrixSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'description', 'version', 'ordered', 'schema')
 
 
-#class ActivitySerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = Activity
-#        #ordering = ('order', 'name')
-#        fields = ('id', 'name', 'application_type')
-
-
 class TenureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tenure
@@ -98,15 +66,6 @@ class ApplicationTypeSerializer(serializers.ModelSerializer):
         model = ApplicationType
         #fields = ('id', 'name', 'activity_app_types', 'tenure_app_types')
         fields = ('id', 'name', 'tenure_app_types', 'domain_used',)
-
-
-class BookingSettlementReportSerializer(serializers.Serializer):
-    date = serializers.DateTimeField(input_formats=['%d/%m/%Y'])
-
-
-class OracleSerializer(serializers.Serializer):
-    date = serializers.DateField(input_formats=['%d/%m/%Y','%Y-%m-%d'])
-    override = serializers.BooleanField(default=False)
 
 
 class MapColumnSerializer(serializers.ModelSerializer):

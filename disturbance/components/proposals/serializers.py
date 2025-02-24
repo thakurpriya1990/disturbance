@@ -33,8 +33,6 @@ from disturbance.components.organisations.models import (
 from disturbance.components.main.serializers import CommunicationLogEntrySerializer, DASMapLayerSqsSerializer
 from disturbance.components.main.models import DASMapLayer
 
-from disturbance.components.proposals.serializers_apiary import ProposalApiarySerializer, \
-    ProposalApiaryTemporaryUseSerializer
 from disturbance.components.proposals.serializers_base import BaseProposalSerializer, ProposalReferralSerializer, \
     ProposalDeclinedDetailsSerializer, EmailUserSerializer, EmailSerializer
 from drf_writable_nested import UniqueFieldsMixin , WritableNestedModelSerializer
@@ -250,7 +248,7 @@ class ListProposalSerializer(BaseProposalSerializer):
         return False
 
     def get_apiary_group_application_type(self, obj):
-        return obj.apiary_group_application_type
+        return False
 
     def get_template_group(self, obj):
         return self.context.get('template_group')
@@ -277,20 +275,11 @@ class ProposalSerializer(BaseProposalSerializer):
     comment_data= serializers.SerializerMethodField(read_only=True)
     #add_info_applicant= serializers.SerializerMethodField(read_only=True)
 
-    proposal_apiary = serializers.SerializerMethodField()
-    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
-    # apiary_temporary_use_set = ProposalApiaryTemporaryUseSerializer(many=True, read_only=True)
-    apiary_group_application_type = serializers.SerializerMethodField()
-    # region_name=serializers.CharField(source='region.name', read_only=True)
-    # district_name=serializers.CharField(source='district.name', read_only=True)
-
     class Meta:
         model = Proposal
         fields = BaseProposalSerializer.Meta.fields + (
             'comment_data',
-            'proposal_apiary',
-            'apiary_temporary_use',
-            'apiary_group_application_type',
+
             'shapefile_json',
             'add_info_applicant',
             'add_info_assessor',
@@ -302,7 +291,6 @@ class ProposalSerializer(BaseProposalSerializer):
             'region_name',
             'district_name',
             'has_prefilled_once',
-            # 'apiary_temporary_use_set',
         )
 
     def get_readonly(self,obj):
@@ -312,16 +300,6 @@ class ProposalSerializer(BaseProposalSerializer):
 
     def get_comment_data(self,obj):
          return obj.comment_data
-
-    def get_proposal_apiary(self, obj):
-        if hasattr(obj, 'proposal_apiary'):
-            pasl = obj.proposal_apiary
-            return ProposalApiarySerializer(pasl, context=self.context).data
-        else:
-            return ''
-
-    def get_apiary_group_application_type(self, obj):
-        return obj.apiary_group_application_type
 
 
 class SaveProposalSerializer(BaseProposalSerializer):
@@ -425,7 +403,6 @@ class InternalProposalSerializer(BaseProposalSerializer):
     #region = serializers.CharField(source='region.name', read_only=True)
     #district = serializers.CharField(source='district.name', read_only=True)
     #tenure = serializers.CharField(source='tenure.name', read_only=True)
-    apiary_temporary_use = ProposalApiaryTemporaryUseSerializer(many=False, read_only=True)
     requirements_completed=serializers.SerializerMethodField()
     reversion_history = serializers.SerializerMethodField()
     # region_name=serializers.CharField(source='region.name', read_only=True)
@@ -499,7 +476,7 @@ class InternalProposalSerializer(BaseProposalSerializer):
                 # 'fee_invoice_reference',
                 'fee_invoice_references',
                 'fee_paid',
-                'apiary_temporary_use',
+                #'apiary_temporary_use',
                 'requirements_completed',
                 'reversion_history',
                 'shapefile_json',
@@ -681,8 +658,7 @@ class DTReferralSerializer(serializers.ModelSerializer):
         return EmailUserSerializer(obj.proposal.submitter).data
 
     def get_assigned_officer(self,obj):
-        if obj.proposal.apiary_group_application_type:
-            return EmailUserSerializer(obj.apiary_referral.assigned_officer).data
+        pass
 
     def get_relevant_applicant_name(self,obj):
         return obj.proposal.relevant_applicant_name
@@ -710,7 +686,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
                 'requirement',
                 'is_deleted',
                 'copied_from', 
-                'apiary_approval', 
+                #'apiary_approval', 
                 'sitetransfer_approval', 
                 'require_due_date', 
                 'copied_for_renewal',
@@ -719,7 +695,7 @@ class ProposalRequirementSerializer(serializers.ModelSerializer):
         read_only_fields = ('order','requirement', 'copied_from')
 
     def get_apiary_renewal(self, obj):
-        return obj.proposal.apiary_group_application_type and obj.proposal.proposal_type == "renewal"
+        return False
 
 class ProposalStandardRequirementSerializer(serializers.ModelSerializer):
     class Meta:

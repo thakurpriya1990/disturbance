@@ -21,7 +21,7 @@ from disturbance.components.organisations.models import Organisation
 from disturbance.components.main.models import CommunicationsLogEntry, Region, UserAction, Document
 from disturbance.components.proposals.models import ProposalRequirement, AmendmentReason
 from disturbance.components.compliances.email import (
-                        send_compliance_accept_email_notification,
+                        #send_compliance_accept_email_notification,
                         send_amendment_email_notification,
                         send_reminder_email_notification,
                         send_external_submit_email_notification,
@@ -29,14 +29,6 @@ from disturbance.components.compliances.email import (
                         send_internal_reminder_email_notification,
                         send_due_email_notification,
                         send_internal_due_email_notification,
-                        send_apiary_amendment_email_notification,
-                        send_apiary_external_submit_email_notification,
-                        send_apiary_reminder_email_notification,
-                        send_apiary_internal_reminder_email_notification,
-                        send_apiary_due_email_notification,
-                        send_apiary_internal_due_email_notification,
-                        send_apiary_compliance_accept_email_notification,
-                        send_apiary_submit_email_notification,
                         )
 
 from django.conf import settings
@@ -80,7 +72,6 @@ class Compliance(RevisionedMixin):
     submitter = models.ForeignKey(EmailUser, blank=True, null=True, related_name='disturbance_compliances')
     reminder_sent = models.BooleanField(default=False)
     post_reminder_sent = models.BooleanField(default=False)
-    apiary_compliance = models.BooleanField(default=False)
 
 
     class Meta:
@@ -165,39 +156,6 @@ class Compliance(RevisionedMixin):
             except:
                 raise
 
-    def apiary_submit(self,request):
-        with transaction.atomic():
-            try:
-                if self.processing_status=='discarded':
-                    raise ValidationError('You cannot submit this compliance with requirements as it has been discarded.')
-                if self.processing_status == 'future' or 'due':
-                    self.processing_status = 'with_assessor'
-                    self.customer_status = 'with_assessor'
-                    self.submitter = request.user
-
-                    if request.FILES:
-                        for f in request.FILES:
-                            document = self.documents.create(name=str(request.FILES[f]))
-                            document._file = request.FILES[f]
-                            document.save()
-                    if (self.amendment_requests):
-                        qs = self.amendment_requests.filter(status = "requested")
-                        if (qs):
-                            for q in qs:
-                                q.status = 'amended'
-                                q.save()
-
-                #self.lodgement_date = datetime.datetime.strptime(timezone.now().strftime('%Y-%m-%d'),'%Y-%m-%d').date()
-                self.lodgement_date = timezone.now()
-                self.save(version_comment='Compliance Submitted: {}'.format(self.id))
-                #self.proposal.save(version_comment='Compliance Submitted: {}'.format(self.id))
-                self.log_user_action(ComplianceUserAction.ACTION_SUBMIT_REQUEST.format(self.id),request)
-                send_apiary_external_submit_email_notification(request,self)
-                send_apiary_submit_email_notification(request,self)
-                self.documents.all().update(can_delete=False)
-            except:
-                raise
-
     def delete_document(self, request, document):
         with transaction.atomic():
             try:
@@ -263,10 +221,7 @@ class Compliance(RevisionedMixin):
 
 
 def update_proposal_complaince_filename(instance, filename):
-    if instance.compliance.apiary_compliance:
-        return 'approvals/{}/compliance/{}/{}'.format(instance.compliance.approval.id,instance.compliance.id,filename)
-    else:
-        return 'proposals/{}/compliance/{}/{}'.format(instance.compliance.proposal.id,instance.compliance.id,filename)
+    return 'proposals/{}/compliance/{}/{}'.format(instance.compliance.proposal.id,instance.compliance.id,filename)
 
 
 class ComplianceDocument(Document):

@@ -36,21 +36,4 @@ class OrganisationAccessGroupAdmin(admin.ModelAdmin):
     def has_delete_permission(self, request, obj=None):
         return False 
 
-@admin.register(models.ApiaryOrganisationAccessGroup)
-class ApiaryOrganisationAccessGroupAdmin(admin.ModelAdmin):
-    filter_horizontal = ('members',)
-    exclude = ('site',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-        return super(ApiaryOrganisationAccessGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
-
-    def has_add_permission(self, request):
-        return True if models.ApiaryOrganisationAccessGroup.objects.count() == 0 else False
-
-    def has_delete_permission(self, request, obj=None):
-        return False 
 
