@@ -5,9 +5,6 @@ from django.urls import reverse
 from django.utils.encoding import smart_text
 from django.conf import settings
 
-from disturbance.components.das_payments.awaiting_payment_invoice_pdf import \
-    create_annual_rental_fee_awaiting_payment_confirmation
-from disturbance.components.das_payments.invoice_pdf import create_annual_rental_fee_invoice
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
 

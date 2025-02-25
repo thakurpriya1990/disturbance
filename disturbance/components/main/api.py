@@ -3,7 +3,7 @@ from wsgiref.util import FileWrapper
 
 from django.conf import settings
 from django.http.response import HttpResponse
-from ledger.payments.utils import oracle_parser
+#from ledger.payments.utils import oracle_parser
 from rest_framework import viewsets, serializers, status, generics, views
 from rest_framework.decorators import detail_route, list_route, renderer_classes, parser_classes
 from rest_framework.response import Response

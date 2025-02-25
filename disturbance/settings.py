@@ -66,6 +66,7 @@ INSTALLED_APPS += [
     'disturbance.components.compliances',
     #'disturbance.components.das_payments',
     'disturbance.components.history',
+    'ledger',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -124,7 +125,7 @@ MIDDLEWARE_CLASSES += [
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','emails', 'templates'))
-TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
+#TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
 if 'css_url' in BOOTSTRAP3:
     del BOOTSTRAP3['css_url']
 #BOOTSTRAP3 = {

@@ -45,7 +45,8 @@ def is_internal(context):
 @register.simple_tag(takes_context=True)
 def is_internal_path(context):
     # checks if user is viewing page via '/internal/' or '/external/' url
-    return 'internal/' in context['url_path']
+    #return 'internal/' in context['url_path']
+    return True
 
 
 

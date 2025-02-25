@@ -5,7 +5,7 @@ from django.http import JsonResponse
 from rest_framework import serializers, status
 from django.db.models import Q
 
-from ledger.payments.models import Invoice
+#from ledger.payments.models import Invoice
 import collections
 from disturbance.components.proposals.models import (
                                     ProposalType,

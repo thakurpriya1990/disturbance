@@ -23,7 +23,7 @@ from rest_framework.decorators import api_view, renderer_classes
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework import views, status
-from ledger.payments.invoice.models import Invoice
+#from ledger.payments.invoice.models import Invoice
 from disturbance.components.main.decorators import timeit
 from disturbance.components.main.utils import get_feature_in_wa_coastline_smoothed, get_feature_in_wa_coastline_original
 from disturbance.helpers import is_internal, is_disturbance_admin, is_apiary_admin, is_das_apiary_admin, is_customer, get_proxy_cache
