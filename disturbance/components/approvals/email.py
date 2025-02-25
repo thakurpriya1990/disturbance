@@ -5,9 +5,6 @@ from django.urls import reverse
 from django.utils.encoding import smart_text
 from django.conf import settings
 
-from disturbance.components.das_payments.awaiting_payment_invoice_pdf import \
-    create_annual_rental_fee_awaiting_payment_confirmation
-from disturbance.components.das_payments.invoice_pdf import create_annual_rental_fee_invoice
 from disturbance.components.emails.emails import TemplateEmailBase
 from ledger.accounts.models import EmailUser
 
@@ -63,273 +60,9 @@ class ApprovalRenewalNotificationEmail(TemplateEmailBase):
     html_template = 'disturbance/emails/approval_renewal_notification.html'
     txt_template = 'disturbance/emails/approval_renewal_notification.txt'
 
-### Apiary templates
-
-class ApiaryApprovalExpireNotificationEmail(TemplateEmailBase):
-    subject = 'Your Licence has expired.'
-    html_template = 'disturbance/emails/apiary_approval_expire_notification.html'
-    txt_template = 'disturbance/emails/apiary_approval_expire_notification.txt'
-
-
-class ApiaryApprovalCancelNotificationEmail(TemplateEmailBase):
-    subject = 'Your Licence has been cancelled.'
-    html_template = 'disturbance/emails/apiary_approval_cancel_notification.html'
-    txt_template = 'disturbance/emails/apiary_approval_cancel_notification.txt'
-
-
-class ApiaryApprovalSuspendNotificationEmail(TemplateEmailBase):
-    subject = 'Your Licence has been suspended.'
-    html_template = 'disturbance/emails/apiary_approval_suspend_notification.html'
-    txt_template = 'disturbance/emails/apiary_approval_suspend_notification.txt'
-
-
-class ApiaryApprovalSurrenderNotificationEmail(TemplateEmailBase):
-    subject = 'Your Licence has been surrendered.'
-    html_template = 'disturbance/emails/apiary_approval_surrender_notification.html'
-    txt_template = 'disturbance/emails/apiary_approval_surrender_notification.txt'
-
-
-class ApiaryApprovalReinstateNotificationEmail(TemplateEmailBase):
-    subject = 'Your Licence has been reinstated.'
-    html_template = 'disturbance/emails/apiary_approval_reinstate_notification.html'
-    txt_template = 'disturbance/emails/apiary_approval_reinstate_notification.txt'
-
-
-class ApiaryApprovalRenewalNotificationEmail(TemplateEmailBase):
-    subject = 'Your Licence is due for renewal.'
-    html_template = 'disturbance/emails/apiary_approval_renewal_notification.html'
-    txt_template = 'disturbance/emails/apiary_approval_renewal_notification.txt'
-
-
-class ApprovalAnnualRentalFeeInvoiceEmail(TemplateEmailBase):
-    subject = 'Annual site fee invoice for your licensed apiary sites.'
-    html_template = 'disturbance/emails/approval_annual_rental_fee_invoice.html'
-    txt_template = 'disturbance/emails/approval_annual_rental_fee_invoice.txt'
-
-
-class ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail(TemplateEmailBase):
-    #subject = 'Annual site fee awaiting payment confirmation for your licence has been issued.'
-    subject = 'Annual site fee invoice for your licensed apiary sites.'
-    html_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.html'
-    txt_template = 'disturbance/emails/approval_annual_rental_fee_awaiting_payment_confirmation.txt'
-
-
-class ContactLicenceHolderEmail(TemplateEmailBase):
-    subject = 'Someone is interested in your apiary site available.'
-    html_template = 'disturbance/emails/contact_licence_holder_email.html'
-    txt_template = 'disturbance/emails/contact_licence_holder_email.txt'
-
-
-class OnSiteNotificationEmail(TemplateEmailBase):
-    subject = 'On-site notification submitted for site'
-    html_template = 'disturbance/emails/onsite-notification_email.html'
-    txt_template = 'disturbance/emails/onsite-notification_email.txt'
-
-class OnSiteNotificationUpdateEmail(TemplateEmailBase):
-    subject = 'On-site notification update submitted for site'
-    html_template = 'disturbance/emails/onsite-notification_update_email.html'
-    txt_template = 'disturbance/emails/onsite-notification_update_email.txt'
-
-
-def get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee):
-    invoice_buffer = BytesIO()
-    create_annual_rental_fee_awaiting_payment_confirmation(invoice_buffer, annual_rental_fee)
-    value = invoice_buffer.getvalue() # Get the value of the BytesIO buffer
-    invoice_buffer.close()
-    return value
-
-
-def get_value_of_annual_rental_fee_invoice(approval, invoice):
-    invoice_buffer = BytesIO()
-    create_annual_rental_fee_invoice(invoice_buffer, approval, invoice)
-    value = invoice_buffer.getvalue() # Get the value of the BytesIO buffer
-    invoice_buffer.close()
-    return value
-
-
-def send_contact_licence_holder_email(apiary_site_on_approval, comments, sender):
-    email = ContactLicenceHolderEmail()
-
-    context = {
-        'apiary_site': apiary_site_on_approval.apiary_site,
-        'comments': comments,
-        'sender': sender,
-    }
-    to_address = [apiary_site_on_approval.approval.relevant_applicant_email,]
-    cc = []
-    bcc = []
-
-    msg = email.send(
-        to_address,
-        context=context,
-        attachments=[],
-        cc=cc,
-        bcc=bcc,
-    )
-
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = settings.DEFAULT_FROM_EMAIL
-    email_data = _extract_email_headers(msg, sender=sender)
-    return email_data
-
-
-from disturbance.components.main.utils import get_region_district
-def send_on_site_notification_email(request_data, sender, update=False):
-
-    def get_recipients():
-        rd=get_region_district(asoa.wkb_geometry)
-
-        try:
-            district=District.objects.get(name__icontains=rd.split('/')[1])
-        except:
-            try:
-                district_name = rd.title().split('/')[0].split(' ')[0]
-                region = Region.objects.get(name=district_name)
-                no_region_district_name = region.name + ' Region'
-                district = District.objects.get(name=no_region_district_name)
-            except:
-                #logger.error('Error sending onsite-notification email - District not found: {rd}')
-                #raise Exception(f'District not found: {rd}')
-                logger.warning('Warning sending onsite-notification email - District not found: {rd} - sending notification Apiary Admin Group')
-        
-        try:
-            recipients = ApiaryReferralGroup.objects.get(district=district).members_email
-        except:
-            #logger.error('Error sending onsite-notification email - Cannot find Apiary Referral Group for District {district.name}')
-            #raise Exception(f'Cannot find Apiary Referral Group for District {district.name}')
-            logger.warning('Warning sending onsite-notification email - Cannot find Apiary Referral Group for District {rd}. Sending notification to {settings.APIARY_SUPPORT_EMAIL}')
-            recipients = [settings.APIARY_SUPPORT_EMAIL]
-
-        return recipients
-            
-
-    email = OnSiteNotificationUpdateEmail() if update else OnSiteNotificationEmail()
-
-    from disturbance.components.approvals.models import ApiarySiteOnApproval
-    from disturbance.components.proposals.models import ApiaryReferralGroup
-    from disturbance.components.organisations.models import Organisation
-    asoa = ApiarySiteOnApproval.objects.get(id=request_data.get('apiary_site_on_approval_id'))
-    period_from = request_data.get('period_from')
-    period_to = request_data.get('period_to')
-    comments = request_data.get('comments')
-    hives_loc = request_data.get('hives_loc')
-    hives_num = request_data.get('hives_num')
-    people_names = request_data.get('people_names')
-    flora = request_data.get('flora')
-    approval = asoa.approval
-    proposal = asoa.approval.current_proposal
-
-    applicant = approval.relevant_applicant if isinstance(approval.relevant_applicant, Organisation) else approval.relevant_applicant.get_full_name()
-    if isinstance(approval.relevant_applicant, Organisation):
-        applicant = approval.relevant_applicant.name
-        delegate = approval.relevant_applicant.delegates.all()[0]
-        contact = delegate.phone_number if delegate.phone_number else delegate.mobile_number
-    else:
-        applicant = approval.relevant_applicant.get_full_name()
-        contact = approval.relevant_applicant.phone_number if approval.relevant_applicant.phone_number else approval.relevant_applicant.mobile_number
-
-    context = {
-        'apiary_site': asoa.apiary_site,
-        'approval': approval,
-        'applicant': applicant,
-        'contact': contact,
-        'period_from': period_from,
-        'period_to': period_to,
-        'comments': comments,
-        'hives_loc': hives_loc,
-        'hives_num': hives_num,
-        'people_names': people_names,
-        'flora': flora,
-        'sender': sender,
-        'licence_url': SITE_URL + f'{reverse("external")}approval/{approval.id}'
-    }
-
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    #sender = settings.DEFAULT_FROM_EMAIL
-    cc = [approval.relevant_applicant.email] if hasattr(approval.relevant_applicant, 'email') else []
-    cc = list(filter(None, cc))  # Remove None from the list
-
-    msg = email.send(get_recipients(), cc=cc, context=context)
-    
-    _log_approval_email(msg, approval, sender=sender)
-    if proposal.applicant:
-        _log_org_email(msg, proposal.applicant, proposal.submitter, sender=sender)
-
-
-def send_annual_rental_fee_awaiting_payment_confirmation(approval, annual_rental_fee, invoice):
-    email = ApprovalAnnualRentalFeeAwaitingPaymentConfirmationEmail()
-    path_to_pay = reverse('annual_rental_fee', kwargs={'annual_rental_fee_id': annual_rental_fee.id})
-    url_to_pay = SITE_DOMAIN + path_to_pay
-    if 'localhost' in SITE_DOMAIN:
-        url = 'http://localhost:8071' + path_to_pay
-    else:
-        url = SITE_URL + path_to_pay
-
-    context = {
-        'approval': approval,
-        'annual_rental_fee': annual_rental_fee,
-        'invoice': invoice,
-        'url_to_pay': url,
-    }
-
-    attachments = []
-    # contents = get_value_of_annual_rental_fee_awaiting_payment_confirmation(annual_rental_fee)
-    # attachments.append(('awaiting_payment_confirmation.pdf', contents, 'application/pdf'))
-    contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
-    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
-
-    to_address = [approval.relevant_applicant_email]
-    cc = []
-    bcc = []
-
-    msg = email.send(
-        to_address,
-        context=context,
-        attachments=attachments,
-        cc=cc,
-        bcc=bcc,
-    )
-
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = settings.DEFAULT_FROM_EMAIL
-    email_data = _extract_email_headers(msg, sender=sender)
-    return email_data
-
-
-def send_annual_rental_fee_invoice(approval, invoice, to_email_addresses):
-    email = ApprovalAnnualRentalFeeInvoiceEmail()
-
-    context = {
-        'approval': approval,
-    }
-
-    attachments = []
-    contents = get_value_of_annual_rental_fee_invoice(approval, invoice)
-    attachments.append(('invoice#{}.pdf'.format(invoice.reference), contents, 'application/pdf'))
-
-    to_address = to_email_addresses
-    cc = []
-    bcc = []
-
-    msg = email.send(
-        to_address,
-        context=context,
-        attachments=attachments,
-        cc=cc,
-        bcc=bcc,
-    )
-
-    # sender = request.user if request else settings.DEFAULT_FROM_EMAIL
-    sender = settings.DEFAULT_FROM_EMAIL
-    email_data = _extract_email_headers(msg, sender=sender)
-    return email_data
-
 
 def send_approval_expire_email_notification(approval):
-    if approval.apiary_approval:
-        email = ApiaryApprovalExpireNotificationEmail()
-    else:
-        email = ApprovalExpireNotificationEmail()
+    email = ApprovalExpireNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -337,21 +70,13 @@ def send_approval_expire_email_notification(approval):
         'proposal': proposal
     } 
     all_ccs = []
-    #if proposal.applicant.email:
-     #   cc_list = proposal.applicant.email
     if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, context=context)
-    #sender = settings.DEFAULT_FROM_EMAIL
     sender = get_sender_user()
-    # try:
-    #   sender_user = EmailUser.objects.get(email__icontains=sender)
-    # except:
-    #     EmailUser.objects.create(email=sender, password='')
-    #     sender_user = EmailUser.objects.get(email__icontains=sender)
 
     _log_approval_email(msg, approval, sender=sender)
     if proposal.applicant:
@@ -359,10 +84,7 @@ def send_approval_expire_email_notification(approval):
 
 
 def send_approval_cancel_email_notification(approval, future_cancel=False):
-    if approval.apiary_approval:
-        email = ApiaryApprovalCancelNotificationEmail()
-    else:
-        email = ApprovalCancelNotificationEmail()
+    email = ApprovalCancelNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -372,11 +94,7 @@ def send_approval_cancel_email_notification(approval, future_cancel=False):
     }
 
     all_ccs = []
-    #if proposal.applicant.email:
-     #   cc_list = proposal.applicant.email
-    #if proposal.relevant_applicant_email:
     if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
-    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
 
         if cc_list:
@@ -396,10 +114,7 @@ def send_approval_cancel_email_notification(approval, future_cancel=False):
 
 
 def send_approval_suspend_email_notification(approval, future_suspend=False):
-    if approval.apiary_approval:
-        email = ApiaryApprovalSuspendNotificationEmail()
-    else:
-        email = ApprovalSuspendNotificationEmail()
+    email = ApprovalSuspendNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -412,10 +127,6 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
     }
 
     all_ccs = []
-    #if proposal.applicant.email:
-     #   cc_list = proposal.applicant.email
-    #if proposal.relevant_applicant_email:
-    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
     if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
@@ -435,10 +146,7 @@ def send_approval_suspend_email_notification(approval, future_suspend=False):
 
 
 def send_approval_surrender_email_notification(approval, future_surrender=False):
-    if approval.apiary_approval:
-        email = ApiaryApprovalSurrenderNotificationEmail()
-    else:
-        email = ApprovalSurrenderNotificationEmail()
+    email = ApprovalSurrenderNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -449,10 +157,6 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
         'proposal' : proposal,
     }
     all_ccs = []
-    #if proposal.applicant and proposal.applicant.email:
-     #   cc_list = proposal.applicant.email
-    #if proposal.relevant_applicant_email:
-    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
     if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
@@ -471,10 +175,7 @@ def send_approval_surrender_email_notification(approval, future_surrender=False)
 
 #approval renewal notice
 def send_approval_renewal_email_notification(approval):
-    if approval.apiary_approval:
-        email = ApiaryApprovalRenewalNotificationEmail()
-    else:
-        email = ApprovalRenewalNotificationEmail()
+    email = ApprovalRenewalNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -484,10 +185,6 @@ def send_approval_renewal_email_notification(approval):
                     
     }
     all_ccs = []
-    #if proposal.applicant.email:
-     #   cc_list = proposal.applicant.email
-    #if proposal.relevant_applicant_email:
-    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
     if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
@@ -499,16 +196,8 @@ def send_approval_renewal_email_notification(approval):
     except:
         EmailUser.objects.create(email=sender, password='')
         sender_user = EmailUser.objects.get(email__icontains=sender)
-    #attach renewal notice
-    #renewal_document= approval.renewal_document._file
-    # if approval.apiary_renewal_document is not None:
-    if approval.apiary_approval:
-        # file_name = approval.apiary_renewal_document.name
-        file_name = approval.relevant_renewal_document.name
-        attachment = (file_name, approval.relevant_renewal_document._file.file.read(), 'application/pdf')
-        attachment = [attachment]
-    #renewal_document= approval.renewal_document._file
-    elif approval.renewal_document is not None:
+
+    if approval.renewal_document is not None:
         file_name = approval.renewal_document.name
         attachment = (file_name, approval.renewal_document._file.file.read(), 'application/pdf')
         attachment = [attachment]
@@ -522,10 +211,7 @@ def send_approval_renewal_email_notification(approval):
 
 
 def send_approval_reinstate_email_notification(approval, request):
-    if approval.apiary_approval:
-        email = ApiaryApprovalReinstateNotificationEmail()
-    else:
-        email = ApprovalReinstateNotificationEmail()
+    email = ApprovalReinstateNotificationEmail()
     proposal = approval.current_proposal
 
     context = {
@@ -533,17 +219,12 @@ def send_approval_reinstate_email_notification(approval, request):
                 
     }    
     all_ccs = []
-    #if proposal.applicant.email:
-     #   cc_list = proposal.applicant.email
-    #if proposal.relevant_applicant_email:
-    #if proposal.relevant_applicant_email and proposal.relevant_applicant_email != proposal.submitter.email:
     if proposal.applicant and proposal.applicant.email != proposal.submitter.email:
         cc_list = proposal.relevant_applicant_email
         if cc_list:
             all_ccs = [cc_list]
 
     msg = email.send(proposal.submitter.email,cc=all_ccs, context=context)
-    #sender = request.user if request else settings.DEFAULT_FROM_EMAIL 
     sender = get_sender_user()   
     _log_approval_email(msg, approval, sender=sender)
     if proposal.applicant:

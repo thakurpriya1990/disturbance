@@ -616,8 +616,8 @@ class OrganisationRequest(models.Model):
         ('consultant','Consultant')
     )
     TEMPLATE_GROUP_CHOICES = (
-        ('apiary','Apiary'),
-        ('das','DAS')
+        ('das','DAS'),
+        ('dummy','DUMMY')
     )
     name = models.CharField(max_length=128, unique=True)
     abn = models.CharField(max_length=50, null=True, blank=True, verbose_name='ABN')
@@ -709,10 +709,7 @@ class OrganisationRequest(models.Model):
     def send_organisation_request_email_notification(self, request, template_group):
         # user submits a new organisation request
         # send email to organisation access group
-        if template_group == 'apiary':
-            group = ApiaryOrganisationAccessGroup.objects.first()
-        else:
-            group = OrganisationAccessGroup.objects.first()
+        group = OrganisationAccessGroup.objects.first()
         if group and group.filtered_members:
             org_access_recipients = [m.email for m in group.filtered_members]
             send_organisation_request_email_notification(self, request, org_access_recipients)
@@ -722,30 +719,6 @@ class OrganisationRequest(models.Model):
 
     def __str__(self):
         return 'name: {}, id {}'.format(self.name, self.id)
-
-
-class ApiaryOrganisationAccessGroup(models.Model):
-    site = models.OneToOneField(Site, default='1') 
-    members = models.ManyToManyField(EmailUser)
-
-    def __str__(self):
-        return 'Apiary Organisation Access Group'
-
-    @property
-    def all_members(self):
-        all_members = []
-        all_members.extend(self.members.all())
-        member_ids = [m.id for m in self.members.all()]
-        #all_members.extend(EmailUser.objects.filter(is_superuser=True,is_staff=True,is_active=True).exclude(id__in=member_ids))
-        return all_members
-
-    @property
-    def filtered_members(self):
-        return self.members.all()
-
-    class Meta:
-        app_label = 'disturbance'
-        verbose_name_plural = "Apiary Organisation access group"
 
 
 class OrganisationAccessGroup(models.Model):
@@ -835,5 +808,4 @@ reversion.register(OrganisationLogEntry)
 reversion.register(OrganisationLogDocument)
 reversion.register(OrganisationRequest)
 reversion.register(UserDelegation)
-reversion.register(ApiaryOrganisationAccessGroup)
 

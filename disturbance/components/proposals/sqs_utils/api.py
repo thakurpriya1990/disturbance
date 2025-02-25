@@ -33,15 +33,6 @@ from disturbance.components.proposals.email import (
     send_proposal_refresh_request_sent_email_notification,
     send_proposal_test_sqq_request_sent_email_notification,
 )
-from disturbance.components.approvals.email import (
-    send_contact_licence_holder_email,
-    send_on_site_notification_email,
-)
-#from disturbance.components.approvals.serializers_apiary import (
-#    ApiarySiteOnApprovalGeometrySerializer,
-#    ApiarySiteOnApprovalMinimalGeometrySerializer,
-#    ApiarySiteOnApprovalMinGeometrySerializer,
-#)
 from disturbance.utils import search_label, get_schema_questions
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
 

@@ -8,8 +8,6 @@ from django.db.models import Q
 from ledger.settings_base import TIME_ZONE
 from rest_framework_gis.serializers import GeoFeatureModelSerializer
 
-from disturbance.components.approvals.serializers_apiary import ApiarySiteOnApprovalGeometrySerializer
-
 
 @property
 def next_number(self):

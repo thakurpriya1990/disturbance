@@ -10,17 +10,13 @@ import disturbance
 from disturbance.components.main.utils import custom_strftime
 from disturbance.components.proposals import models
 from disturbance.components.proposals import forms
-from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings, \
-    ApiaryGlobalSettings
+from disturbance.components.main.models import ActivityMatrix, SystemMaintenance, ApplicationType, GlobalSettings
 #from disturbance.components.main.models import Activity, SubActivityLevel1, SubActivityLevel2, SubCategory
 from reversion.admin import VersionAdmin
 from django.conf.urls import url
 from django.template.response import TemplateResponse
 from django.http import HttpResponse, HttpResponseRedirect
 
-from disturbance.components.proposals.models import SiteCategory, ApiarySiteFee, ApiarySiteFeeType, \
-    ApiaryAnnualRentalFee, \
-    ApiaryAnnualRentalFeeRunDate, ApiaryAnnualRentalFeePeriodStartDate
 from disturbance.utils import create_helppage_object
 from disturbance.helpers import is_apiary_admin, is_disturbance_admin, is_das_apiary_admin
 # Register your models here.
@@ -127,34 +123,6 @@ class AmendmentReasonAdmin(admin.ModelAdmin):
     list_display = ['reason']
 
 
-@admin.register(ApiaryAnnualRentalFeePeriodStartDate)
-class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
-    list_display = ['name', 'start_month_date', 'end_month_date']
-    readonly_fields = ['name',]
-    fields = ('name', 'period_start_date',)
-
-    def start_month_date(self, obj):
-        # return obj.period_start_date.strftime('%d of %b')
-        return custom_strftime('{S} of %b', obj.period_start_date)
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def end_month_date(self, obj):
-        period_end_date = datetime.date(year=obj.period_start_date.year + 1, month=obj.period_start_date.month, day=obj.period_start_date.day) - datetime.timedelta(days=1)
-        # return period_end_date.strftime('%d of %b')
-        return custom_strftime('{S} of %b', period_end_date)
-
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
-
-
 @admin.register(models.Proposal)
 class ProposalAdmin(VersionAdmin):
     inlines =[ProposalDocumentInline,]
@@ -199,56 +167,6 @@ class CddpQuestionGroupAdmin(admin.ModelAdmin):
         if obj and obj.default:
             return False
         return super(CddpQuestionGroupAdmin, self).has_delete_permission(request, obj)
-
-
-@admin.register(models.ApiaryReferralGroup)
-class ApiaryReferralGroupAdmin(admin.ModelAdmin):
-    filter_horizontal = ('members',)
-    list_display = ['name']
-    exclude = ('site',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-        return super(ApiaryReferralGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
-
-@admin.register(models.ApiaryAssessorGroup)
-class ApiaryAssessorGroupAdmin(admin.ModelAdmin):
-    filter_horizontal = ('members',)
-    exclude = ('site',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-        return super(ApiaryAssessorGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
-
-    def has_add_permission(self, request):
-        return True if models.ApiaryAssessorGroup.objects.count() == 0 else False
-
-    def has_delete_permission(self, request, obj=None):
-        return False 
-
-
-@admin.register(models.ApiaryApproverGroup)
-class ApiaryApproverGroupAdmin(admin.ModelAdmin):
-    filter_horizontal = ('members',)
-    exclude = ('site',)
-    actions = None
-
-    def formfield_for_manytomany(self, db_field, request, **kwargs):
-        if db_field.name == "members":
-            #kwargs["queryset"] = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            kwargs["queryset"] = EmailUser.objects.filter(is_staff=True)
-        return super(ApiaryApproverGroupAdmin, self).formfield_for_manytomany(db_field, request, **kwargs)
-
-    def has_add_permission(self, request):
-        return True if models.ApiaryApproverGroup.objects.count() == 0 else False
-
-    def has_delete_permission(self, request, obj=None):
-        return False 
 
 
 @admin.register(models.ProposalStandardRequirement)
@@ -346,117 +264,6 @@ class ApplicationTypeAdmin(admin.ModelAdmin):
 class GlobalSettingsAdmin(admin.ModelAdmin):
     list_display = ['key', 'value', 'help_text_required', 'help_text' ]
     ordering = ('key',)
-
-
-@admin.register(ApiaryGlobalSettings)
-class ApiaryGlobalSettingsAdmin(admin.ModelAdmin):
-    def get_fields(self, request, obj=None):
-        if obj.key in [ApiaryGlobalSettings.KEY_APIARY_LICENCE_TEMPLATE_FILE, ApiaryGlobalSettings.KEY_DBCA_REGIONS_FILE, ApiaryGlobalSettings.KEY_DBCA_DISTRICTS_FILE,]:
-            return ['key', '_file',]
-        else:
-            return ['key', 'value',]
-
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def get_readonly_fields(self, request, obj=None):
-        return ['key',]
-
-    def get_form(self, request, obj=None, **kwargs):
-        form = super(ApiaryGlobalSettingsAdmin, self).get_form(request, obj, **kwargs)
-        if obj.key == ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN:
-            link_to = '/api/apiary_site/export/?' + ApiaryGlobalSettings.KEY_APIARY_SITES_LIST_TOKEN + '=' + obj.value
-            http_host = request.META['HTTP_HOST']
-            display_link_to = http_host + link_to
-            form.base_fields['value'].help_text = '<a href="' + link_to + '">' + display_link_to + '</a>'
-        return form
-
-    list_display = ['key', 'value', '_file',]
-    ordering = ('key',)
-
-
-@admin.register(ApiaryAnnualRentalFee)
-class ApiaryAnnualRentalFeeAdmin(admin.ModelAdmin):
-    list_display = ['id', 'amount_south_west', 'amount_remote', 'date_from',]
-
-
-@admin.register(ApiaryAnnualRentalFeeRunDate)
-class ApiaryAnnualRentalFeeRunDateAdmin(admin.ModelAdmin):
-    # list_display = ['id', 'name', 'date_run_cron', 'run_month', 'run_date',]
-    list_display = ['name', 'run_month_date', 'enabled', 'enabled_for_new_site', 'period_to_be_charged_for']
-    readonly_fields = ['name',]
-    fields = ('name', 'date_run_cron', 'enabled', 'enabled_for_new_site')
-
-    def run_month_date(self, obj):
-        # return obj.date_run_cron.strftime('%d of %b')
-        return custom_strftime('{S} of %b', obj.date_run_cron)
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def period_to_be_charged_for(self, obj):
-        from disturbance.management.commands.send_annual_rental_fee_invoice import get_annual_rental_fee_period
-
-        today_now_local = datetime.datetime.now(pytz.timezone(TIME_ZONE))
-        today_date_local = today_now_local.date()
-        period_start_date, period_end_date = get_annual_rental_fee_period(today_date_local)
-        return '{} --- {}'.format(period_start_date.strftime('%Y/%m/%d'), period_end_date.strftime('%Y/%m/%d'))
-
-    def get_actions(self, request):
-        actions = super().get_actions(request)
-        if 'delete_selected' in actions:
-            del actions['delete_selected']
-        return actions
-
-    run_month_date.short_description = 'Date on which start billing for the next annual site fee'
-
-# @admin.register(ApiaryAnnualRentalFeePeriodStartDate)
-# class ApiaryAnnualRentalFeePeriodStartDateAdmin(admin.ModelAdmin):
-#     pass
-
-# class SiteApplicationFeeInline(admin.TabularInline):
-#     model = SiteApplicationFee
-#     extra = 0
-#     can_delete = True
-
-
-class ApiarySiteFeeInline(admin.TabularInline):
-    model = ApiarySiteFee
-    extra = 0
-    can_delete = True
-    fields = ('apiary_site_fee_type', 'amount', 'date_of_enforcement',)
-
-
-@admin.register(ApiarySiteFeeType)
-class ApiarySiteFeeTypeAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'description',]
-
-
-# @admin.register(SiteApplicationFee)
-# class SiteApplicationFeeAdmin(admin.ModelAdmin):
-#     pass
-
-
-class SiteCategoryAdmin(admin.ModelAdmin):
-
-    inlines = [ApiarySiteFeeInline,]
-
-
-admin.site.register(disturbance.components.proposals.models.SiteCategory, SiteCategoryAdmin)
-
-@admin.register(models.ApiaryChecklistQuestion)
-class ApiaryChecklistQuestionAdmin(admin.ModelAdmin):
-    #list_display = ['text', 'answer_type', 'order']
-    ordering = ('order',)
 
 
 @admin.register(models.QuestionOption)

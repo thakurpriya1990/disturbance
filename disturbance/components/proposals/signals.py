@@ -2,11 +2,10 @@ from django.db.models.signals import post_delete, pre_save, post_save, m2m_chang
 from django.dispatch import receiver
 from ledger.accounts.models import EmailUser
 
-from disturbance.components.main.utils import get_category
 from disturbance.components.proposals.models import (
     ProposalAssessorGroup,
     Referral,
-    Proposal, ApiarySiteOnProposal
+    Proposal
 )
 
 import logging
@@ -67,14 +66,4 @@ class ReferralListener(object):
                 instance.proposal.save()
 
 
-class ApiarySiteOnProposalListener(object):
-    """
-    Event listener for the ApiarySiteOnProposal
-    """
-    @staticmethod
-    @receiver(post_save, sender=ApiarySiteOnProposal)
-    def _post_save(sender, instance, **kwargs):
-        instance.apiary_site.latest_proposal_link = instance
-        instance.apiary_site.save()
-        # print('ApiarySite: {} updated its latest_proposal_link: {}'.format(instance.apiary_site.id, instance))
 

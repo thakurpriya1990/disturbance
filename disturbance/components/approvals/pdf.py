@@ -16,10 +16,6 @@ from django.conf import settings
 
 from disturbance.components.main.models import ApplicationType
 
-#BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'wildlifelicensing', 'static', 'wl', 'img',
-#                                   'bw_dpaw_header_logo.png')
-from disturbance.doctopdf import create_apiary_licence_pdf_contents
-
 BW_DPAW_HEADER_LOGO = os.path.join(settings.BASE_DIR, 'disturbance', 'static', 'disturbance', 'img',
                                    'dbca-logo.jpg')
 
@@ -226,12 +222,7 @@ def _create_approval(approval_buffer, approval, proposal, copied_to_permit, user
     elements.append(understandingList)
 
     ## proposal requirements
-    requirements = None
-    # Apiary Site Transfer requirements
-    if proposal.application_type.name == ApplicationType.SITE_TRANSFER:
-        requirements = proposal.apiary_requirements(approval).exclude(is_deleted=True)
-    else:
-        requirements = proposal.requirements.all().exclude(is_deleted=True)
+    requirements = proposal.requirements.all().exclude(is_deleted=True)
     if requirements.exists():
         elements.append(Spacer(1, SECTION_BUFFER_HEIGHT))
         elements.append(Paragraph('The following requirements must be satisfied for the approval of the proposal not to be withdrawn:', styles['BoldLeft']))
@@ -438,10 +429,7 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
     approval_buffer = BytesIO()
 
     _create_approval(approval_buffer, approval, proposal, copied_to_permit, user)
-    if proposal.apiary_group_application_type:
-        filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
-    else:
-        filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    filename = 'approval-{}.pdf'.format(approval.lodgement_number)
     from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
     document._file.save(filename, File(approval_buffer), save=True)
@@ -452,12 +440,9 @@ def create_approval_doc(approval,proposal, copied_to_permit, user):
 
 
 def create_approval_document(approval, proposal, copied_to_permit, user):
-    pdf_contents = create_apiary_licence_pdf_contents(approval, proposal, copied_to_permit, user)
+    pdf_contents = None
 
-    if proposal.apiary_group_application_type:
-        filename = 'approval-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
-    else:
-        filename = 'approval-{}.pdf'.format(approval.lodgement_number)
+    filename = 'approval-{}.pdf'.format(approval.lodgement_number)
     from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval, name=filename)
     document._file.save(filename, ContentFile(pdf_contents), save=True)
@@ -485,20 +470,6 @@ def create_renewal_doc(approval,proposal):
     #filename = 'renewal-{}.pdf'.format(approval.id)
     from disturbance.components.approvals.models import ApprovalDocument
     document = ApprovalDocument.objects.create(approval=approval,name=filename)
-    document._file.save(filename, File(renewal_buffer), save=True)
-
-    renewal_buffer.close()
-
-    return document
-
-
-def create_apiary_renewal_doc(approval, proposal):
-    renewal_buffer = BytesIO()
-
-    _create_renewal(renewal_buffer, approval, proposal)
-    filename = 'renewal-{}-{}.pdf'.format(approval.lodgement_number, proposal.lodgement_number)
-    from disturbance.components.approvals.models import RenewalDocument
-    document = RenewalDocument.objects.create(approval=approval, name=filename,)
     document._file.save(filename, File(renewal_buffer), save=True)
 
     renewal_buffer.close()

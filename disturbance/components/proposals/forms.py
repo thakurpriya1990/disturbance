@@ -5,7 +5,6 @@ from disturbance.components.proposals.models import (
         ProposalAssessorGroup,
         ProposalApproverGroup, 
         HelpPage,
-        ApiaryReferralGroup,
         CddpQuestionGroup,
         MasterlistQuestion,
         QuestionOption,
@@ -86,31 +85,6 @@ class ProposalApproverGroupAdminForm(forms.ModelForm):
         if self.instance:
             try:
                 original_members = ProposalApproverGroup.objects.get(id=self.instance.id).members.all()
-                current_members = self.cleaned_data.get('members')
-                for o in original_members:
-                    if o not in current_members:
-                        if self.instance.member_is_assigned(o):
-                            raise ValidationError('{} is currently assigned to a proposal(s)'.format(o.email))
-            except:
-                pass
-
-
-class ApiaryReferralGroupAdminForm(forms.ModelForm):
-    class Meta:
-        model = ApiaryReferralGroup
-        fields = '__all__'
-
-    def __init__(self, *args, **kwargs):
-        super(ApiaryReferralGroupAdminForm, self).__init__(*args, **kwargs)
-        if self.instance:
-            #self.fields['members'].queryset = EmailUser.objects.filter(email__icontains='@dbca.wa.gov.au')
-            self.fields['members'].queryset = EmailUser.objects.filter(is_staff=True)
-
-    def clean(self):
-        super(ApiaryReferralGroupAdminForm, self).clean()
-        if self.instance:
-            try:
-                original_members = ApiaryReferralGroup.objects.get(id=self.instance.id).members.all()
                 current_members = self.cleaned_data.get('members')
                 for o in original_members:
                     if o not in current_members:

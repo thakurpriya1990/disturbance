@@ -14,15 +14,7 @@ import mimetypes
 import os
 
 
-from disturbance.components.main.models import ApiaryGlobalSettings
-
 logger = logging.getLogger(__name__)
-
-
-@api_view(['GET'],)
-def deed_poll_url(request):
-    deed_poll_url = ApiaryGlobalSettings.objects.get(key=ApiaryGlobalSettings.KEY_PRINT_DEED_POLL_URL)
-    return Response(deed_poll_url.value)
 
 
 class GeocodingAddressSearchTokenView(views.APIView):

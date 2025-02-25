@@ -64,8 +64,9 @@ INSTALLED_APPS += [
     'disturbance.components.proposals',
     'disturbance.components.approvals',
     'disturbance.components.compliances',
-    'disturbance.components.das_payments',
+    #'disturbance.components.das_payments',
     'disturbance.components.history',
+    'ledger',
     'taggit',
     'rest_framework',
     'rest_framework_datatables',
@@ -116,11 +117,6 @@ USE_DJANGO_JQUERY= True
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
 MIDDLEWARE_CLASSES += [
-    'disturbance.middleware.BookingTimerMiddleware',
-    'disturbance.middleware.FirstTimeNagScreenMiddleware',
-    'disturbance.middleware.RevisionOverrideMiddleware',
-    'disturbance.middleware.DomainDetectMiddleware',
-    'disturbance.middleware.CacheControlMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     # 'corsheaders.middleware.CorsMiddleware',
 ]
@@ -129,7 +125,7 @@ MIDDLEWARE_CLASSES += [
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','organisations', 'templates'))
 TEMPLATES[0]['DIRS'].append(os.path.join(BASE_DIR, 'disturbance','components','emails', 'templates'))
-TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
+#TEMPLATES[0]['OPTIONS']['context_processors'].append('disturbance.context_processors.apiary_url')
 if 'css_url' in BOOTSTRAP3:
     del BOOTSTRAP3['css_url']
 #BOOTSTRAP3 = {
@@ -309,8 +305,8 @@ LOGGING['loggers']['request_stats'] = {
 }
 # LOGGING['loggers']['']['propagate'] = False
 
-import json
-print(json.dumps(LOGGING, indent=4))
+#import json
+#print(json.dumps(LOGGING, indent=4))
 
 KMI_SERVER_URL = env('KMI_SERVER_URL', 'https://kmi.dbca.wa.gov.au')
 DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express

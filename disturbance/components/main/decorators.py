@@ -39,14 +39,6 @@ def update_settings_handler(func):
     @return:
     """
     def wrapper(*args, **kwargs):
-        for param in args:
-            if isinstance(param, HttpRequest) or isinstance(param, Request) or isinstance(param, WSGIRequest):
-                web_url = param.META.get('HTTP_HOST', None)
-                if web_url in settings.APIARY_URL:
-                    settings.SYSTEM_NAME = settings.APIARY_SYSTEM_NAME
-                    settings.SYSTEM_NAME_SHORT = 'Apiary'
-                    settings.BASE_EMAIL_TEXT = 'disturbance/emails/apiary_base_email.txt'
-                    settings.BASE_EMAIL_HTML = 'disturbance/emails/apiary_base_email.html'
         return func(*args, **kwargs)
     return wrapper
 
