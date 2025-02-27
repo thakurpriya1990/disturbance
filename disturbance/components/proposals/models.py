@@ -3158,8 +3158,8 @@ class ExportDocument(models.Model):
 # --------------------------------------------------------------------------------------
 @python_2_unicode_compatible
 class QuestionOption(models.Model):
-    label = models.CharField(max_length=255, unique=True)
-    value = models.CharField(max_length=255)
+    label = models.CharField(max_length=1024, unique=True)
+    value = models.CharField(max_length=1024)
 
     class Meta:
         app_label = 'disturbance'

@@ -32,8 +32,6 @@ from disturbance.components.main.decorators import basic_exception_handler, time
 from disturbance.components.proposals.utils import (
     save_proponent_data,
     save_assessor_data,
-    save_apiary_assessor_data, 
-    update_proposal_apiary_temporary_use,
     search_schema,
     gen_shapefile,
 )
@@ -44,7 +42,6 @@ from disturbance.settings import SITE_STATUS_DRAFT, SITE_STATUS_APPROVED, SITE_S
 from disturbance.utils import search_tenure, search_label, get_schema_questions
 from disturbance.components.main.utils import (
     check_db_connection,
-    get_template_group,
     handle_validation_error,
 
 )
@@ -119,7 +116,7 @@ from disturbance.components.approvals.serializers import ApprovalLogEntrySeriali
 from disturbance.components.compliances.models import Compliance
 from disturbance.components.main.serializers import DASMapLayerSqsSerializer
 
-from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_authorised_to_modify_draft, is_das_apiary_admin
+from disturbance.helpers import is_authorised_to_modify, is_customer, is_internal, is_authorised_to_modify_draft
 from django.core.files.base import ContentFile
 from rest_framework.pagination import PageNumberPagination
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
@@ -323,7 +320,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_internal/?format=datatables&draw=1&length=2
         """
-        template_group = get_template_group(request)
 
         qs = self.get_queryset()
         qs = self.filter_queryset(qs)
@@ -337,7 +333,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={
             'request':request,
-            'template_group': template_group
+            'template_group': 'DAS'
             }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
@@ -350,13 +346,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         http://localhost:8499/api/proposal_paginated/referrals_internal/?format=datatables&draw=1&length=2
         """
         #self.serializer_class = ReferralSerializer
-        template_group = get_template_group(request)
-        if template_group == 'apiary':
-            qs = Referral.objects.filter(apiary_referral__referral_group__members=request.user) \
-                    if is_internal(self.request) else Referral.objects.none()
-        #referral_id_list = []
-        else:
-            qs = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
+        qs = Referral.objects.filter(referral=request.user) if is_internal(self.request) else Referral.objects.none()
         #for r in qs_r:
          #   referral_id_list.append(r.id)
         #qs = self.filter_queryset(self.request, qs, self)
@@ -373,7 +363,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = DTReferralSerializer(result_page, context={
             'request':request,
-            'template_group': template_group
+            'template_group': 'DAS'
             }, many=True)
         return self.paginator.get_paginated_response(serializer.data)
 
@@ -385,7 +375,6 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
 
         http://localhost:8499/api/proposal_paginated/proposal_paginated_external/?format=datatables&draw=1&length=2
         """
-        template_group = get_template_group(request)
         qs = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
         qs = self.filter_queryset(qs)
 
@@ -398,7 +387,7 @@ class ProposalPaginatedViewSet(viewsets.ModelViewSet):
         result_page = self.paginator.paginate_queryset(qs, request)
         serializer = ListProposalSerializer(result_page, context={
             'request':request,
-            'template_group': template_group
+            'template_group': 'DAS'
             }, many=True)
         #serializer = DTProposalSerializer(result_page, context={'request':request}, many=True)
         return self.paginator.get_paginated_response(serializer.data)
@@ -658,32 +647,18 @@ class ProposalViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the internal/external dashboard filters """
-        template_group = get_template_group(request)
         region_qs = []
         activity_qs = []
         application_type_qs = []
         applicant_qs = []
-        if template_group == 'apiary':
-            qs = self.get_queryset().filter(
-                application_type__name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE]
-            )
-            submitter_qs = qs.filter(
-                submitter__isnull=False).filter(
-                    application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER,ApplicationType.TEMPORARY_USE]).distinct(
-                    'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
-            application_type_qs =  ApplicationType.objects.filter(
-                    name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, 
-                        #ApplicationType.TEMPORARY_USE
-                        ]).values_list(
-                        'name', flat=True).distinct()
-        else:
-            qs = self.get_queryset()
-            region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
-            district_qs =  qs.filter(district__isnull=False).values_list('district__name', flat=True).distinct()
-            submitter_qs = qs.filter(submitter__isnull=False).distinct(
-                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
-            applicant_qs = qs.filter(applicant__isnull=False).distinct(
-                            'applicant_id').values_list('applicant_id','applicant__organisation__name',)
+
+        qs = self.get_queryset()
+        region_qs =  qs.filter(region__isnull=False).values_list('region__name', flat=True).distinct()
+        district_qs =  qs.filter(district__isnull=False).values_list('district__name', flat=True).distinct()
+        submitter_qs = qs.filter(submitter__isnull=False).distinct(
+                        'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        applicant_qs = qs.filter(applicant__isnull=False).distinct(
+                        'applicant_id').values_list('applicant_id','applicant__organisation__name',)
 
 
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
@@ -697,9 +672,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
             submitters=submitters,
             application_types=application_type_qs,
             applicants=applicants,
-            ##processing_status_choices = [i[1] for i in Proposal.PROCESSING_STATUS_CHOICES],
-            ##processing_status_id_choices = [i[0] for i in Proposal.PROCESSING_STATUS_CHOICES],
-            ##customer_status_choices = [i[1] for i in Proposal.CUSTOMER_STATUS_CHOICES],
             approval_status_choices = [i[1] for i in Approval.STATUS_CHOICES],
         )
         return Response(data)
@@ -1758,28 +1730,16 @@ class ReferralViewSet(viewsets.ModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the external dashboard filters """
-        template_group = get_template_group(request)
         region_qs = []
         application_type_qs = []
         activity_qs = []
-        if template_group == 'apiary':
-            qs = Referral.objects.filter(apiary_referral__referral_group__members=request.user) \
-                    if is_internal(self.request) else Referral.objects.none()
-            application_type_qs =  ApplicationType.objects.filter(
-                    name__in=[ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, 
-                        #ApplicationType.TEMPORARY_USE
-                        ]).values_list(
-                        'name', flat=True).distinct()
-            submitter_qs = qs.filter(proposal__submitter__isnull=False).filter(proposal__application_type__name__in=[ApplicationType.APIARY,ApplicationType.SITE_TRANSFER]).order_by(
-                    'proposal__submitter').distinct('proposal__submitter').values_list(
-                            'proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
-        else:
-            qs =  self.get_queryset().filter(referral=request.user)
-            region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
-            #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
-            activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
-            submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list(
-                    'proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
+
+        qs =  self.get_queryset().filter(referral=request.user)
+        region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+        #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
+        activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
+        submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list(
+                'proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
 
         #submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list('proposal__submitter__first_name','proposal__submitter__last_name','proposal__submitter__email')
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
@@ -2919,17 +2879,11 @@ class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
         try:
 
             sections = ProposalType.objects.all()
-            # proposal_types = [
-            #     {
-            #         'label': s.name_with_version,
-            #         'value': s.id,
-            #     } for s in sections if not s.apiary_group_proposal_type and s.latest
-            # ]
             proposal_types = [
                 {
                     'label': s.name_with_version,
                     'value': s.id,
-                } for s in sections if not s.apiary_group_proposal_type
+                } for s in sections
             ]
 
             return Response(
@@ -3147,7 +3101,6 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
     @list_route(methods=['GET',])
     def filter_list(self, request, *args, **kwargs):
         """ Used by the internal/external dashboard filters """
-        template_group = get_template_group(request)
         region_qs = []
         activity_qs = []
         application_type_qs = []
