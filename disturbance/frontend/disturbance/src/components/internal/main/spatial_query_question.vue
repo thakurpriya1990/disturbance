@@ -1431,7 +1431,7 @@ export default {
                 body: JSON.stringify(data)
             }).then(async (response)=>{
                 if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    return response.json().then(err => { throw err });
                 }
                 const res_body = await response.json();
                 console.log('Response: ' + JSON.stringify(res_body));
@@ -1460,6 +1460,7 @@ export default {
                 self.num_layers_utilised = res_body['layer_data'] ? uniq(res_body['layer_data'].map((item) => item.layer_name)).length : 0; // unique layers used
             }).catch(error => {
                 console.log('Error: ' + JSON.stringify(error))
+                self.requesting = false;
                 swal.fire({
                     title:'Error',
                     // helpers.apiVueResourceError(error),
