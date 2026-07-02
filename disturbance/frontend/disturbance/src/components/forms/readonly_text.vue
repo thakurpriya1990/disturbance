@@ -7,7 +7,7 @@
                 <div v-else class="col-md-9">
                     <textarea :readonly="readonly" :type="type" class="form-control" :name="name" :value="value"></textarea>
                 </div> -->
-                <div class="print-text-value col-md-9 mb-3" style="display:none;"><br>{{ localValue }}</div>
+                <div v-if="localValue" class="print-text-value col-md-9" style="display:none;">{{ localValue }}</div>
                 <div class="mb-3 col-md-9 form-textarea-value">
                     <textarea :readonly="readonly" :type="type" class="form-control" :name="name" :value="localValue"  @input="onInput"></textarea>
                 </div>
@@ -51,6 +51,10 @@ export default {
             display: block !important;
             white-space: pre-wrap;
             word-wrap: break-word;
+            padding: 0 20px 0 10px !important; /* top right bottom left */
+            width: 100%;
+            box-sizing: border-box;
+            margin-top: 0 !important;
         }
         .form-textarea-value {
             display: none !important;

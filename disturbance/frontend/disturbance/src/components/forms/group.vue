@@ -1,7 +1,7 @@
 <template>
-    <div class="mb-3 pb-3">
+    <div class="mb-3 pb-0">
         <div class="card">
-            <div class="card-body">
+            <div class="card-body mb-0 pb-0">
                 <label :id="id" class="form-label">{{ label }}</label>
                 <template v-if="help_text">
                     <HelpText :help_text="help_text" /> 
@@ -31,7 +31,7 @@
                 <span v-if="isPreviewMode && !isRemovable">
                     <a :id="'remove_'+name">Remove {{ label }}</a>
                 </span>
-                <div :class="{ 'row': true, 'collapse': true, 'show': isExpanded }" style="margin-top: 10px;">
+                <div :class="{ 'row': true, 'collapse': true, 'show': isExpanded }" style="margin-top: 0px;">
                     <div class="col-12">
                         <slot></slot>
                     </div>

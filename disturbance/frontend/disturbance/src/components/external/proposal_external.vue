@@ -922,13 +922,10 @@ export default {
         margin-top: 20px !important;
         overflow: visible !important;
     }*/
-    /* need this below css to display properly on chrome */
-    /*#external_proposal .row,
     #external_proposal [class*='col-'] {
         width: 100% !important;
         max-width: none !important;
-    } */
-     /* ------------------------- */
+    }
     .container {
         width: 100% !important;
         max-width: none !important;
