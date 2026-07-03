@@ -10,7 +10,7 @@
                                     <div class="form-group">
                                             <div v-show="select2Applied">
                                                 <label for="">Region</label>
-                                                <select class="form-select" ref="filterRegion" v-model="filterProposalRegion" @change="chainedSelectActivity(filterProposalRegion)">
+                                                <select class="form-select" ref="filterRegion" v-model="filterProposalRegion" @change="chainedSelectFilters(filterProposalRegion)">
                                                     <option v-for="r in regions" :value="r.id" :key="r.id">{{r.search_term}}</option>
                                                 </select>
                                             </div>
@@ -1625,10 +1625,10 @@
                             const region = vm.regions.find(region => region.search_term.toLowerCase() === 'warren');
                             if(region){
                                 vm.filterProposalRegion = region.id; // warren
-                                vm.chainedSelectActivity(region.id)
+                                vm.chainedSelectFilters(region.id)
                             } else {
                                 vm.filterProposalRegion = vm.regions[0].id;
-                                vm.chainedSelectActivity(vm.regions[0].id)
+                                vm.chainedSelectFilters(vm.regions[0].id)
                             }
                             vm.fetchProposals();
                         }
@@ -1637,11 +1637,13 @@
                     });
                 //console.log(vm.regions);
             },
-            /* fetch activities based on selected region and reset dependent filters */
-            chainedSelectActivity: function(region_id){
+            /* fetch activities,submitters, proponents based on selected region and reset dependent filters */
+            chainedSelectFilters: function(region_id){
                 let vm = this;
                 // Reset dependent filters
                 vm.filterProposalActivity = "All";
+                vm.filterProposalApplicant = "All";
+                vm.filterProposalSubmitter = "All";
 
                 // Fetch activities based on selected region
                 fetch(`${api_endpoints.filter_list_map}?region_id=${region_id}`).then(
@@ -1651,6 +1653,8 @@
                         }
                         let filter_lists = await response.json();
                         vm.activity_titles = filter_lists.activities;
+                        vm.proposal_submitters = filter_lists.submitters;
+                        vm.proposal_applicants = filter_lists.applicants;
                     }).catch((error) => {
                         console.log(error);
                     });
