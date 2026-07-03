@@ -1879,7 +1879,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         activity_qs = []
         if template_group == 'das':
             qs =  self.get_queryset().filter(referral=request.user)
-            region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+            region_qs = qs.filter(proposal__region__isnull=False).order_by('proposal__region__name').distinct('proposal__region__name').values_list('proposal__region__name', flat=True)
             #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
             activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
             submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list(
