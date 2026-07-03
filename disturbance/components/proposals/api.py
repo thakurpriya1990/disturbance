@@ -1879,7 +1879,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
         activity_qs = []
         if template_group == 'das':
             qs =  self.get_queryset().filter(referral=request.user)
-            region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+            region_qs = qs.filter(proposal__region__isnull=False).order_by('proposal__region__name').distinct('proposal__region__name').values_list('proposal__region__name', flat=True)
             #district_qs =  qs.filter(proposal__district__isnull=False).values_list('proposal__district__name', flat=True).distinct()
             activity_qs =  qs.filter(proposal__activity__isnull=False).order_by('proposal__activity').distinct('proposal__activity').values_list('proposal__activity', flat=True).distinct()
             submitter_qs = qs.filter(proposal__submitter__isnull=False).order_by('proposal__submitter').distinct('proposal__submitter').values_list(
@@ -3330,17 +3330,17 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         if template_group == 'das':
             qs = self.get_queryset().exclude(
                 application_type__name__in=apiary_proposal_types)
-            region_qs =  qs.filter(region__isnull=False).values_list('region_id', 'region__name').distinct()
-            submitter_qs = qs.filter(submitter__isnull=False).distinct(
-                            'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
-            applicant_qs = qs.filter(applicant__isnull=False).distinct(
-                        'applicant_id').values_list('applicant_id','applicant__organisation__name',)
-
+        region_qs =  qs.filter(region__isnull=False).values_list('region_id', 'region__name').distinct()
         application_type_qs =  qs.filter(application_type__isnull=False, application_type__visible=True).values_list('application_type__name', flat=True).distinct()
-        # fetch region specific activities 
         if region_id:
             qs = qs.filter(region__id=region_id)
+        
+        submitter_qs = qs.filter(submitter__isnull=False).distinct(
+                        'submitter__email').values_list('submitter__first_name','submitter__last_name','submitter__email')
+        applicant_qs = qs.filter(applicant__isnull=False).distinct(
+                    'applicant_id').values_list('applicant_id','applicant__organisation__name',)
         activity_qs =  qs.filter(activity__isnull=False).values_list('activity', flat=True).distinct()
+
         submitters = [dict(email=i[2], search_term='{} {} ({})'.format(i[0], i[1], i[2])) for i in submitter_qs]
         applicants = [dict(id=i[0], search_term='{}'.format(i[1])) for i in applicant_qs]
         regions = [dict(id=i[0], search_term='{}'.format(i[1])) for i in region_qs]
