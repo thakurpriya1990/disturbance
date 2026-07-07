@@ -52,7 +52,7 @@
             </div>
         </div>
 
-        <modal :showModal="showQuestionModal" modal_id="showQuestionModal-id" transition="modal fade" @ok="ok()" title="Spatial Query Question" :force="true"> 
+        <modal :showModal="showQuestionModal" modal_id="showQuestionModal-id" transition="modal fade" @ok="ok()" title="Spatial Query Question" :force="true" :large="true"> 
             <div class="container-fluid">
     <!--
                 <div id="error" v-if="missing_fields.length > 0" style="margin: 10px; padding: 5px; color: red; border:1px solid red;">
@@ -841,7 +841,7 @@ export default {
 		            },
                     { 
                         data: "id",
-                        className: "noexport",
+                        className: "none noexport", // the className = None will always hide action column in collapsed view
                         width: "10%",
                         mRender:function (data,type,full) {
                             var column;

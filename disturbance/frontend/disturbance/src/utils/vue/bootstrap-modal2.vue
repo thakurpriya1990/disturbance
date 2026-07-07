@@ -258,19 +258,19 @@
     }
     
     .modal-sm {
-	    width: 300px;
+	    max-width: 300px;
     }
     .modal-md {
-	    width: 810px;
+	    max-width: 810px;
     }
     .modal-lg {
-	    width: 900px;
+	    max-width: 900px;
     }
     .modal-xl {
-	    width: 990px;
+	    max-width: 990px;
     }
     .modal-xxl {
-	    width: 1080px;
+	    max-width: 1080px;
     }
 
 /*
