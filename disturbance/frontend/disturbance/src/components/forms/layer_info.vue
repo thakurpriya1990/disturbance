@@ -6,8 +6,9 @@
                 <div class="">
  
                   <div class="row">
-                      <div class="col-md-6" style="color:blue">Layer last updated: <span p style="color:blue" v-html="layer_date"></span></div>
-                        <p class="col-md-6" style="color:blue" v-html="layer_name"></p>
+                      <!-- <div class="col-md-6" style="color:blue">Layer last updated: <span p style="color:blue" v-html="layer_date"></span></div> 
+                             <p class="col-md-6" style="color:blue" v-html="layer_name"></p> -->
+                    <p style="color:blue" v-html="layer_name"></p>
 
                   </div>
                   <div v-if="new_layer_updated && new_layer_name" class="row">
@@ -39,11 +40,19 @@ export default {
             if(this.layer_value && this.layer_value.sqs_data && Array.isArray(this.layer_value.sqs_data.layers)) {
                 // Step 1: look at each nested layer entry.
                 // use Set() to remove the duplicate layer names in case of multiple layers with same name and different operator response.
-                const layerNames = [...new Set(this.layer_value.sqs_data.layers
+                const layerNames = [...new Set(
+                    this.layer_value.sqs_data.layers
                     // Step 2: keep only layers that have a non-empty operator response.
                     .filter(layer => Array.isArray(layer.operator_response) ? layer.operator_response.length > 0 : layer.operator_response)
                     // Step 3: pull the layer name from layer_details when it exists for (type=radio,checkbox,select,multiselect) else pull directly layer_name when it exists for type=textarea/text. 
-                    .map(layer => layer.layer_details && layer.layer_details.layer_name ? layer.layer_details.layer_name : layer.layer_name)
+                    .map(layer => {
+                        // layer.layer_details && layer.layer_details.layer_name ? layer.layer_details.layer_name : layer.layer_name)
+                        const name = layer.layer_details && layer.layer_details.layer_name ? layer.layer_details.layer_name : layer.layer_name;
+                        
+                        const modifiedDate = layer.layer_details && layer.layer_details.layer_modified_date ? ' - ' + layer.layer_details.layer_modified_date : ' - ' + layer.layer_modified_date;
+                        // build layer name + optional modified date
+                        return name ? name + modifiedDate : null;
+                    })
                     // Step 4: drop any empty values before joining.
                     .filter(layerName => layerName)
                 )];
@@ -54,6 +63,9 @@ export default {
             else if(this.layer_value && Object.prototype.hasOwnProperty.call(this.layer_value, 'layer_name')) {
                 // Fallback for the older flat structure.
                 lay_name= this.layer_value.layer_name;
+                if (this.layer_value && Object.prototype.hasOwnProperty.call(this.layer_value, 'layer_modified_date')) {
+                  lay_name= lay_name + ' - ' +this.layer_value.layer_modified_date;
+                }
             }
             return lay_name;
         },
