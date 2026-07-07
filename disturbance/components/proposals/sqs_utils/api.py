@@ -420,7 +420,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
         schema, _found = search_label(proposal.schema, mlq.question.question)
         if _found is not True or all(not d for d in schema):
             # schema is empty
-            return JsonResponse(data={'errors': f'SpatialQuery Question not found in proposal schema <br/> {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(data={'errors': f'SpatialQuery Question not found in proposal schema {lodgement_number}'}, status=status.HTTP_400_BAD_REQUEST)
 
         ''' End Checks '''
 
