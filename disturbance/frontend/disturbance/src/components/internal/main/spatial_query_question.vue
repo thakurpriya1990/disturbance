@@ -1437,7 +1437,7 @@ export default {
                 console.log('Response: ' + JSON.stringify(res_body));
                 if (self.is_admin) {
 		            self.sqs_response = JSON.stringify(res_body, null, 4);
-                } else if (res_body.layer_data.length > 0) {
+                } else if (res_body.layer_data && res_body.layer_data.length > 0) {
                     // summary response
                     let sqs_response_basic = res_body.layer_data[0].sqs_data
                     sqs_response_basic.section = res_body.layer_data[0].name
@@ -1464,7 +1464,7 @@ export default {
                 swal.fire({
                     title:'Error',
                     // helpers.apiVueResourceError(error),
-                    text:error,
+                    text:JSON.stringify(error),
                     icon:'error',
                     target: document.body,
                     didOpen: () => {

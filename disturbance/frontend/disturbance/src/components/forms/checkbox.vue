@@ -53,7 +53,14 @@ export default {
                     // Step 2: keep only layers that have a non-empty operator response.
                     .filter(layer => Array.isArray(layer.operator_response) ? layer.operator_response.length > 0 : layer.operator_response)
                     // Step 3: pull the layer name from layer_details when it exists.
-                    .map(layer => layer.layer_details && layer.layer_details.layer_name ? layer.layer_details.layer_name : layer.layer_name)
+                    .map(layer => {
+                        // layer.layer_details && layer.layer_details.layer_name ? layer.layer_details.layer_name : layer.layer_name)
+                        const name = layer.layer_details && layer.layer_details.layer_name ? layer.layer_details.layer_name : layer.layer_name;
+
+                        const modifiedDate = layer.layer_details && layer.layer_details.layer_modified_date ? ' - ' + layer.layer_details.layer_modified_date : ' - ' + layer.layer_modified_date;
+                        // build layer name + optional modified date
+                        return name ? name + modifiedDate : null;
+                    })
                     // Step 4: drop any empty values before joining.
                     .filter(layerName => layerName)
                 )];
@@ -61,13 +68,17 @@ export default {
                 // Step 5: show all matching names as one readable string.
                 lay_name = layerNames.join(', ');
             } 
+            // it is going in this loop when checkbox question has multiple layers but only one layer intersects so then there is no sqs_data.layers array it just have sqs_data.layer_details
             else if(this.layer_value && Object.prototype.hasOwnProperty.call(this.layer_value, 'layer_name')) {
                 // Fallback for the older flat structure.
                 lay_name= this.layer_value.layer_name;
+                if (this.layer_value && Object.prototype.hasOwnProperty.call(this.layer_value, 'layer_modified_date')) {
+                  lay_name= lay_name + ' - ' +this.layer_value.layer_modified_date;
+                }
             }
-            if (this.layer_value && Object.prototype.hasOwnProperty.call(this.layer_value, 'layer_modified_date')) {
-                lay_name= lay_name + ' - ' +this.layer_value.layer_modified_date;
-            }
+            // if (this.layer_value && Object.prototype.hasOwnProperty.call(this.layer_value, 'layer_modified_date')) {
+            //     lay_name= lay_name + ' - ' +this.layer_value.layer_modified_date;
+            // }
             return lay_name;
       },
   },
