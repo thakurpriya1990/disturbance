@@ -314,10 +314,15 @@ class ApprovalViewSet(viewsets.ModelViewSet):
                     current_proposal__application_type__name__in=apiary_proposal_types
                 )
         organisation_id = request.query_params.get('organisation_id')
+        # Accept optional region/district params to narrow dependent filter lists
+        region_param = request.query_params.get('region')
         if organisation_id:
             qs = qs.filter(current_proposal__applicant_id=organisation_id)
-        organisation_id = request.query_params.get('organisation_id')
+        # Regions always returned unfiltered so the dropdowns stay complete
         region_qs =  qs.filter(current_proposal__region__isnull=False).values_list('current_proposal__region__name', flat=True).distinct()
+        import ipdb; ipdb.set_trace()
+        if region_param:
+                qs = qs.filter(current_proposal__region__name=region_param)
         activity_qs =  qs.filter(current_proposal__activity__isnull=False).values_list('current_proposal__activity', flat=True).distinct()
         data = dict(
             regions=region_qs,

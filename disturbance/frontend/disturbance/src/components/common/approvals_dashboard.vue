@@ -197,6 +197,8 @@ export default {
             } else {
                 vm.$refs.proposal_datatable.vmDataTable.column('current_proposal__region__name:name').search('').draw();
             }
+            // Re-fetch activities, submitters, applicants filtered by selected region
+            this.fetchDependentFilterLists();
         },
         filterProposalActivity: function() {
             let vm = this;
@@ -646,13 +648,32 @@ export default {
             }
             //return title;
         },
+        // Builds the filter_list API URL with optional organisation_id, regions and districts params
+        buildFilterListUrl: function(region) {
+            let vm = this;
+            let params = new URLSearchParams();
+            if (vm.organisation_id) {
+                params.append('organisation_id', vm.organisation_id);
+            }
+            if (region) {
+                params.append('region', region);
+            }
+            let url = api_endpoints.filter_list_approvals;
+            let qs = params.toString();
+            if (qs) {
+                url += '?' + qs;
+            }
+            return url;
+        },
 
         fetchFilterLists: function(){
             let vm = this;
-            let url = api_endpoints.filter_list_approvals;
-            if (vm.organisation_id) {
-                url += `?organisation_id=${encodeURIComponent(vm.organisation_id)}`;
-            }
+            // let url = api_endpoints.filter_list_approvals;
+            // if (vm.organisation_id) {
+            //     url += `?organisation_id=${encodeURIComponent(vm.organisation_id)}`;
+            // }
+            // Builds the filter_list API URL with optional organisation_id, region params
+            let url = vm.buildFilterListUrl();
 
             fetch(url).then(
                 async (response) => {
@@ -668,6 +689,27 @@ export default {
                     console.log(error);
                 });
             //console.log(vm.regions);
+        },
+        // Called when region selection changes.
+        // Re-calls filter_list with the selected regions so that
+        // activities, submitters narrowed to matching proposals.
+        fetchDependentFilterLists: function(){
+            let vm = this;
+            let url = vm.buildFilterListUrl(vm.filterProposalRegion);
+            fetch(url).then( async (response) => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err });
+                }
+                let data = await response.json();
+                vm.proposal_activityTitles = data.activities;
+                vm.proposal_submitters = data.submitters;
+                
+                // Reset selections to 'All'
+                vm.filterProposalActivity = 'All';
+                vm.filterProposalSubmitter = 'All';
+            }).catch(error => {
+                console.log(error);
+            });
         },
 
         addEventListeners: function(){
