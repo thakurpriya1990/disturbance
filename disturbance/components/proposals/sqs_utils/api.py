@@ -1442,7 +1442,7 @@ class SpatialQueryRenderer(DatatablesRenderer):
             data, accepted_media_type, renderer_context)
 
 
-class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
+class SpatialQueryQuestionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Questions' tab """
     filter_backends = (SpatialQueryQuestionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
@@ -1547,7 +1547,7 @@ class SpatialQueryQuestionPaginatedViewSet(viewsets.ModelViewSet):
 #        return response
 
 
-class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
+class SpatialQueryMetricsPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
     filter_backends = (SpatialQueryMetricsFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
@@ -1599,7 +1599,7 @@ class SpatialQueryMetricsPaginatedViewSet(viewsets.ModelViewSet):
         return response
 
 
-class SpatialQueryMetricsDetailsPaginatedViewSet(viewsets.ModelViewSet):
+class SpatialQueryMetricsDetailsPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     """ For the dashboard table - http://localhost:8000/internal/schema 'Spatial Query Metrics' tab """
     #filter_backends = (SpatialQueryMetricsFilterBackend,)
     pagination_class = DatatablesPageNumberPagination

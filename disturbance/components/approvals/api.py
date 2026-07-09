@@ -133,7 +133,7 @@ class ApprovalFilterBackend(DatatablesFilterBackend):
 #        return super(ApprovalRenderer, self).render(data, accepted_media_type, renderer_context)
 
 
-class ApprovalPaginatedViewSet(viewsets.ModelViewSet):
+class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ApprovalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     #renderer_classes = (ApprovalRenderer,)
@@ -635,7 +635,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
         
 
-class ApprovalDocumentPaginatedViewSet(viewsets.ModelViewSet):
+class ApprovalDocumentPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ApprovalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     #renderer_classes = (ApprovalRenderer,)

@@ -288,7 +288,7 @@ class ProposalFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class ProposalPaginatedViewSet(viewsets.ModelViewSet):
+class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     #filter_backends = (DatatablesFilterBackend,)
     filter_backends = (ProposalFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
@@ -2398,7 +2398,7 @@ class SchemaMasterlistFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class SchemaMasterlistPaginatedViewSet(viewsets.ModelViewSet):
+class SchemaMasterlistPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (SchemaMasterlistFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     #renderer_classes = (JSONRenderer,BrowsableAPIRenderer,SchemaMasterlistRenderer,) #if we need the custom renderer classes we should set it like this
@@ -2675,7 +2675,7 @@ class SchemaQuestionFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class SchemaQuestionPaginatedViewSet(viewsets.ModelViewSet):
+class SchemaQuestionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (SchemaQuestionFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     #renderer_classes = (SchemaQuestionRenderer,)
@@ -3043,7 +3043,7 @@ class SchemaProposalTypeFilterBackend(DatatablesFilterBackend):
 #            data, accepted_media_type, renderer_context)
 
 
-class SchemaProposalTypePaginatedViewSet(viewsets.ModelViewSet):
+class SchemaProposalTypePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (SchemaProposalTypeFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     #renderer_classes = (SchemaProposalTypeRenderer,)
