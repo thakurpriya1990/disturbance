@@ -655,7 +655,7 @@ export default {
             if (vm.organisation_id) {
                 params.append('organisation_id', vm.organisation_id);
             }
-            if (region) {
+            if (region!='All' && region!=null && region!=undefined) {
                 params.append('region', region);
             }
             let url = api_endpoints.filter_list_approvals;

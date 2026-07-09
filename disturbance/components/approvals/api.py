@@ -320,7 +320,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             qs = qs.filter(current_proposal__applicant_id=organisation_id)
         # Regions always returned unfiltered so the dropdowns stay complete
         region_qs =  qs.filter(current_proposal__region__isnull=False).values_list('current_proposal__region__name', flat=True).distinct()
-        import ipdb; ipdb.set_trace()
         if region_param:
                 qs = qs.filter(current_proposal__region__name=region_param)
         activity_qs =  qs.filter(current_proposal__activity__isnull=False).values_list('current_proposal__activity', flat=True).distinct()
