@@ -296,9 +296,13 @@ class ComplianceViewSet(viewsets.ModelViewSet):
                     proposal__application_type__name__in=apiary_proposal_types
                 )
         organisation_id = request.query_params.get('organisation_id')
+        # Accept optional region param to narrow dependent filter lists
+        regions_param = request.query_params.get('regions', '')
         if organisation_id:
             qs = qs.filter(proposal__applicant_id=organisation_id)
         region_qs =  qs.filter(proposal__region__isnull=False).values_list('proposal__region__name', flat=True).distinct()
+        if regions_param:
+                qs = qs.filter(proposal__region__name__in=regions_param.split(','))
         activity_qs =  qs.filter(proposal__activity__isnull=False).values_list('proposal__activity', flat=True).distinct()
         data = dict(
             regions=region_qs,
