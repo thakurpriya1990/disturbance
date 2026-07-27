@@ -23,6 +23,39 @@ from disturbance.helpers import is_internal
 logger = logging.getLogger(__name__)
 
 
+COMPARE_VERSION_INCLUDED_FIELDS = {
+    # 'documents',
+    # 'documents_url',
+    # 'requirements',
+    # 'shapefile_json',
+    # 'gis_info',
+    # 'layer_data',
+    # 'latest_referrals',
+    # 'allowed_assessors',
+    # 'reversion_history',
+    'data',
+    'assessor_data',
+    'comment_data',
+    # "layer_data",
+    "documents",
+}
+
+
+def filter_compare_version_payload(data):
+    """Return a reduced payload suitable for in-browser JSON compare.
+
+    Excludes fields known to be large so diff generation does not
+    overwhelm browser memory.
+    """
+    # Only keep fields that are useful for revision comparison.
+    # Large nested payloads are excluded so compare responses stay small.
+    return {
+        key: value
+        for key, value in data.items()
+        if key in COMPARE_VERSION_INCLUDED_FIELDS
+    }
+
+
 class InternalAuthorizationView(views.APIView): # pylint: disable=too-many-ancestors
     """ This ViewSet adds authorization that only allows internal users to
         return data.
@@ -117,7 +150,16 @@ class GetVersionView(InternalAuthorizationView):
 
         serializer = serializer_class(instance,context={'request':request})
 
-        return Response(serializer.data)
+        # return Response(serializer.data)
+
+        response_data = serializer.data
+
+        # compare_fields_only = request.GET.get('compare_fields_only', '').lower() in {'1', 'true', 'yes'}
+        compare_fields_only = request.GET.get('compare_fields_only')
+        if compare_fields_only:
+            response_data = filter_compare_version_payload(response_data)
+
+        return Response(response_data)
 
 class GetCompareVersionsView(InternalAuthorizationView):
     """ Returns the difference between two specific versions of any model object
