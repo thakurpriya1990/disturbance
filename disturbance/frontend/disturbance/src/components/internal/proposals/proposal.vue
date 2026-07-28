@@ -33,7 +33,7 @@
                             {{ formatDate(proposal.lodgement_date) }}
                             <input type="hidden" id="lodgement_date" value="">
                         </div>
-                        <RevisionHistory v-if="showHistory" ref="revision_history" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @compare_model_versions="compareProposalVersions" />
+                        <RevisionHistory v-if="showHistory" ref="revision_history" :revision_history_url="revision_history_url" :model_object="proposal" :history_context="history_context" @update_model_object="updateProposalVersion" @new_proposal_compare_versions="newProposalCompareVersions"/>
                     </div>
                 </div>
                 <div class="mb-3">
@@ -215,7 +215,7 @@
             </div>
             <!-- <div class="col-md-1"></div> -->
             <div class="col-md-9">
-                <div v-if="proposal_compare_version!=0" class="card-body border-top sticky-footer">
+                <!-- <div v-if="proposal_compare_version!=0" class="card-body border-top sticky-footer">
                     Comparing
                     <span class="badge bg-secondary">
                         {{proposal.lodgement_number}}-{{reversion_history_length}}: {{formatDate(proposal.lodgement_date)}}   
@@ -226,7 +226,7 @@
                         {{formatDate(compare_version_lodgement_date)}} ({{proposal_compare_version}} Older than current)
                     </span>
                     
-                </div>
+                </div> -->
                 <template v-if="proposal.processing_status == 'With Approver' || isFinalised">
                     <ApprovalScreen :proposal="proposal" @refreshFromResponse="refreshFromResponse"/>
                 </template>
@@ -331,6 +331,7 @@
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" :relevant_applicant_address="proposal.applicant.address" :relevant_applicant_name="proposal.applicant.name" :reissued="proposal.reissued" @refreshFromResponse="refreshFromResponse"/>
+        <ProposalJsonCompareModal ref="proposal_json_compare_modal" />
     </div>
 </template>
 <script>
@@ -345,6 +346,7 @@ import AmendmentRequest from './amendment_request.vue'
 import Requirements from './proposal_requirements.vue'
 import ProposedApproval from './proposed_issuance.vue'
 import ApprovalScreen from './proposal_approval.vue'
+import ProposalJsonCompareModal from './proposal_json_compare_modal.vue'
 import CommsLogs from '@common-utils/comms_logs.vue'
 import RevisionHistory from '@common-utils/revision_history.vue'
 import MoreReferrals from '@common-utils/more_referrals.vue'
@@ -449,6 +451,7 @@ export default {
         Requirements,
         ProposedApproval,
         ApprovalScreen,
+        ProposalJsonCompareModal,
         CommsLogs,
         RevisionHistory,
         MoreReferrals,
@@ -624,6 +627,61 @@ export default {
             if (!document_res.ok) { return document_res.json().then(err => { throw err }); }
             const document_data_diffs = await document_res.json();
             this.applyFileRevisionNotes(document_data_diffs.data)            
+        },
+        newProposalCompareVersions: async function({compare_version, lodgement_date}) {
+            /* This handles the user clicks. Change the labels of entries and add all selected 
+               revision differences to the DOM. */
+
+            // Always Compare against the most recent version.
+            if(0 != this.versionCurrentlyShowing) {
+                this.updateProposalVersion(0)
+                this.versionCurrentlyShowing = 0
+            }
+
+            this.compare_version_lodgement_date = lodgement_date
+            this.proposal_compare_version = compare_version
+
+            try {
+                await this.openJsonCompareModal(compare_version, lodgement_date)
+            } catch (error) {
+                console.log(error)
+                swal.fire({
+                    title: 'Compare Error',
+                    text: 'Unable to load the JSON compare view for these revisions.',
+                    icon: 'error',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                    },
+                })
+            }
+        },
+        fetchProposalVersionForCompare: async function(proposal_version) {
+            const url = `/api/history/version/disturbance/proposals/Proposal/InternalProposalSerializer/${this.proposalId}/${proposal_version}/?compare_fields_only=true`
+            const response = await fetch(url)
+            if (!response.ok) { return response.json().then(err => { throw err }); }
+            return response.json()
+        },
+        openJsonCompareModal: async function(compare_version, lodgement_date) {
+            const newerVersion = this.versionCurrentlyShowing
+            const [newerData, olderData] = await Promise.all([
+                this.fetchProposalVersionForCompare(newerVersion),
+                this.fetchProposalVersionForCompare(compare_version),
+            ])
+
+            const lodgementNumber = this.original_proposal && this.original_proposal.lodgement_number
+                ? this.original_proposal.lodgement_number
+                : this.proposal.lodgement_number
+
+            this.$refs.proposal_json_compare_modal.open({
+                newerVersion: newerVersion,
+                olderVersion: compare_version,
+                lodgementNumber: lodgementNumber,
+                reversionHistoryLength: this.reversion_history_length,
+                newerDate: newerData.lodgement_date,
+                olderDate: olderData.lodgement_date || lodgement_date,
+                newerData: newerData,
+                olderData: olderData,
+            })
         },
         applyRevisionNotes: async function (diffdata) {
             let vm = this;

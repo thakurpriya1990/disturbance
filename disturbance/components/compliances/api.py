@@ -127,7 +127,7 @@ class ComplianceFilterBackend(DatatablesFilterBackend):
         return queryset
 
 
-class CompliancePaginatedViewSet(viewsets.ModelViewSet):
+class CompliancePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = (ComplianceFilterBackend,)
     pagination_class = DatatablesPageNumberPagination
     #renderer_classes = (ComplianceRenderer,)

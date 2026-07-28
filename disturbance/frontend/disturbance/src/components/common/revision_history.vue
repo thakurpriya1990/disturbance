@@ -8,7 +8,7 @@
                             <tr>
                                 <th>Lodgement</th>
                                 <th style="padding-left: 10px;">Date</th>
-                                <!-- <th style="padding-left: 10px; text-align:center">Actions</th> -->
+                                <th style="padding-left: 10px; text-align:center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -17,8 +17,10 @@
                                 <td style="padding-left: 10px;">{{ formatDateNoTime(revision.date) }}</td>
                                 <!-- Commented for now as the Compare is broken, need to work later if required -->
                                 <!-- <td style="padding-left: 10px;" v-on:click="getCompareVersions(revision['index'],revision.date)">
-                                    <span v-bind:id=revision.id v-html=revision.action></span>
                                 </td> -->
+                                <td style="padding-left: 10px; text-align:center;" v-on:click="revision.index !== 0 && getCompareVersions(revision['index'],revision.date)">
+                                    <span v-bind:id=revision.id v-html=revision.action></span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -27,8 +29,7 @@
                     <table class="table small-table">
                         <thead>
                             <tr>
-                                <!-- <th style="visibility: hidden;">Version</th> -->
-                                <th>Action</th>
+                                <th style="visibility: hidden;">Version</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -132,7 +133,8 @@ export default {
             }
             
             // Process the comparison of the model versions ins the component above
-            await this.$emit("compare_model_versions", {compare_version, lodgement_date})
+            // await this.$emit("compare_model_versions", {compare_version, lodgement_date})
+            await this.$emit("new_proposal_compare_versions", {compare_version, lodgement_date})
         },
         getViewVersion: async function (version) {
             /*  Updates the history panel to show which version is being viewed
@@ -280,7 +282,7 @@ export default {
 }
 
 .scrollable-div {
-    height:100px;
+    height:150px;
     white-space: nowrap;
     overflow-y: scroll;
     font-size:13px;
