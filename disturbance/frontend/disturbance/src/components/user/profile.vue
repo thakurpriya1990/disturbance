@@ -66,7 +66,7 @@
                 </FormSection>
             </div>
         </div>
-        <div class="row">
+        <!-- <div class="row">
             <div class="col-sm-12">
                 <FormSection :form-collapse="true" label="Address Details" Index="address_details" subtitle="Provide your address details">
                     <form class="form-horizontal" action="index.html" method="post">
@@ -122,8 +122,8 @@
                        </form>
                 </FormSection> 
             </div>
-        </div>
-        <div class="row">
+        </div> -->
+        <!-- <div class="row">
             <div class="col-sm-12">
                 <FormSection :form-collapse="true" label="Contact Details" Index="contact_details" subtitle="Provide your contact details">
                     <form class="form-horizontal" action="index.html" method="post">
@@ -171,7 +171,7 @@
                     </form>
                 </FormSection>
             </div>
-        </div>
+        </div> -->
         <div class="row">
             <div class="col-sm-12">
                 <FormSection :form-collapse="true" label="Organisation" Index="organisation_details" :subtitle="organisationSectionTitleText">
@@ -417,7 +417,8 @@ export default {
             return this.$route.name == 'first-time'
         },
         completedProfile: function(){
-            return this.profile.contact_details && this.profile.personal_details && this.profile.address_details;
+            // return this.profile.contact_details && this.profile.personal_details && this.profile.address_details;
+            return this.profile.personal_details;
         }
     },
     methods: {
