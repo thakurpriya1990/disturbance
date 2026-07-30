@@ -12,6 +12,7 @@ import Compliance from '../compliances/access.vue'
 import Approval from '../approvals/approval_wrapper.vue'
 import Reports from '@/components/reports/reports.vue'
 import SchemaManager from '../main/schema_manager.vue'
+import ProposalMapGeoserver from '@/components/common/das/proposal_map_geoserver.vue'
 
 export default
 {
@@ -108,6 +109,11 @@ export default
             path: 'schema',
             component: SchemaManager,
             name:"schema-manager"
+        },
+        {
+            path: 'proposal_map_geoserver',
+            component: ProposalMapGeoserver,
+            name:"proposal-map-geoserver"
         },
         /*{
             path: 'proposal',
