@@ -331,7 +331,7 @@
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" :relevant_applicant_address="proposal.applicant.address" :relevant_applicant_name="proposal.applicant.name" :reissued="proposal.reissued" @refreshFromResponse="refreshFromResponse"/>
-        <ProposalJsonCompareModal ref="proposal_json_compare_modal" />
+        <ProposalJsonCompareModal ref="proposal_json_compare_modal" @exit_compare_mode="exitCompareMode" />
     </div>
 </template>
 <script>
@@ -634,7 +634,7 @@ export default {
 
             // Always Compare against the most recent version.
             if(0 != this.versionCurrentlyShowing) {
-                this.updateProposalVersion(0)
+                // this.updateProposalVersion(0)
                 this.versionCurrentlyShowing = 0
             }
 
@@ -682,6 +682,14 @@ export default {
                 newerData: newerData,
                 olderData: olderData,
             })
+        },
+        exitCompareMode: async function() {
+            if (this.$refs.revision_history && this.$refs.revision_history.getViewVersion) {
+                await this.$refs.revision_history.getViewVersion(0)
+                return
+            }
+
+            // await this.updateProposalVersion(0)
         },
         applyRevisionNotes: async function (diffdata) {
             let vm = this;
