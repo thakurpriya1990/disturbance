@@ -42,9 +42,10 @@
                     </table>
                 </div>
             </div>
-            <div v-if="compareModeActive" align="center">
+            <!-- commented as now this button is added in proposal_json_compare_modal window -->
+            <!-- <div v-if="compareModeActive" align="center">
                 <span>&nbsp;<button class="btn btn-primary w-100" @click="getViewVersion(0)">Exit Compare Mode</button></span>
-            </div>
+            </div> -->
         </div>
     </div>
 </template>
@@ -154,7 +155,7 @@ export default {
             }
            
             // Process the change of model version in the component above
-            await this.$emit("update_model_object", version)
+            // await this.$emit("update_model_object", version)
         },
         showRevisionHistory: function(){
             let vm = this;

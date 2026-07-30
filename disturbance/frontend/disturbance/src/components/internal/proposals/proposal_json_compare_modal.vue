@@ -56,7 +56,8 @@
                 </div>
             </div>
             <template #footer>
-                <button type="button" class="btn btn-secondary" @click="cancel">Close</button>
+                <!-- <button type="button" class="btn btn-secondary" @click="cancel">Close</button> -->
+                <span>&nbsp;<button type="button" class="btn btn-primary w-100" @click="exitCompareMode">Exit Compare Mode</button></span>
             </template>
         </modal>
     </div>
@@ -154,7 +155,11 @@ export default {
             }
         },
         cancel: function() {
+            this.exitCompareMode();
+        },
+        exitCompareMode: function() {
             this.close();
+            this.$emit('exit_compare_mode');
         },
         close: function() {
             this.isModalOpen = false;

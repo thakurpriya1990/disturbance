@@ -285,25 +285,25 @@ CRON_CLASSES = [
 #     },
 # }
 
-CKEDITOR_5_CONFIGS = {
-    "default": {
-        "toolbar": [
-            "heading", "|",
-            "bold", "italic", "underline", "strikethrough", "code", "subscript", "superscript", "|",
-            "link", "imageUpload", "blockQuote", "insertTable", "mediaEmbed", "codeBlock", "|",
-            "bulletedList", "numberedList", "todoList", "outdent", "indent", "|",
-            "undo", "redo", "alignment", "horizontalLine", "pageBreak", "specialCharacters", "removeFormat", "|",
-            "fontSize", "fontFamily", "fontColor", "fontBackgroundColor", "|",
-            "highlight", "htmlEmbed", "sourceEditing", "findAndReplace", "selectAll", "|",
-            "exportPdf", "exportWord", "textPartLanguage", "style", "mention", "restrictedEditingException"
-        ],
-        "height": 300,
-        "width": "50%",
-    },
-    "awesome_ckeditor": {
-        "toolbar": ["bold", "italic"],
-    },
-}
+# CKEDITOR_5_CONFIGS = {
+#     "default": {
+#         "toolbar": [
+#             "heading", "|",
+#             "bold", "italic", "underline", "strikethrough", "code", "subscript", "superscript", "|",
+#             "link", "imageUpload", "blockQuote", "insertTable", "mediaEmbed", "codeBlock", "|",
+#             "bulletedList", "numberedList", "todoList", "outdent", "indent", "|",
+#             "undo", "redo", "alignment", "horizontalLine", "pageBreak", "specialCharacters", "removeFormat", "|",
+#             "fontSize", "fontFamily", "fontColor", "fontBackgroundColor", "|",
+#             "highlight", "htmlEmbed", "sourceEditing", "findAndReplace", "selectAll", "|",
+#             "exportPdf", "exportWord", "textPartLanguage", "style", "mention", "restrictedEditingException"
+#         ],
+#         "height": 300,
+#         "width": "50%",
+#     },
+#     "awesome_ckeditor": {
+#         "toolbar": ["bold", "italic"],
+#     },
+# }
 
 BUILD_TAG = env('BUILD_TAG', hashlib.md5(os.urandom(32)).hexdigest())  # URL of the Dev app.js served by webpack & express
 # DEV_APP_BUILD_URL = env('DEV_APP_BUILD_URL')  # URL of the Dev app.js served by webpack & express
