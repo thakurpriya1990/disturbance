@@ -4,50 +4,25 @@
         <div class="col-sm-12">
             <FormSection :formCollapse="false" label="Proposals Map (Geoserver)" Index="proposals_map_geoserver">
                 <div class="map-wrapper">
-                    <div v-show="!fullscreen" id="filter_search_row_wrapper">
+                    <!-- <div v-show="!fullscreen" id="filter_search_row_wrapper">
                         <div class="filter_search_wrapper" style="margin-bottom: 5px;" id="filter_search_row">
                             <div>
-                                <div v-show="select2Applied">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <!--
-                                            <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
-                                            Get GeoJSON File</button>
-                                            -->
-                                            <!--
-                                            <button type="button" class="btn btn-primary" @click="shapefileButtonClicked(true)"><i class="fa fa-download"></i>
-                                                Get GeoJSON File</button>
-                                            -->
-                                            <button type="button" class="btn btn-primary btn-margin" @click="shapefileButtonClicked(false)" :disabled="download_shapefile_btn_disabled">
-                                                <i v-if="download_shapefile_btn_disabled" class="fa fa-download fa-spinner fa-spin"></i>
-                                                <i v-else class="fa fa-download"></i>
-                                                Download Shapefile
-                                            </button>
-                                            <a class="btn btn-primary" href="/filelist" target="_blank">View Download Files</a>
-                                        </div>
-                                        <!-- <div class="col-md-3">
-                                            <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
-                                                Download Image</button>
-                                            <a id="image-download" download="map.png"></a>
-                                        </div> -->
-                                        
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <button type="button" class="btn btn-primary btn-margin" @click="shapefileButtonClicked(false)" :disabled="download_shapefile_btn_disabled">
+                                            <i v-if="download_shapefile_btn_disabled" class="fa fa-download fa-spinner fa-spin"></i>
+                                            <i v-else class="fa fa-download"></i>
+                                            Download Shapefile
+                                        </button>
+                                        <a class="btn btn-primary" href="/filelist" target="_blank">View Download Files</a>
                                     </div>
-                                    <div class="row mb-2"></div>
                                 </div>
+                                <div class="row mb-2"></div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
                     
 
-                    <!-- <div class="d-flex justify-content-end align-items-center mb-2">
-                        <button type="button" class="btn btn-primary" @click="geoJsonButtonClicked"><i class="fa fa-download"></i>
-                            Get GeoJSON</button>
-                    </div>
-                    <div class="d-flex justify-content-end align-items-center mb-2">
-                        <button type="button" class="btn btn-primary" id="export-png" @click="exportPNG"><i class="fa fa-download"></i>
-                            Download PNG</button>
-                        <a id="image-download" download="map.png"></a>
-                    </div> -->
                     <div :id="elem_id" class="map" style="position: relative;">
                         
                         <div v-show="fullscreen" id="filter_search_on_map">
@@ -62,14 +37,6 @@
                             <img id="basemap_osm" :src="mapIconUrl" @click="setBaseLayer('osm')" />
                         </div>
                         <div class="optional-layers-wrapper">
-                            <div class="optional-layers-button">
-                                <template v-if="mode === 'layer'">
-                                    <img src="@/assets/info-bubble.svg" @click="set_mode('measure')" />
-                                </template>
-                                <template v-else>
-                                    <img src="@/assets/ruler.svg" @click="set_mode('layer')" />
-                                </template>
-                            </div>
                             <div style="position:relative">
                                 <transition>
                                     <div v-if="optionalLayers.length" class="optional-layers-button" @mouseover="hover=true">
@@ -127,37 +94,26 @@
     import TileWMS from 'ol/source/TileWMS';
     import WMTS from 'ol/source/WMTS';
     import WMTSTilegrid from 'ol/tilegrid/WMTS';
-    import { Draw, Modify } from 'ol/interaction';
+    import { Modify } from 'ol/interaction';
     import VectorLayer from 'ol/layer/Vector';
     import VectorSource from 'ol/source/Vector';
     import { Circle as CircleStyle, Fill, Stroke, Style, Text } from 'ol/style';
     import { FullScreen as FullScreenControl, MousePosition as MousePositionControl } from 'ol/control';
-    import { LineString, Point } from 'ol/geom';
+    import { Point } from 'ol/geom';
     import GeoJSON from 'ol/format/GeoJSON';
     import Overlay from 'ol/Overlay';
     import { zoomToCoordinates } from '@/components/common/apiary/site_colours.js'
-    import MeasureStyles, { formatLength } from '@/components/common/apiary/measure.js'
-    // import Datatable from '@vue-utils/datatable.vue'
     import Cluster from 'ol/source/Cluster';
-    import 'select2/dist/css/select2.min.css'
-    // import 'select2-bootstrap-theme/dist/select2-bootstrap.min.css'
-    import Awesomplete from 'awesomplete'
     import { api_endpoints, helpers } from '@/utils/hooks'
     import {getCenter} from 'ol/extent'
     import {get as getProjection} from 'ol/proj';
     import {getTopLeft, getWidth} from 'ol/extent'
     import { toRaw } from 'vue';
-    // import satelliteIcon from '../../../assets/satellite_icon.jpg'
-    // import mapIcon from '../../../assets/map_icon.png'
-
     export default {
         name: 'ProposalMapGeoserver',
         data: function(){
 
             return {
-                // AT the moment (specify the path) this works but not ideal, need to find a way to load images from assets folder
-                // satelliteIconUrl: '/static/disturbance_vue/src/satellite_icon.jpg',
-                // mapIconUrl: '/static/disturbance_vue/src/map_icon.png',
                 satelliteIconUrl: new URL('../../../assets/satellite_icon.jpg', import.meta.url).href,
                 mapIconUrl: new URL('../../../assets/map_icon.png', import.meta.url).href,
                 newVectorLayer: null,
@@ -183,53 +139,8 @@
                 optionalLayers: [],
                 hover: false,
                 mode: 'normal',
-                drawForMeasure: null,
-                measurementLayer: null,
-                style: MeasureStyles.defaultStyle,
-                segmentStyle: MeasureStyles.segmentStyle,
-                labelStyle: MeasureStyles.labelStyle,
-                segmentStyles: null,
-
-                
                 fullscreen: false,
-                
-
-                useSelect2: true,
-                select2Applied: true,
-                select2Obj: null,
-
-                
-                awe: null,
-                mapboxAccessToken: null,
-                search_box_id: uuidv4(),
-                search_input_id: uuidv4(),
-                search_address_latlng_text: '',
-
-                //filters
-                activity_titles : [],
-                application_types : [],
-                regions: [],
-                proposal_submitters: [],
-                proposal_applicants: [],
                 proposal_status: [],
-                external_status:[
-                    {value: 'draft', name: 'Draft'},
-                    {value: 'with_assessor', name: 'Under Review'},
-                    {value: 'approved', name: 'Approved'},
-                    {value: 'declined', name: 'Declined'},
-                ],
-                internal_status:[
-                    {value: 'draft', name: 'Draft'},
-                    {value: 'with_assessor', name: 'With Assessor'},
-                    {value: 'with_referral', name: 'With Referral'},
-                    {value: 'with_assessor_requirements', name: 'With Assessor (Requirements)'},
-                    {value: 'with_approver', name: 'With Approver'},
-                    {value: 'approved', name: 'Approved'},
-                    {value: 'declined', name: 'Declined'},
-                    {value: 'discarded', name: 'Discarded'},
-                ],
-                // satelliteIcon,
-                // mapIcon,
 
                 is_external: false,
                 is_internal: true,
@@ -244,13 +155,6 @@
             
         },
         computed: {
-            ruler_colour: function(){
-                if (this.mode === 'normal'){
-                    return '#aaa';
-                } else {
-                    return '#53c2cf';
-                }
-            },
             loading_proposals: function(){
                 return false
             },
@@ -260,82 +164,6 @@
 
         },
         methods: {
-            retrieveMapboxAccessToken: async function(){
-                let ret_val = await $.ajax('/api/geocoding_address_search_token')
-                return ret_val
-            },
-            initAwesomplete: function(){
-                var vm = this;
-                var element_search = document.getElementById(vm.search_input_id);
-                this.awe = new Awesomplete(element_search);
-                $(element_search).on('keyup', function(ev){
-                    var keyCode = ev.keyCode || ev.which;
-                    if ((48 <= keyCode && keyCode <= 90)||(96 <= keyCode && keyCode <= 105)||(keyCode===8)||(keyCode===46)){
-                        vm.search(ev.target.value);
-                        return false;
-                    }
-                }).on('awesomplete-selectcomplete', function(ev){
-                    ev.preventDefault();
-                    ev.stopPropagation();
-
-                    let currentZoomLevel = vm.map.getView().getZoom()
-                    let targetZoomLevel = 14
-                    if (targetZoomLevel < currentZoomLevel){
-                        targetZoomLevel = currentZoomLevel
-                    }
-
-                    /* User selected one of the search results */
-                    for (var i=0; i<vm.suggest_list.length; i++){
-                        if (vm.suggest_list[i].value == ev.target.value){
-                            var latlng = {lat: vm.suggest_list[i].feature.geometry.coordinates[1], lng: vm.suggest_list[i].feature.geometry.coordinates[0]};
-                            zoomToCoordinates(vm.map, [latlng.lng, latlng.lat], targetZoomLevel)
-                        }
-                    }
-                    return false;
-                });
-            },
-            download_content: function (content, fileName, contentType) {
-                var a = document.createElement("a");
-                var file = new Blob([content], { type: contentType });
-                a.href = URL.createObjectURL(file);
-                a.download = fileName;
-                a.click();
-            },
-            create_geoJson: function () {
-                let vm = this
-                // let json = new GeoJSON().writeFeatures(vm.proposalQuerySource.getFeatures(), {})
-                // vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
-                let features = vm.proposalQuerySource.getFeatures()
-                if(features.length>0){
-                        features.forEach(function (f){
-                            let proposal = f.getProperties().proposal;
-                            if(proposal){
-                                f.setProperties({
-                                    org :       proposal.applicant_name ? proposal.applicant_name : '',
-                                    app_no:     proposal.approval_lodgement_number ? proposal.approval_lodgement_number : '',
-                                    prop_title: proposal.title ? proposal.title : '',
-                                    appissdate: proposal.approval_issue_date ? proposal.approval_issue_date : '',
-                                    appstadate: proposal.approval_start_date ? proposal.approval_start_date : '',
-                                    appexpdate: proposal.approval_expiry_date ? proposal.approval_expiry_date : '',
-                                    //proptype:   proposal.proposal_type ? proposal.proposal_type : '',
-                                    proptype:   proposal.proposal_type_name ? proposal.application_type_name : '',
-                                    appstatus:  proposal.approval_status ? proposal.approval_status : '',
-                                    assocprop:  proposal.assocprop ? proposal.assocprop : '',
-                                    propurl:    proposal.proposal_url ? proposal.proposal_url : '',
-                                })
-                            }
-                        });
-                    }
-                let json = new GeoJSON().writeFeatures(features, {})
-                console.log(json)
-                vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
-                //return new GeoJSON().writeFeatures(features, {})
-            },
-            geoJsonButtonClicked: function () {
-                let vm = this
-                let json = vm.create_geoJson();
-                vm.download_content(json, 'DAS_layers.geojson', 'text/plain');
-            },
             shapefileButtonClicked: function (geojson) {
                 let vm = this
                 vm.show_spinner = true;
@@ -375,106 +203,8 @@
                 });
 
             },
-            exportPNG: function () {
-                let vm = this;
-                vm.map.once('rendercomplete', function () {
-                    const mapCanvas = document.createElement('canvas');
-                    const size = vm.map.getSize();
-                    mapCanvas.width = size[0];
-                    mapCanvas.height = size[1];
-                    const mapContext = mapCanvas.getContext('2d');
-                    Array.prototype.forEach.call(
-                    vm.map.getViewport().querySelectorAll('.ol-layer canvas, canvas.ol-layer'),
-                    function (canvas) {
-                        if (canvas.width > 0) {
-                        const opacity =
-                            canvas.parentNode.style.opacity || canvas.style.opacity;
-                        mapContext.globalAlpha = opacity === '' ? 1 : Number(opacity);
-                        let matrix;
-                        const transform = canvas.style.transform;
-                        if (transform) {
-                            // Get the transform parameters from the style's transform matrix
-                            matrix = transform
-                            .match(/^matrix\(([^(]*)\)$/)[1]
-                            .split(',')
-                            .map(Number);
-                        } else {
-                            matrix = [
-                            parseFloat(canvas.style.width) / canvas.width,
-                            0,
-                            0,
-                            parseFloat(canvas.style.height) / canvas.height,
-                            0,
-                            0,
-                            ];
-                        }
-                        // Apply the transform to the export map context
-                        CanvasRenderingContext2D.prototype.setTransform.apply(
-                            mapContext,
-                            matrix
-                        );
-                        const backgroundColor = canvas.parentNode.style.backgroundColor;
-                        if (backgroundColor) {
-                            mapContext.fillStyle = backgroundColor;
-                            mapContext.fillRect(0, 0, canvas.width, canvas.height);
-                        }
-                        mapContext.drawImage(canvas, 0, 0);
-                        }
-                    }
-                    );
-                    mapContext.globalAlpha = 1;
-                    mapContext.setTransform(1, 0, 0, 1, 0, 0);
-                    const link = document.getElementById('image-download');
-                    link.href = mapCanvas.toDataURL();
-                    link.click();
-                });
-            vm.map.renderSync();
-            },
-            
-            applySelect2: function(){
-                let vm = this
-
-                if (!vm.select2Applied){
-                    $(vm.$refs.filterStatus).select2({
-                        "theme": "bootstrap-5",
-                        allowClear: false,
-                        placeholder:"Select Status",
-                        multiple:true,
-                        data: vm.filter_status_options,
-                        dropdownParent: $('#filters_parent'),
-                    }).
-                    on('select2:select', function(){
-                        
-                    }).
-                    on('select2:unselect', function(){
-                        
-                    })
-
-                    $(vm.$refs.filterAvailability).select2({
-                        "theme": "bootstrap-5",
-                        allowClear: false,
-                        placeholder:"Select Availabilities",
-                        multiple:true,
-                        data: vm.filter_availability_options,
-                        dropdownParent: $('#filters_parent'),
-                    }).
-                    on("select2:select",function () {
-                        
-                    }).
-                    on("select2:unselect",function () {
-                        
-                    })
-                    vm.select2Applied = true
-                }
-            },
             clearProposalsFromMap: function(){
                 this.proposalQuerySource.clear()
-            },
-            clearAjaxObjects: function(){
-            },
-            addProposalsToMap: function(proposal_geojson){
-                let features = (new GeoJSON()).readFeatures(proposal_geojson);
-                this.proposalQuerySource.addFeatures(features);
             },
             loadFeatures: function (proposals) {
                 let vm = this;
@@ -497,21 +227,6 @@
                     // Zoom to loaded features
                     vm.displayAllFeatures(vm.proposalQuerySource);
                 });
-            },
-            addEventListeners: function () {
-                let vm = this
-
-                $("#app").on('click', 'a[data-contact-licence-holder]', this.contactLicenceHolder)
-
-                let search_input_elem = $('#' + vm.search_input_id)
-                search_input_elem.on('input', function(ev){
-                    vm.search(ev.target.value);
-                })
-            },
-            
-            
-            toggleStatusFilterDropdown: function(){
-                $(".status_filter_dropdown").slideToggle("fast")
             },
             mouseEnter: function(e){
                 let vm = this;
@@ -544,82 +259,6 @@
             },
             set_mode: function(mode){
                 this.mode = mode
-                if (this.mode === 'layer'){
-                    this.clearMeasurementLayer()
-                    this.drawForMeasure.setActive(false)
-                } else if (this.mode === 'measure') {
-                    this.drawForMeasure.setActive(true)
-                }
-            },
-            addJoint: function(point, styles){
-                let s = new Style({
-                    image: new CircleStyle({
-                        radius: 2,
-                        fill: new Fill({
-                            color: '#3399cc'
-                        }),
-                    }),
-                })
-                s.setGeometry(point)
-                styles.push(s)
-
-                return styles
-            },
-            styleFunctionForMeasurement: function (feature){
-                let vm = this
-                let for_layer = feature.get('for_layer', false)
-
-                const styles = []
-                styles.push(vm.style)  // This style is for the feature itself
-                styles.push(vm.segmentStyle)
-
-                ///////
-                // From here, adding labels and tiny circles at the end points of the linestring
-                ///////
-                const geometry = feature.getGeometry();
-                if (geometry.getType() === 'LineString'){
-                    let segment_count = 0;
-                    geometry.forEachSegment(function (a, b) {
-                        const segment = new LineString([a, b]);
-                        const label = formatLength(segment);
-                        const segmentPoint = new Point(segment.getCoordinateAt(0.5));
-
-                        // Add a style for this segment
-                        let segment_style = vm.segmentStyle.clone() // Because there could be multilpe segments, we should copy the style per segment
-                        segment_style.setGeometry(segmentPoint)
-                        segment_style.getText().setText(label)
-                        styles.push(segment_style)
-
-                        if (segment_count == 0){
-                            // Add a tiny circle to the very first coordinate of the linestring
-                            let p = new Point(a)
-                            vm.addJoint(p, styles)
-                        }
-                        // Add tiny circles to the end of the linestring
-                        let p = new Point(b)
-                        vm.addJoint(p, styles)
-
-                        segment_count++;
-                    });
-                }
-
-                if (!for_layer){
-                    // We don't need the last label when draw on the layer.
-                    let label_on_mouse = formatLength(geometry);  // Total length of the linestring
-                    let point = new Point(geometry.getLastCoordinate());
-                    vm.labelStyle.setGeometry(point);
-                    vm.labelStyle.getText().setText(label_on_mouse);
-                    styles.push(vm.labelStyle);
-                }
-
-                return styles
-            },
-            clearMeasurementLayer: function(){
-                let vm = this
-                let features = vm.measurementLayer.getSource().getFeatures()
-                features.forEach((feature) => {
-                    vm.measurementLayer.getSource().removeFeature(feature)
-                })
             },
             changeLayerVisibility: function(targetLayer){
                 targetLayer.setVisible(!targetLayer.getVisible())
@@ -714,7 +353,6 @@
                     canDelete: "no",
                     visible: !0,
                     source: new WMTS({
-                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
                         url: "/kb-proxy/geoserver/gwc/service/wmts",
                         format: "image/png",
                         layer: "kaartdijin-boodja-public:mapbox-streets-public",
@@ -723,13 +361,7 @@
                         tileGrid: m,
                         //crossOrigin: 'Anonymous'
                     })
-
-                        // url: "https://kmi.dpaw.wa.gov.au/geoserver/gwc/service/wmts",
-                        // format: "image/png",
-                        // layer: "kaartdijin-boodja-public:mapbox-streets-public",
-                        // style: 'default',
-                        // projection: 'EPSG:3857',
-                    })
+                })
                 
                 let streetsTileWMS = new TileWMS({
                 url: env['kb_server_url'] + '/geoserver/kaartdijin-boodja-public/wms',
@@ -749,13 +381,6 @@
                     type: 'base',
                     source: streetsTileWMS,
                     }),
-
-                // vm.tileLayerOsm = new TileLayer({
-                //     title: 'OpenStreetMap',
-                //     type: 'base',
-                //     visible: true,
-                //     source: new OSM(),
-                // });
 
                 vm.tileLayerSat = new TileLayer({
                     title: 'Satellite',
@@ -785,23 +410,6 @@
                 let clusterSource = new Cluster({
                     distance: 50,
                     source: vm.proposalQuerySource,
-                    // geometryFunction: (feature) => {
-                    //     // let resolution = this.map.getView().getResolution();
-                        
-                    //         let type = feature.getGeometry().getType();
-                    //         if (type === 'Polygon') {
-                    //             return feature.getGeometry().getInteriorPoint();
-
-                    //         } else if (type === 'LineString') {
-                    //             return feature.getGeometry().getCoordinateAt(0.5);
-
-                    //         } else if (type === 'Point') {
-                    //             return feature.getGeometry();
-                    //         } else if (type === 'MultiPolygon') {
-                    //             return new Point(getCenter(feature.getGeometry().getExtent()), 'XY');
-                    //         }
-                       
-                    // },
                     geometryFunction: (feature) => {
                         try {
                             const geometry = feature.getGeometry();
@@ -855,13 +463,9 @@
                         let featuresInClusteredFeature = clusteredFeature.get('features')
                         let size = featuresInClusteredFeature.length
                         let style = styleCache[size]
-                        //if(size == 1 || sameFeature){
                         if(size == 1 ){
-                        //if(size <= 2){
                             // When size is 1, which means the cluster feature has only one site
                             // we want to display it as dedicated style
-                            // let status = getStatusForColour(featuresInClusteredFeature[0])
-                            // return getApiaryFeatureStyle(status);
                             return zoomedInStyle;
                         }
                         let radius_in_pixel = 16
@@ -908,37 +512,6 @@
                     vm.fullscreen = false
                 })
                 vm.map.addControl(fullScreenControl)
-
-                // Measure tool
-                let draw_source = new VectorSource({ wrapX: false })
-                vm.drawForMeasure = new Draw({
-                    source: draw_source,
-                    type: 'LineString',
-                    style: vm.styleFunctionForMeasurement,
-                })
-                // Set a custom listener to the Measure tool
-                vm.drawForMeasure.set('escKey', '')
-                vm.drawForMeasure.on('change:escKey', function(){
-                    //vm.drawForMeasure.finishDrawing()
-                })
-                vm.drawForMeasure.on('drawstart', function(){
-                    vm.measuring = true
-                })
-                vm.drawForMeasure.on('drawend', function(){
-                    vm.measuring = false
-                })
-
-                // Create a layer to retain the measurement
-                vm.measurementLayer = new VectorLayer({
-                    title: 'Measurement Layer',
-                    source: draw_source,
-                    style: function(feature, resolution){
-                        feature.set('for_layer', true)
-                        return vm.styleFunctionForMeasurement(feature, resolution)
-                    },
-                });
-                vm.map.addInteraction(vm.drawForMeasure)
-                vm.map.addLayer(vm.measurementLayer)
 
                 // Show mouse coordinates
                 vm.map.addControl(new MousePositionControl({
@@ -1071,9 +644,7 @@
                                 }
                             }
                         }
-                    } else if (vm.mode === 'measure'){
-                        // When in measure mode, the styleFunction() is responsible for the drawing
-                    }
+                    } 
                 })
                 vm.map.on('pointermove', function(e) {
                     if (e.dragging) return;
@@ -1086,15 +657,6 @@
                     let features = vm.proposalQuerySource.getFeaturesInExtent(extent)
                     vm.$emit('featuresDisplayed', features)
                 });
-                //vm.map.on('postrender', function(){
-                //   console.log('postrender')
-                //});
-                //vm.map.on('loadstart', function(){
-                //   console.log('loadstart')
-                //});
-                //vm.map.on('loadend', function(){
-                //   console.log('loadend')
-                //});
                 if (vm.can_modify){
                     let modifyTool = new Modify({
                         source: vm.proposalQuerySource,
@@ -1117,17 +679,17 @@
                     });
                     vm.map.addInteraction(modifyTool);
                 }
-                document.addEventListener('keydown', vm.keydown, false)
+                // document.addEventListener('keydown', vm.keydown, false)
             },
-            keydown: function(evt){
-                let vm = this
+            // keydown: function(evt){
+            //     let vm = this
 
-                let charCode = (evt.which) ? evt.which : evt.keyCode;
-                if (charCode === 27 && vm.measuring === true){ //esc key
-                    //dispatch event
-                    this.drawForMeasure.set('escKey', Math.random());
-                }
-            },
+            //     let charCode = (evt.which) ? evt.which : evt.keyCode;
+            //     if (charCode === 27 && vm.measuring === true){ //esc key
+            //         //dispatch event
+            //         this.drawForMeasure.set('escKey', Math.random());
+            //     }
+            // },
             showPopupById: function(apiary_site_id){
                 let feature = this.proposalQuerySource.getFeatureById(apiary_site_id)
                 this.showPopup(feature)
@@ -1428,11 +990,6 @@
                 }
             },
 
-            contactLicenceHolder: function(e){
-                //let apiary_site_id = e.target.getAttribute("data-apiary-site-id");
-                // let apiary_site_id = e.target.getAttribute("data-contact-licence-holder");
-                e.stopPropagation()
-            },
             fetchProposals: async function(){
                 let vm=this;
                 // let _ajax_obj=null;
@@ -1468,15 +1025,8 @@
             },
         },
         
-        created: async function() {
-            let temp_token = await this.retrieveMapboxAccessToken()
-            this.mapboxAccessToken = temp_token.access_token
-        },
         mounted: function() {
             let vm = this;
-            this.$nextTick(() => {
-                vm.addEventListeners()
-            });
             vm.initMap()
             vm.fetchProposals()
             vm.setBaseLayer('osm')
@@ -1635,12 +1185,6 @@
         position: relative;
         z-index: 1100;
     }
-    /*
-    .table_apiary_site {
-        position: relative;
-        z-index: 10;
-    }
-    */
     .button_row {
         display: flex;
         justify-content: flex-end;
@@ -1649,57 +1193,8 @@
         color: #03a9f4;
         cursor: pointer;
     }
-    .status_filter_dropdown_wrapper {
-        position: relative;
-    }
-    .status_filter_dropdown_button {
-        cursor: pointer;
-        width: 100%;
-        position: relative;
-    }
-    .status_filter_dropdown {
-        position: absolute;
-        background: white;
-        display: none;
-        border-radius: 2px;
-        min-width: max-content;
-        padding: 0.5em;
-        border: 3px solid rgba(5, 5, 5, .1);
-    }
     .sub_option {
         margin-left: 1em;
-    }
-    .dropdown_arrow::after {
-        content: "";
-        width: 7px;
-        height: 7px;
-        border: 0px;
-        border-bottom: solid 2px #909090;
-        border-right: solid 2px #909090;
-        -ms-transform: rotate(45deg);
-        -webkit-transform: rotate(45deg);
-        transform: rotate(45deg);
-        position: absolute;
-        top: 50%;
-        right: 21px;
-        margin-top: -4px;
-    }
-    /*
-    .status_filter_dropdown {
-        position: absolute;
-        display: none;
-        background: white;
-        padding: 1em;
-    }
-    */
-    .select2-container {
-        z-index: 100000;
-    }
-    .select2-options {
-        z-index: 100000;
-    }
-    .dataTables_filter {
-        display: none !important;
     }
     .spinner_on_map {
         position: absolute;
@@ -1728,5 +1223,4 @@
 </style>
 
 <style>
-    @import '../apiary/map_address_search.css'
 </style>
