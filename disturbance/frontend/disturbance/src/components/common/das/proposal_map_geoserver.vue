@@ -272,6 +272,11 @@
                         }
                         let layers = await response.json();
                         for (var i = 0; i < layers.length; i++ ){
+                            // check if the layer name is 'DISTURBANCE_WA' to set it as default visible layer
+                            const layerName = (layers[i].layer_full_name || '').toUpperCase()
+                            // boolean to determine if the layer should be visible by default
+                            const isDefaultVisibleLayer = layerName.includes('DISTURBANCE_WA') || layerName === 'DISTURBANCE_WA'
+
                             let l = new TileWMS({
                                 // url: env['kmi_server_url'] + '/geoserver/' + layers[i].layer_group_name + '/wms',
                                 //url:'/kb-proxy/geoserver/' + layers[i].layer_group_name + '/wms',
@@ -289,7 +294,7 @@
 
                             let tileLayer= new TileLayer({
                                 title: layers[i].display_name.trim(),
-                                visible: false,
+                                visible: isDefaultVisibleLayer,
                                 source: l,
                             })
 
