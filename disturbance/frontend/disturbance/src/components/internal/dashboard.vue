@@ -34,7 +34,7 @@ import {
 from '@/utils/hooks'
 import FormSection from '@/components/forms/section_toggle.vue';
 export default {
-    name: 'ExternalDashboard',
+    name: 'InternalDashboard',
     data() {
         // let vm = this;
         return {

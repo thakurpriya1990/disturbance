@@ -27,8 +27,13 @@
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" href="/internal/search">
+        <a class="nav-link{% if 'search' in request.path %} active{% endif %}" href="/internal/search">
             Search
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link{% if 'proposal_map_geoserver' in request.path %} active{% endif %}" href="/internal/proposal_map_geoserver">
+            Proposals Map
         </a>
     </li>
 {% endif %}
