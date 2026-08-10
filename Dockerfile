@@ -106,6 +106,13 @@ RUN chmod 777 /app/tmp/
 # RUN export IPYTHONDIR=/app/logs/.ipython/
 #RUN python profile create 
 
+# Cleanup
+USER root
+RUN wget -q https://raw.githubusercontent.com/dbca-wa/wagov_utils/refs/heads/main/wagov_utils/bin/package_cleanup_2604.sh -O /tmp/package_cleanup_2604.sh || true
+RUN chmod 755 /tmp/package_cleanup_2604.sh || true
+RUN /tmp/package_cleanup_2604.sh || true
+USER oim
+
 
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]

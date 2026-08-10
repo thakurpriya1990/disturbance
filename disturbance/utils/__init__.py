@@ -740,6 +740,12 @@ def remove_prefilled_data(proposal):
             if data_keys:
                 new_data=find_and_remove_keys(proposal.data[0], data_keys)
                 proposal.data=[new_data]
+                '''
+                to resolve the issue when the layers are expired and when requested the partial prefill 
+                due to the existing layer_data for the data_keys, the questions still remains readonly which should be editable when no sqs returns value for the data_keys. 
+                So, clearing the layer_data to make the questions editable.
+                '''
+                proposal.layer_data=[]
         return proposal
     except:
         raise
