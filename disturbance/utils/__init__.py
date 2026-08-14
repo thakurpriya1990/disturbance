@@ -368,6 +368,22 @@ def get_schema_questions(dictionary):
     _dict = search_keys(dictionary, search_list=['name', 'label'])
     return [i['label'] for i in _dict if i['label']]
 
+def get_schema_questions_labels(dictionary):
+    '''
+    from disturbance.utils import get_schema_questions
+    p=Proposal.objects.get(id=1541)
+    qlist = get_schema_questions_labels(p.schema)
+    Out[52]:
+    [{'label': '2.0 What is the land tenure or classification?', 'name': 'Section2-0'},...]
+    
+    '''
+    _dict = search_keys(dictionary, search_list=['name', 'label'])
+    return [
+        {'label': i['label'], 'name': i['name']}
+        for i in _dict
+        if i.get('label') and i.get('name')
+    ]
+
 def search_keys_group(dictionary, search_list=['name', 'label', 'group']):
     """
     Return search_list pairs from

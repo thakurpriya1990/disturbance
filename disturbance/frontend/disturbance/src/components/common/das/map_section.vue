@@ -83,12 +83,22 @@
                             />
                                 <!--:style=prefill_button_color-->
                         </div>
+                        <div class="col-sm-3 prefill-btn">
+                            <input
+                            :disabled="prefill_button_disabled"
+                            @click="clear_expired_layer_data"
+                            type="button"
+                            value="Clear Expired Layers"
+                            class="btn btn-primary w-100"
+                            />
+                            <!--:style=prefill_button_color-->
+                        </div>
                         <div v-if="proposal.in_prefill_queue" class="col-sm-4 prefill-btn">
                             <label class="control-label pull-left" :style=prefill_button_color>Prefill Processing ...</label>
                         </div>
                     </div>
                 </div>
-            </FormSection>  
+            </FormSection>
         </div>
     </div>
 </template>
@@ -435,6 +445,70 @@
                     }).catch((error) => {
                         console.log(error);
                     });
+            },
+            clear_expired_layer_data: async function(){
+                let vm = this;
+                vm.showError=false;
+                vm.errorString='';
+                swal.fire({
+                    title: "Clear Expired Layer Data",
+                    text: `Are you sure you want to clear expired layer data for proposal ${vm.proposal.lodgement_number}?`,
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: 'Submit',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                        cancelButton: 'btn btn-secondary',
+                    },
+                }).then(async (swalresult) => {
+                    if (swalresult.isConfirmed) {
+                        try {
+                            const response = await fetch(helpers.add_endpoint_json(api_endpoints.proposals_sqs, vm.proposal.id + '/clear_proposal_expired_layer_data'), {
+                                method: 'POST',
+                                headers: {
+                                'Content-Type': 'application/json',
+                                },
+                                
+                            });
+
+                            if (!response.ok) {
+                                console.error('clear_expired_layer_data response error', response);
+                                const errorText = await response.text();
+                                throw new Error(errorText);
+                            }
+
+                            const res = await response.json();
+                            const resp_proposal = res.proposal;
+                            if(res) {
+                                swal.fire({
+                                    title: 'Success',
+                                    text: "Expired layer data cleared successfully",
+                                    icon: 'success',
+                                    customClass: {
+                                        confirmButton: 'btn btn-primary',
+                                    },
+                                });
+                                vm.$emit('refreshFromResponseProposal', resp_proposal);
+                            }
+                            
+                        } catch (err) {
+                            vm.showError = true;
+                            //vm.errorString = helpers.apiVueResourceError(err);
+                            vm.errorString = err.message || 'An error occurred while clearing expired layer data';
+                            swal.fire({
+                                title: 'Error',
+                                text: vm.errorString,
+                                icon: 'error',
+                                customClass: {
+                                    confirmButton: 'btn btn-primary',
+                                },
+                            });
+                        }
+                    }
+                },(error) => {
+                    console.log(error);
+                });
+                
             },
         },
         created: function() {
