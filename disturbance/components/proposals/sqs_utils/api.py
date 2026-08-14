@@ -33,7 +33,7 @@ from disturbance.components.proposals.email import (
     send_proposal_refresh_request_sent_email_notification,
     send_proposal_test_sqq_request_sent_email_notification,
 )
-from disturbance.utils import search_label, get_schema_questions
+from disturbance.utils import search_label, get_schema_questions, get_schema_questions_labels, handle_validation_error
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
 
 from django.shortcuts import redirect, get_object_or_404
@@ -613,24 +613,6 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
         # results for this question from the proposal before queuing a refresh.
         # NOTE: for checkbox/multi-select style questions this can include multiple
         # schema field names (children), but we only clear rows for EXPIRED layers.
-        def _collect_schema_names(schema_items):
-            names = set()
-
-            def _walk(node):
-                if isinstance(node, list):
-                    for child in node:
-                        _walk(child)
-                    return
-
-                if isinstance(node, dict):
-                    if node.get('name'):
-                        names.add(node.get('name'))
-                    if node.get('children'):
-                        _walk(node.get('children'))
-
-            _walk(schema_items)
-            return names
-
         def _pop_layer_data_rows(layer_data, schema_names, expired_layer_names=None):
             """
             Remove rows from layer_data whose 'name' is in schema_names.
@@ -687,19 +669,27 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
 
             _walk(schema_items)
             return names
-
+        # eg. <QuerySet [<SpatialQueryLayer: ILUA_Registered>, <SpatialQueryLayer: ILUA_Registered>]>
+        # gives the layers names for that masterlist_question_qs
         expired_layers_qs = SpatialQueryLayer.objects.filter(
             spatial_query_question__in=masterlist_question_qs,
             expiry__lte=datetime.now().date(),
         )
+        # e.g.[{'layer__layer_name': 'ILUA_Registered', 'spatial_query_question__question_id': 961, 'spatial_query_question__question__question': '3.3.1 Specify.'},
+        # {'layer__layer_name': 'ILUA_Registered', 'spatial_query_question__question_id': 961, 'spatial_query_question__question__question': '3.3.1 Specify.'}]
+        # gives the layer names and the masterlist question ids and questions for that masterlist_question_qs
         expired_layer_rows = list(expired_layers_qs.values(
             'layer__layer_name',
             'spatial_query_question__question_id',
             'spatial_query_question__question__question',
         ))
+        #  gives uniques layer names for that masterlist_question_qs
+        # eg. {'ILUA_Registered'}
         expired_layer_names = set(
             row['layer__layer_name'] for row in expired_layer_rows
         )
+        # {(961, '3.3.1 Specify.')}
+        # gives the unique masterlist question ids and questions for that masterlist_question_qs
         expired_masterlist_questions = {
             (row['spatial_query_question__question_id'], row['spatial_query_question__question__question'])
             for row in expired_layer_rows
@@ -727,11 +717,13 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
             # to check if ALL layers for a question are expired (eg for checkboxes we only want to clear cached layer data if ALL layers are expired, otherwise we may be clearing valid cached data for non-expired layers if we just check for the presence of any expired layers)
             today = datetime.now().date()
             expired_answer_labels = set()
+
             for spatial_query_question in masterlist_question_qs:
                 layers = list(spatial_query_question.spatial_query_layers.all())
                 if not layers:
                     continue
 
+                # check if all layers for this question are expired
                 all_layers_expired = all(
                     layer.expiry and layer.expiry <= today
                     for layer in layers
@@ -750,10 +742,6 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
                 schema_names_to_clear.update(
                     _collect_checkbox_child_schema_names(refresh_schema, expired_answer_labels)
                 )
-                # Fallback for non-checkbox questions or if answer mapping didn't resolve.
-                # if not schema_names_to_clear:
-                #     schema_names_to_clear.update(_collect_schema_names(refresh_schema))
-
             if not schema_names_to_clear:
                 logger.info(
                     f'Refresh cleanup skipped for proposal {proposal.lodgement_number}: '
@@ -1341,6 +1329,147 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
 
         except Exception as e:
             logger.error(f'{traceback.print_exc()}')
+            raise serializers.ValidationError(str(e))
+
+
+    @action(methods=['post'], detail=True)
+    @renderer_classes((JSONRenderer,))
+    def clear_proposal_expired_layer_data(self, request, *args, **kwargs):
+        try:
+            proposal = self.get_object()
+            """
+            Return SpatialQueryQuestion records limited to labels(questions) present in proposal.schema.
+            """
+            # get all SpatialQueryQuestion records (including expired ones) to check if any questions exist in the CDDP Question section
+            masterlist_question_qs = SpatialQueryQuestion.objects.all()
+            if not masterlist_question_qs.exists():
+               return Response(
+                   {'errors': 'There are no CDDP questions in Request. Check if CDDP questions exist and are not expired'},
+                   status=status.HTTP_400_BAD_REQUEST
+               )
+
+            # schema_questions e.g. [{'label': '2.0 What is the land tenure or classification?', 'name': 'Section2-0'},{'label': 'National Park', 'name': 'Section2-0-0'},...]
+            # this includes all schema questions (including nested ones) present in the proposal.schema, regardless of whether they have associated layers or not
+            schema_questions = get_schema_questions_labels(proposal.schema)
+            # create a mapping of schema question labels to their corresponding schema field names
+            # schema_question_map e.g. {'2.0 What is the land tenure or classification?': 'Section2-0', 'National Park': 'Section2-0-0',...}
+            schema_question_map = {
+                item.get('label'): item.get('name')
+                for item in schema_questions
+                if item.get('label')
+            }
+            # filter masterlist_question_qs to only include questions that are present in the schema_question_map
+            # ['8.8.1 Specify.', '8.8.1 Specify.', '8.8.1 Specify.',  '1.6.1 Are there any implications if the proposal is delayed?',...] 
+            questions = [
+                question
+                for question in masterlist_question_qs.values_list('question__question', flat=True)
+                if question in schema_question_map
+            ]
+            # get unique questions to avoid duplicate processing
+            # ['8.8.1 Specify.', '1.6.1 Are there any implications if the proposal is delayed?',...] 
+            unique_questions = list(dict.fromkeys(questions))
+            removed_schema_names = set()
+            layer_data_changed = False
+            
+            #  loop through each unique question and check if it has any associated layers (or expired layers)
+            for mlq_label in unique_questions:
+                # get the schema_name for the question label from the schema_question_map
+                schema_name = schema_question_map.get(mlq_label)
+                masterlist_question_qs = SpatialQueryQuestion.objects.filter(question__question=mlq_label)
+                #  this shouldn't happen as we already filter the masterlist_question_qs to only include questions that are present in the schema_question_map, but just in case
+                if not masterlist_question_qs.exists():
+                    logger.info(f'CDDP question does not exist. First create the question in the CDDP Question section: {mlq_label}')
+
+                #delete the previously filled layer data for this question(checkbox)from the proposal, as there are no longer any valid layers associated with this question
+                mlq_type = masterlist_question_qs[0].question.answer_type
+                if mlq_type in ['checkbox']:
+                    # no need to use this function at the moment so directly clearing the expired layer data for checkbox questions
+                    # self._cleanup_expired_layer_data_for_checkbox(
+                    #     proposal=proposal, 
+                    #     mlq_label=mlq_label,
+                    #     schema_name=schema_name,
+                    #     masterlist_question_qs=masterlist_question_qs,
+                    # )
+
+                    # to check if ALL layers for a question are expired (eg for checkboxes we only want to clear cached layer data if ALL layers are expired, 
+                    # otherwise we may be clearing valid cached data for non-expired layers if we just check for the presence of any expired layers)
+                    today = datetime.now().date()
+                    expired_answer_labels = set()
+                    
+                    for sqq in masterlist_question_qs:
+                        layers = list(sqq.spatial_query_layers.all())
+                        if not layers:
+                            continue
+        
+                        # check if all layers for this question are expired (true/false)
+                        all_layers_expired = all(
+                            layer.expiry and layer.expiry <= today
+                            for layer in layers
+                        )
+                        if all_layers_expired and sqq.answer_mlq and sqq.answer_mlq.label:
+                            expired_answer_labels.add(sqq.answer_mlq.label)
+
+                    if expired_answer_labels:
+                        # get the schema_names for the expired answer_labels
+                        expired_schema_names = {
+                            schema_question_map.get(label)
+                            for label in expired_answer_labels
+                            if schema_question_map.get(label)
+                        }
+                        # delete the previously filled layer data for this question from the proposal, as there are no longer any valid layers associated with this question
+                        if proposal.layer_data:
+                            original_length = len(proposal.layer_data)
+                            proposal.layer_data = [
+                                layer for layer in proposal.layer_data
+                                if layer.get('name') not in expired_schema_names
+                            ]
+                            if len(proposal.layer_data) != original_length:
+                                # adds the expired schema names to the removed_schema_names set
+                                removed_schema_names.update(expired_schema_names)
+                                layer_data_changed = True
+            
+                # this serializer returns mlq's with only their associated layers (not expired) for the given question label
+                serializer_all = DTSpatialQueryQuestionSerializer(masterlist_question_qs, context={'data': request.data, 'filter_expired': True}, many=True)
+                rendered_all = JSONRenderer().render(serializer_all.data).decode('utf-8')
+                masterlist_questions_all = json.loads(rendered_all)
+
+                # fetch questions where there are no layers (or expired layers)(specifically questions other than checkbox)
+                masterlist_question_json = [mlq for mlq in masterlist_questions_all if len(mlq['layers'])>0]
+                if len(masterlist_question_json) == 0:
+                    #delete the previously filled layer data for this question from the proposal, as there are no longer any valid layers associated with this question
+                    if proposal.layer_data:
+                        original_length = len(proposal.layer_data)
+                        proposal.layer_data = [layer for layer in proposal.layer_data if layer.get('name') != schema_name]
+                        if len(proposal.layer_data) != original_length:
+                            removed_schema_names.add(schema_name)
+                            layer_data_changed = True
+
+                    question = masterlist_question_qs[0].question.question
+                    # TODO : do we still need to look the schema_name in layer_data if the layers were removed after the first prefill
+                    logger.info(f'CDDP Question does not have any associated GIS layers: \'{question}\'.')
+            
+            if layer_data_changed:
+                version_comment = 'Remove layer data for expired layer configuration'
+                if removed_schema_names:
+                    version_comment = (
+                        f'{version_comment}: {", ".join(sorted(removed_schema_names))}'
+                    )
+                proposal.save(update_fields=['layer_data'], version_comment=version_comment)
+                logger.info(
+                    f'Cleared expired layer data for proposal {proposal.lodgement_number}. '
+                    f'Removed schema names: {sorted(removed_schema_names)}'
+                )
+
+            serializer = self.get_serializer(proposal)
+            return Response(
+                {
+                    'proposal': serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+        
+        except Exception as e:
+            print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
 
