@@ -33,7 +33,7 @@ from disturbance.components.proposals.email import (
     send_proposal_refresh_request_sent_email_notification,
     send_proposal_test_sqq_request_sent_email_notification,
 )
-from disturbance.utils import search_label, get_schema_questions, get_schema_questions_labels, handle_validation_error
+from disturbance.utils import search_label, get_schema_questions, get_schema_questions_labels
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
 
 from django.shortcuts import redirect, get_object_or_404
