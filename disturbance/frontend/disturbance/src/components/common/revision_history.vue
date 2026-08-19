@@ -155,7 +155,7 @@ export default {
             }
            
             // Process the change of model version in the component above
-            // await this.$emit("update_model_object", version)
+            await this.$emit("update_model_object", version)
         },
         showRevisionHistory: function(){
             let vm = this;
