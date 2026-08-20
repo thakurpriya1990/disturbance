@@ -154,7 +154,7 @@
                                         :id="layer.ol_uid"
                                         :checked="layer.values_.visible"
                                         @change="changeLayerVisibility(layer)"
-                                        class="layer_option form-check-input"
+                                        class="layer_option form-check-input mr-2"
                                     />
                                     <label :for="layer.ol_uid" class="layer_option">{{ layer.get('title') }}</label>
                                 </div>
@@ -1782,7 +1782,7 @@
     }
     .layer_options {
         position: absolute;
-        max-height: 400px;
+        max-height: 360px;
         overflow-y: auto;
         top: 0;
         left: 0;
@@ -1862,6 +1862,11 @@
     }
     .table_caption {
         color: green;
+    }
+    .layer_options label.layer_option {
+        margin-left: 0.3em;
+        font-size: 0.9em;
+        font-weight: 700;
     }
     .layer_option:hover {
         cursor: pointer;
