@@ -842,6 +842,8 @@
     }
     .layer_options {
         position: absolute;
+        max-height: 360px;
+        overflow-y: auto;
         top: 0;
         left: 0;
         z-index: 410;
@@ -920,6 +922,11 @@
     }
     .layer_option:hover {
         cursor: pointer;
+    }
+    .layer_options label.layer_option {
+        margin-left: 0.3em;
+        font-size: 0.9em;
+        font-weight: 700;
     }
     .map {
         width: 100%;
