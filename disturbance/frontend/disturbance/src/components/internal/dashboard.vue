@@ -3,7 +3,7 @@
     <div v-if="show_das_change_msg && dasTemplateGroup" class="row">
         <div class="col-sm-12">
             <div class="alert alert-info">
-                <div class="col-md-9">
+                <div class="col-md-12">
                     <span v-html="dasChangeMsg"></span>
                 </div>
                 <div class="row">
