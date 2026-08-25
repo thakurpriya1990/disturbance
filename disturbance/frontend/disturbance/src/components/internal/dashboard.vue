@@ -59,7 +59,16 @@ export default {
             if (this.dasTemplateGroup) {
                 dasChangeText = `Welcome to DAS Phase II. For more information and FAQ's please visit <a href="https://www.dbca.wa.gov.au/licences-and-permits/online-disturbance-approval-system" target="_blank">Online Disturbance Approval System </a>
                     for all external users and <a href="https://dpaw.sharepoint.com/Divisions/pws/cem/SitePages/Disturbance-Approval-System-(DAS).aspx" target="_blank">Disturbance Approval System (DAS) </a>
-                    for all internal users or you can email <a href="mailto:das@dbca.wa.gov.au">das@dbca.wa.gov.au.</a> <p/><p/>`
+                    for all internal users. <br>
+                    The Disturbance and Ecological Thinning proposal types were updated on 24 July 2026 and are now available for use. <br>
+                    Changes include revised questions, updated spatial data intersections, and other improvements to enhance clarity and consistency.<br>
+                    Key changes: <br>
+                    Major refinements to Sections 3, 4 and 9 of the proposal form.<br>
+                    Minor refinements across the remaining sections of the proposal form. <br>
+                    For questions or feedback, please contact the DAS team at <a href="mailto:das@dbca.wa.gov.au">DAS@dbca.wa.gov.au.</a><br>
+                    Please note that the DAS team can assist with use of the system and proposal form but cannot advise on how proposal questions should be answered. <br>
+                    For guidance on specific questions, please consult the relevant subject matter expert.
+                    <p/><p/>`
             }
             return dasChangeText;
         },
