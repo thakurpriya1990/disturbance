@@ -634,10 +634,10 @@ export default {
 
             // Always Compare against the most recent version.
             if(0 != this.versionCurrentlyShowing) {
-                // this.updateProposalVersion(0)
+                await this.updateProposalVersion(0)
                 this.versionCurrentlyShowing = 0
             }
-
+            
             this.compare_version_lodgement_date = lodgement_date
             this.proposal_compare_version = compare_version
 

@@ -11,16 +11,26 @@
                         <strong>Issued on</strong><br/>
                         {{ formatDate(approval.issue_date) }}
                     </div>
-                    <div class="card-body border-top py-2">
-                        <table class="table small-table">
-                            <thead>
-                                <tr>
-                                    <th>Lodgement</th>
-                                    <th>Date</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                        </table>
+                    <div class="py-2">
+                        <div class="scrollable-div">
+                            <table class="table small-table">
+                                <thead>
+                                    <tr>
+                                        <th>Lodgement</th>
+                                        <th>Date</th>
+                                        <th>Action</th>
+                                    </tr>
+
+                                </thead>
+                                <tbody>
+                                    <tr v-for="proposal in approval.associated_proposals" :key="proposal.lodgement_number">
+                                        <td>{{ proposal.lodgement_number }}</td>
+                                        <td>{{ formatDate(proposal.lodgement_date) }}</td>
+                                        <td><span><a :href="`/internal/proposal/${proposal.id}`">View</a></span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -246,5 +256,25 @@ export default {
 }
 .hidePopover {
     display: none;
+}
+.scrollable-div {
+    height:130px;
+    white-space: nowrap;
+    overflow-y: scroll;
+    font-size:13px;
+}
+
+.scrollable-div::-webkit-scrollbar {
+    width: 12px;
+}
+
+.scrollable-div::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+    border-radius: 10px;
+}
+
+.scrollable-div::-webkit-scrollbar-thumb {
+    border-radius: 10px;
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
 }
 </style>

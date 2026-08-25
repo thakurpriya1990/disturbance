@@ -162,6 +162,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
     applicant_address = serializers.SerializerMethodField()
     requirements = serializers.SerializerMethodField()
     template_group = serializers.SerializerMethodField()
+    associated_proposals= serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Approval
@@ -214,6 +215,7 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'applicant_address',
             'requirements',
             'template_group',
+            'associated_proposals',
         )
         # the serverSide functionality of datatables is such that only columns that have field 'data' defined are requested from the serializer. We
         # also require the following additional fields for some of the mRender functions
@@ -245,10 +247,19 @@ class ApprovalSerializer(serializers.ModelSerializer):
             'allowed_assessors',
             'can_approver_reissue',
             'template_group',
+            'associated_proposals',
         )
 
     def get_current_proposal(self, approval):
         return ProposalSerializer(approval.current_proposal, context=self.context).data
+
+    def get_associated_proposals(self,obj):
+        if obj.current_proposal:
+            qs=Proposal.objects.filter(approval__lodgement_number=obj.lodgement_number)
+            if qs:
+                result= [{ 'id': proposal.id, 'lodgement_number': proposal.lodgement_number , 'lodgement_date': proposal.lodgement_date } for proposal in qs]
+                return result
+        return None
 
     def get_activity(self, approval):
         return approval.current_proposal.activity

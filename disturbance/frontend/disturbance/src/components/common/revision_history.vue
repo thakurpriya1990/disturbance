@@ -1,4 +1,4 @@
-<template id="revision_history">
+revision.action<template id="revision_history">
     <div class="row">
         <div class="panel-body panel-collapse">
             <div class="scrollable-div">
@@ -126,7 +126,7 @@ export default {
             let clicked_version = this.lodgement_revisions_actions[compare_version]
 
             for (let index = 0; index < this.lodgement_revisions_actions.length; index++) {
-                this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
+                this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;" href="#">Compare</a>'
                 clicked_version.action = '<div>Comparing</div>'        // should be non-clickable now
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
                 this.lodgement_revisions_view_actions[0].view_action = '<div style="">&#x1f441;</div>'
@@ -151,7 +151,7 @@ export default {
                 this.lodgement_revisions_view_actions[index].view_action = '<a style="visibility: visible; cursor:pointer;" href="#">View</a>'
                 clicked_version.view_action = '<div style="">&#x1f441;</div>'
                 this.lodgement_revisions_actions[0].action = '<div style="visibility: hidden;">&#x1f441;</div>'
-                this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;">Compare</a>'
+                this.lodgement_revisions_actions[index].action = '<a style="cursor:pointer;" href="#">Compare</a>'
             }
            
             // Process the change of model version in the component above
@@ -242,7 +242,7 @@ export default {
                 &#x1f441; is eyeball. Viewing doesn't fit very well. */
             let index = 0
             for (let prop in this.model_object.reversion_history) {
-                let action_label = '<a style="cursor:pointer;">Compare</a>'
+                let action_label = '<a style="cursor:pointer;" href="#">Compare</a>'
                 let view_action_label = `<a style="cursor:pointer;" href="#">View</a>`
                 if (index === 0) { 
                     view_action_label = '<div style="pointer-events: none;">&#x1f441;</div>'
