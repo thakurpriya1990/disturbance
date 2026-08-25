@@ -95,6 +95,7 @@ from disturbance.components.proposals.serializers import (
     ProposalTypeSerializer,
     ProposalSerializer,
     InternalProposalSerializer,
+    CreateProposalSerializer,
     SaveProposalSerializer,
     ProposalUserActionSerializer,
     ProposalLogEntrySerializer,
@@ -172,6 +173,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from disturbance.components.main.process_document import (
         process_generic_document, 
         )
+from disturbance.components.proposals.permissions import ProposalInternalUserPermission
 
 
 import logging
@@ -2544,10 +2546,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     proxy_applicant = request.user.id
                 else:
                     applicant = request.data.get('behalf_of')
-
+                
                 data = {
                     #'schema': qs_proposal_type.order_by('-version').first().schema,
-                    'schema': proposal_type.schema,
+                    'schema': proposal_type.schema if not application_type.name in ['Apiary', 'Temporary Use', 'Site Transfer'] else '[{}]',
                     'submitter': request.user.id,
                     'applicant': applicant,
                     'proxy_applicant': proxy_applicant,
@@ -2562,7 +2564,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
                     'data': [
                     ],
                 }
-                serializer = SaveProposalSerializer(data=data)
+                serializer = CreateProposalSerializer(data=data)
                 serializer.is_valid(raise_exception=True)
                 proposal_obj = serializer.save()
 
@@ -2942,6 +2944,7 @@ class ProposalRequirementViewSet(viewsets.ModelViewSet):
     #queryset = ProposalRequirement.objects.all()
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
+    permission_classes = [ProposalInternalUserPermission]
 
     def get_queryset(self):
         user = self.request.user
