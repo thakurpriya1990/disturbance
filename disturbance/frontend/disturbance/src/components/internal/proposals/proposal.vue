@@ -331,6 +331,7 @@
         <ProposedDecline ref="proposed_decline" :processing_status="proposal.processing_status" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></ProposedDecline>
         <AmendmentRequest ref="amendment_request" :proposal_id="proposal.id" @refreshFromResponse="refreshFromResponse"></AmendmentRequest>
         <ProposedApproval ref="proposed_approval" :processing_status="proposal.processing_status" :proposal_id="proposal.id" :proposal_type='proposal.proposal_type' :isApprovalLevelDocument="isApprovalLevelDocument" :submitter_email="proposal.submitter_email" :applicant_email="applicant_email" :relevant_applicant_address="proposal.applicant.address" :relevant_applicant_name="proposal.applicant.name" :reissued="proposal.reissued" @refreshFromResponse="refreshFromResponse"/>
+        
         <ProposalJsonCompareModal ref="proposal_json_compare_modal" @exit_compare_mode="exitCompareMode" />
     </div>
 </template>
@@ -576,6 +577,7 @@ export default {
                 this.uuid++;
             });
         },
+        // legacy function for comparing versions, will be removed once the new compare modal is fully implemented
         compareProposalVersions: async function({compare_version, lodgement_date}) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
                revision differences to the DOM. */
@@ -628,6 +630,7 @@ export default {
             const document_data_diffs = await document_res.json();
             this.applyFileRevisionNotes(document_data_diffs.data)            
         },
+        // new fuction for comparing versions, but not used at the moment
         newProposalCompareVersions: async function({compare_version, lodgement_date}) {
             /* This handles the user clicks. Change the labels of entries and add all selected 
                revision differences to the DOM. */
@@ -661,6 +664,7 @@ export default {
             if (!response.ok) { return response.json().then(err => { throw err }); }
             return response.json()
         },
+        // not currently used, but may be useful in the future
         openJsonCompareModal: async function(compare_version, lodgement_date) {
             const newerVersion = this.versionCurrentlyShowing
             const [newerData, olderData] = await Promise.all([

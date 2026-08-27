@@ -66,6 +66,10 @@
                 type: Boolean,
                 default: false
             },
+            xxxlarge: {
+                type: Boolean,
+                default: false
+            },
             full: {
                 type: Boolean,
                 default: false
@@ -117,6 +121,7 @@
             modalClass () {
                 return {
                     'modal-xxl': this.xxlarge,
+                    'modal-xxxl': this.xxxlarge,
                     'modal-xl': this.xlarge,
                     'modal-lg': this.large,
                     'modal-sm': this.small,
@@ -250,4 +255,23 @@
     #okBtn {
         margin-bottom: 0px;
     }
+
+    .modal-sm {
+	    max-width: 300px;
+    }
+    .modal-md {
+	    max-width: 810px;
+    }
+    .modal-lg {
+	    max-width: 900px;
+    }
+    .modal-xl {
+	    max-width: 990px;
+    }
+    .modal-xxl {
+	    max-width: 1080px;
+    }
+    .modal-xxxl {
+    max-width: 1280px;
+}
 </style>
