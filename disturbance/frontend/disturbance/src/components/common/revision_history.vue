@@ -8,7 +8,7 @@ revision.action<template id="revision_history">
                             <tr>
                                 <th>Lodgement</th>
                                 <th style="padding-left: 10px;">Date</th>
-                                <th style="padding-left: 10px; text-align:center">Actions</th>
+                                <!-- <th style="padding-left: 10px; text-align:center">Action</th> -->
                             </tr>
                         </thead>
                         <tbody>
@@ -18,9 +18,10 @@ revision.action<template id="revision_history">
                                 <!-- Commented for now as the Compare is broken, need to work later if required -->
                                 <!-- <td style="padding-left: 10px;" v-on:click="getCompareVersions(revision['index'],revision.date)">
                                 </td> -->
-                                <td style="padding-left: 10px; text-align:center;" v-on:click="revision.index !== 0 && getCompareVersions(revision['index'],revision.date)">
+                                <!-- new compare button(but removed at the moment) -->
+                                <!-- <td style="padding-left: 10px; text-align:center;" v-on:click="revision.index !== 0 && getCompareVersions(revision['index'],revision.date)">
                                     <span v-bind:id=revision.id v-html=revision.action></span>
-                                </td>
+                                </td> -->
                             </tr>
                         </tbody>
                     </table>
@@ -29,7 +30,8 @@ revision.action<template id="revision_history">
                     <table class="table small-table">
                         <thead>
                             <tr>
-                                <th style="visibility: hidden;">Version</th>
+                                <!-- <th style="visibility: hidden;">Version</th> -->
+                                <th style="padding-left: 10px; text-align:center">Action</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -46,11 +48,16 @@ revision.action<template id="revision_history">
             <!-- <div v-if="compareModeActive" align="center">
                 <span>&nbsp;<button class="btn btn-primary w-100" @click="getViewVersion(0)">Exit Compare Mode</button></span>
             </div> -->
+            <div align="center">
+                <span>&nbsp;<button class="btn btn-primary w-100" @click="openCompareModal()">Compare Versions</button></span>
+            </div>
         </div>
+        <ProposalJsonDiffCompareModal ref="proposal_json_diff_compare_modal" />
     </div>
 </template>
 <script>
 import { v4 as uuidv4 } from 'uuid';
+import ProposalJsonDiffCompareModal from '../internal/proposals/proposal_json_diff_compare_modal.vue'
 import {
     constants
 }from '@/utils/hooks'
@@ -102,7 +109,7 @@ export default {
         }
     },
     components:{
-
+        ProposalJsonDiffCompareModal,
     },
     watch:{
 
@@ -117,11 +124,14 @@ export default {
         formatDateNoTime: function(data){
             return data ? moment(data).format('DD/MM/YY'): '';
         },
+        openCompareModal: function() {
+            // The modal owns revision selection and JSON comparison. Opening it must not
+            // change the proposal currently being viewed in the parent component.
+            this.$refs.proposal_json_diff_compare_modal.open({
+                modelObject: this.model_object,
+                historyContext: this.history_context,})
+        },
         getCompareVersions: async function (compare_version, lodgement_date) {
-            /*  Updates the history panel to show which item is being compared against
-                Then emits to the component above to process the compare.
-            */
-
             this.compareModeActive = true;
             let clicked_version = this.lodgement_revisions_actions[compare_version]
 
