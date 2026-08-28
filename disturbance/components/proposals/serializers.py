@@ -1380,7 +1380,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
     applicant_name= serializers.CharField(source='applicant.name')
     application_type_name= serializers.CharField(source='application_type.name')
     region_name = serializers.CharField(source='region.name', read_only=True)
-    associated_proposals= serializers.SerializerMethodField()
+    #associated_proposals= serializers.SerializerMethodField()
     proposal_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -1400,7 +1400,7 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'submitter', 
                 'submitter_full_name',
                 'lodgement_number',
-                #'shapefile_json',
+                'shapefile_json',
                 'lodgement_date',
                 'proposal_type',
                 'approval_lodgement_number',
@@ -1410,9 +1410,8 @@ class DASMapFilterSerializer(BaseProposalSerializer):
                 'approval_status',
                 'applicant_id',
                 'applicant_name',
-                'shapefile_json',
                 'application_type_name',
-                'associated_proposals',
+                #'associated_proposals',
                 'proposal_url',
 
                 )
@@ -1457,13 +1456,13 @@ class DASMapFilterSerializer(BaseProposalSerializer):
             return obj.approval.status
         return None
     
-    def get_associated_proposals(self,obj):
-        if obj.approval:
-            qs=Proposal.objects.filter(approval__lodgement_number=obj.approval.lodgement_number).values_list('lodgement_number', flat=True)
-            if qs:
-                result= [proposal for proposal in qs]
-                return result
-        return None
+    # def get_associated_proposals(self,obj):
+    #     if obj.approval:
+    #         qs=Proposal.objects.filter(approval__lodgement_number=obj.approval.lodgement_number).values_list('lodgement_number', flat=True)
+    #         if qs:
+    #             result= [proposal for proposal in qs]
+    #             return result
+    #     return None
     
     def get_proposal_url(self,obj):
         request=self.context['request']

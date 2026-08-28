@@ -28,7 +28,7 @@ from django.core.cache import cache
 from rest_framework.exceptions import NotFound
 from django.db.models import Prefetch
 
-from django.http import HttpResponse, JsonResponse #, Http404
+from django.http import HttpResponse, JsonResponse, StreamingHttpResponse #, Http404
 from disturbance.components.main.decorators import basic_exception_handler, timeit, query_debugger, api_exception_handler
 from disturbance.components.proposals.utils import (
     save_proponent_data,
@@ -3236,12 +3236,18 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         apiary_proposal_types=['Apiary','Site Transfer','Temporary Use']
         if is_internal(self.request):
-            return Proposal.objects.filter(
+            return Proposal.objects.select_related(
+                'region', 'district', 'submitter', 'applicant',
+                'application_type', 'approval',
+            ).filter(
                 Q(region__isnull=False) | 
                 Q(application_type__name__in=apiary_proposal_types)).exclude(shapefile_json__isnull=True)
         elif is_customer(self.request):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
-            queryset = Proposal.objects.filter(region__isnull=False).filter(
+            queryset = Proposal.objects.select_related(
+                'region', 'district', 'submitter', 'applicant',
+                'application_type', 'approval',
+            ).filter(region__isnull=False).filter(
                 Q(applicant_id__in=user_orgs) |
                 Q(submitter=user)
             ).exclude(processing_status='')
@@ -3316,8 +3322,25 @@ class DASMapFilterViewSet(viewsets.ReadOnlyModelViewSet):
             if date_to:
                 queryset = queryset.filter(lodgement_date__lte=date_to)
         
-        serializer = DASMapFilterSerializer(queryset,context={'request':request}, many=True)
-        return Response(serializer.data)
+        def stream_response():
+            yield b'['
+            first = True
+            renderer = JSONRenderer()
+            for proposal in queryset.iterator(chunk_size=100):
+                if not first:
+                    yield b','
+                first = False
+                serializer = DASMapFilterSerializer(
+                    proposal,
+                    context={'request': request},
+                )
+                yield renderer.render(serializer.data)
+            yield b']'
+
+        return StreamingHttpResponse(
+            stream_response(),
+            content_type='application/json',
+        )
 
     @action(methods=['GET',], detail=False)
     def filter_list(self, request, *args, **kwargs):
