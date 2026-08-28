@@ -1475,5 +1475,57 @@ class DASMapFilterSerializer(BaseProposalSerializer):
             url = request.build_absolute_uri(reverse('external-proposal-detail',kwargs={'proposal_pk': obj.id}))
         return url
 
+class InternalProposalVersionSerializer(BaseProposalSerializer):
+    # applicant = ApplicantSerializer()
+    processing_status = serializers.SerializerMethodField(read_only=True)
+    customer_status = serializers.SerializerMethodField(read_only=True)
+    submitter = serializers.CharField(source='submitter.get_full_name')
+    assessor_data = serializers.SerializerMethodField()
+    application_type = serializers.CharField(source='application_type.name', read_only=True)
+    layer_data = serializers.SerializerMethodField()
 
+    class Meta:
+        model = Proposal
+        fields = (
+                # 'id',
+                'application_type',
+                'proposal_type',
+                'lodgement_number',
+                'lodgement_date',
+                # 'shapefile_json',
+                'region_name',
+                'district_name',
+                'activity',
+                'sub_activity_level1',
+                'sub_activity_level2',
+                'add_info_assessor',
+                'add_info_applicant',
+                # 'title',
+                'data',
+                'layer_data',
+                'assessor_data',
+                'comment_data',
+                # 'applicant',
+                'submitter',
+                'proxy_applicant',
+                'customer_status',
+                'processing_status',
+                'readonly',
+                )
 
+    def get_readonly(self,obj):
+        return True
+
+    def get_assessor_data(self,obj):
+        return obj.assessor_data
+    def get_layer_data(self,obj):
+        if obj.layer_data is None:
+            return None
+        else:
+            return [
+                {
+                    'name': layer.get('name'),
+                    'result': layer.get('result'),
+                }
+                for layer in obj.layer_data
+            ]

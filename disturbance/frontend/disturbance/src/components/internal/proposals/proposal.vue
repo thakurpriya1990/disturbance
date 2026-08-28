@@ -437,7 +437,7 @@ export default {
                 app_label: 'disturbance',
                 component_name: 'proposals',
                 model_name: 'Proposal',
-                serializer_name: 'InternalProposalSerializer',
+                serializer_name: 'InternalProposalVersionSerializer',
             },
             proposal_compare_version: 0,
             reversion_history_length: 0,

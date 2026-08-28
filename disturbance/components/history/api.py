@@ -24,20 +24,20 @@ logger = logging.getLogger(__name__)
 
 
 COMPARE_VERSION_INCLUDED_FIELDS = {
-    # 'documents',
-    # 'documents_url',
-    # 'requirements',
-    # 'shapefile_json',
-    # 'gis_info',
-    # 'layer_data',
-    # 'latest_referrals',
-    # 'allowed_assessors',
-    # 'reversion_history',
+    'region_name',
+    'district_name',
+    'activity',
+    'sub_activity_level1',
+    'sub_activity_level2',
+    'add_info_assessor',
+    'add_info_applicant',
     'data',
-    'assessor_data',
-    'comment_data',
-    # "layer_data",
-    "documents",
+    'layer_data',
+    # 'assessor_data',
+    # 'comment_data',
+    'submitter',
+    'customer_status',
+    'processing_status',
 }
 
 
