@@ -94,13 +94,13 @@ export default defineConfig(() => {
         ].filter(Boolean),
         resolve: {
             alias: {
-                '@': path.resolve(__dirname, './src'),
-                '@vue-utils': path.resolve(__dirname, 'src/utils/vue'),
+                '@': path.resolve(import.meta.dirname, './src'),
+                '@vue-utils': path.resolve(import.meta.dirname, 'src/utils/vue'),
                 '@common-utils': path.resolve(
-                    __dirname,
+                    import.meta.dirname,
                     'src/components/common/'
                 ),
-                '@assets': path.resolve(__dirname, 'src/assets'),
+                '@assets': path.resolve(import.meta.dirname, 'src/assets'),
             },
         },
         esbuild: {
@@ -113,15 +113,15 @@ export default defineConfig(() => {
         build: {
             manifest: 'manifest.json',
             commonjsOptions: { transformMixedEsModules: true },
-            root: path.resolve(__dirname, './src'),
+            root: path.resolve(import.meta.dirname, './src'),
             outDir: path.resolve(
-                __dirname,
+                import.meta.dirname,
                 `../../static/${applicationNameShort}_vue`
             ),
             sourcemap: false,
             rollupOptions: {
                 input: {
-                    main: path.resolve(__dirname, 'src/main.js'),
+                    main: path.resolve(import.meta.dirname, 'src/main.js'),
                 },
                 external: ['moment'],
             },
