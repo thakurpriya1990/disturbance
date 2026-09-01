@@ -33,8 +33,9 @@ import 'datatables.net-bs5';
 import 'datatables.net-buttons-bs5';
 import 'datatables.net-responsive-bs5';
 import 'datatables.net-fixedcolumns-bs5';
-import 'datatables.net-buttons/js/dataTables.buttons.js';
-import 'datatables.net-buttons/js/buttons.html5.js';
+// import 'datatables.net-buttons/js/dataTables.buttons.js';
+// import 'datatables.net-buttons/js/buttons.html5.js';
+import 'datatables.net-buttons/js/buttons.html5.mjs';
 
 import 'sweetalert2/dist/sweetalert2.css';
 import 'jquery-validation';
