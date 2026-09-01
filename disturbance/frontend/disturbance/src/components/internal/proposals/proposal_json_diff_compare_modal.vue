@@ -165,9 +165,11 @@ export default {
 					this.fetchVersion(this.olderVersion),
 				])
 				// Use json-diff-kit to produce aligned lines for both sides, including modifications, additions, and removals.
-				const differ = new Differ({ detectCircular: false, maxDepth: Infinity, arrayDiffMethod: 'lcs', showModifications: true, ignoreCase: false, preserveKeyOrder: 'before' })
+				// const differ = new Differ({ detectCircular: false, maxDepth: Infinity, arrayDiffMethod: 'lcs', showModifications: true, ignoreCase: false, ignoreCaseForKey: false, preserveKeyOrder: 'before' })
+				const differ = new Differ({ detectCircular: false, maxDepth: Infinity, arrayDiffMethod: 'compare-key', showModifications: true, ignoreCase: false, ignoreCaseForKey: false, preserveKeyOrder: 'before' })
 				// Normalise the JSON to avoid false positives from differences in whitespace or key order.
 				const diff = differ.diff(this.normaliseJson(olderData), this.normaliseJson(newerData))
+				
 				this.diffLeft = diff[0]
 				this.diffRight = diff[1]
 				this.hasCompared = true
