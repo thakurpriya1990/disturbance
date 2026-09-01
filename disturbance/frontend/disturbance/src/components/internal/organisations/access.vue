@@ -398,60 +398,63 @@ export default {
         }
     },
     acceptRequest: function() {
-        let vm = this;
-        swal.fire({
-            title: "Accept Organisation Request",
-            text: "Are you sure you want to accept this organisation request?",
-            icon: "question",
-            showCancelButton: true,
-            confirmButtonText: 'Accept',
-            customClass: {
-                confirmButton: 'btn btn-primary',
-                cancelButton: 'btn btn-secondary',
-            },
-        }).then((swalresult) => {
-            if(swalresult.isConfirmed) {
-                fetch(helpers.add_endpoint_json(api_endpoints.organisation_requests,(vm.access.id+'/accept')))
-                .then(async (response) => {
-                    if (!response.ok) { return response.json().then(err => { throw err }); }
-                    console.log(response);
-                    vm.access = await response.json();
-                }).catch((error) => {
-                    console.log(error);
-                });
-            }
-        },(error) => {
-            console.log(error);
-        });
-
+        if (this.checkAssignedOfficer()) {
+            let vm = this;
+            swal.fire({
+                title: "Accept Organisation Request",
+                text: "Are you sure you want to accept this organisation request?",
+                icon: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Accept',
+                customClass: {
+                    confirmButton: 'btn btn-primary',
+                    cancelButton: 'btn btn-secondary',
+                },
+            }).then((swalresult) => {
+                if(swalresult.isConfirmed) {
+                    fetch(helpers.add_endpoint_json(api_endpoints.organisation_requests,(vm.access.id+'/accept')))
+                    .then(async (response) => {
+                        if (!response.ok) { return response.json().then(err => { throw err }); }
+                        console.log(response);
+                        vm.access = await response.json();
+                    }).catch((error) => {
+                        console.log(error);
+                    });
+                }
+            },(error) => {
+                console.log(error);
+            });
+        }
     },
 
     declineRequest: function() {
         let vm = this;
-        swal.fire({
-            title: "Decline Organisation Request",
-            text: "Are you sure you want to decline this organisation request?",
-            type: "question",
-            showCancelButton: true,
-            confirmButtonText: 'Decline',
-            customClass: {
-                confirmButton: 'btn btn-primary',
-                cancelButton: 'btn btn-secondary',
-            },
-        }).then((swalresult) => {
-            if(swalresult.isConfirmed) {
-                fetch(helpers.add_endpoint_json(api_endpoints.organisation_requests,(vm.access.id+'/decline')))
-                .then(async (response) => {
-                    if (!response.ok) { return response.json().then(err => { throw err }); }
-                    console.log(response);
-                    vm.access = await response.json();
-                }).catch((error) => {
-                    console.log(error);
-                });
-            }
-        },(error) => {
-            console.log(error);
-        });
+        if(this.checkAssignedOfficer()){
+            swal.fire({
+                title: "Decline Organisation Request",
+                text: "Are you sure you want to decline this organisation request?",
+                type: "question",
+                showCancelButton: true,
+                confirmButtonText: 'Decline',
+                customClass: {
+                    confirmButton: 'btn btn-primary',
+                    cancelButton: 'btn btn-secondary',
+                },
+            }).then((swalresult) => {
+                if(swalresult.isConfirmed) {
+                    fetch(helpers.add_endpoint_json(api_endpoints.organisation_requests,(vm.access.id+'/decline')))
+                    .then(async (response) => {
+                        if (!response.ok) { return response.json().then(err => { throw err }); }
+                        console.log(response);
+                        vm.access = await response.json();
+                    }).catch((error) => {
+                        console.log(error);
+                    });
+                }
+            },(error) => {
+                console.log(error);
+            });
+        }
     },
 
     fetchProfile: async function(){
@@ -473,6 +476,25 @@ export default {
                 else
                     return false;
      },
+     checkAssignedOfficer: function() {
+        if (this.access.status == 'With Assessor'){
+            if(this.access && this.access.assigned_officer==null){
+                swal.fire({
+                    title:'Error',
+                    text:'Please assign this organisation access request to yourself or an officer before proceeding',
+                    icon:'error',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                    },
+                })
+                return false;
+            }
+            return true;
+        }
+        else{
+            return true;
+        }
+    },
   },
 /*
   mounted: function () {
