@@ -480,7 +480,7 @@
                                     //proptype:   proposal.proposal_type ? proposal.proposal_type : '',
                                     proptype:   proposal.proposal_type_name ? proposal.application_type_name : '',
                                     appstatus:  proposal.approval_status ? proposal.approval_status : '',
-                                    assocprop:  proposal.assocprop ? proposal.assocprop : '',
+                                    //assocprop:  proposal.assocprop ? proposal.assocprop : '',
                                     propurl:    proposal.proposal_url ? proposal.proposal_url : '',
                                 })
                             }
