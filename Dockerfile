@@ -47,6 +47,7 @@ RUN apt-get install -y software-properties-common
 
 RUN apt-get clean
 RUN apt-get upgrade -y 
+RUN apt-get install -y run-one
 RUN apt-get install --no-install-recommends -y \
 libgdal-dev \
 software-properties-common \

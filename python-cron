@@ -4,4 +4,4 @@
 */5 * * * * python manage_ds.py run_queue_job >> logs/run_cron_tasks.log 2>&1
 1-59/5 * * * * cd /app && python manage_ds.py poll_sqs_tasks >> logs/poll_sqs_tasks.log 2>&1
 10 9 * * *     cd /app && python manage_ds.py appmonitor_check >> logs/appmonitor_check.log 2>&1
-0 */1 * * * run-one python manage_ml.py clearsessions >> logs/clearsessions.log 2>&1
+0 */1 * * * run-one python manage_ds.py clearsessions >> logs/clearsessions.log 2>&1
