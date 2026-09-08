@@ -1,0 +1,311 @@
+<template lang="html">
+    <div id="AddComms">
+        <modal transition="modal" @ok="ok()" @cancel="cancel()" title="Communication log - Add entry" large>
+            <div class="container-fluid">
+                <div class="row">
+                    <form class="form-horizontal" name="commsOrgForm">
+                        <alert v-if="showError" type="danger"><strong>{{errorString}}</strong></alert>
+                        <div class="col-sm-12">
+                            <div class="form-group">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <label class="col-form-label pull-left"  for="Name">To</label>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <input type="text" class="form-control" name="to" v-model="comms.to">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <label class="col-form-label pull-left"  for="Name">From</label>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <input type="text" class="form-control" name="fromm" v-model="comms.fromm">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <label class="col-form-label pull-left"  for="Name">Type</label>
+                                    </div>
+                                    <div class="col-sm-4">
+                                        <select class="form-select" name="type" v-model="comms.type">
+                                            <option value="" selected>Select Type</option>
+                                            <option value="email">Email</option>
+                                            <option value="mail">Mail</option>
+                                            <option value="phone">Phone</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <label class="col-form-label pull-left"  for="Name">Subject/Description</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control" name="subject" style="width:70%;" v-model="comms.subject">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <label class="col-form-label pull-left"  for="Name">Text</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <textarea name="text" class="form-control" style="width:70%;" v-model="comms.text"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row mb-3">
+                                    <div class="col-sm-3">
+                                        <label class="col-form-label pull-left"  for="Name">Attachments</label>
+                                    </div>
+                                    <div class="col-sm-9">
+                                        <template v-for="(f,i) in files" :key="i">
+                                            <div :class="'row top-buffer file-row-'+i">
+                                                <div class="col-sm-4">
+                                                    <span v-if="f.file == null" class="btn btn-info btn-file btn-primary pull-left">
+                                                        Attach File <input type="file" :name="'file-upload-'+i" :class="'file-upload-'+i" @change="uploadFile($event, f)"/>
+                                                    </span>
+                                                    <span v-else class="btn btn-info btn-file pull-left btn-primary">
+                                                        Update File <input type="file" :name="'file-upload-'+i" :class="'file-upload-'+i" @change="uploadFile($event, f)"/>
+                                                    </span>
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <span>{{f.name}}</span>
+                                                </div>
+                                                <div class="col-sm-4">
+                                                    <button @click="removeFile(i)" class="btn btn-danger">Remove</button>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <a href="" @click.prevent="attachAnother"><i class="fa fa-lg fa-plus top-buffer-2x"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <template #footer>
+                <button type="button" v-if="addingComms" disabled class="btn btn-primary" @click="ok"><i class="fa fa-spinner fa-spin"></i> Adding</button>
+                <button type="button" v-else class="btn btn-primary" @click="ok">Add</button>
+                <button type="button" class="btn btn-secondary" @click="cancel">Cancel</button>
+            </template>
+        </modal>
+    </div>
+</template>
+
+<script>
+import modal from '@vue-utils/bootstrap-modal.vue'
+import alert from '@vue-utils/alert.vue'
+// import {helpers} from "@/utils/hooks.js"
+export default {
+    name:'Add-Comms-Org',
+    components:{
+        modal,
+        alert
+    },
+    props:{
+        url: {
+            type: String,
+            required: true
+        },
+        action: {
+            type: String,
+            required: true
+        }
+    },
+    data:function () {
+        // let vm = this;
+        return {
+            isModalOpen:false,
+            form:null,
+            comms: {},
+            state: 'proposed_approval',
+            addingComms: false,
+            validation_form: null,
+            errors: false,
+            errorString: '',
+            successString: '',
+            success:false,
+            datepickerOptions:{
+                format: 'DD/MM/YYYY',
+                showClear:true,
+                useCurrent:false,
+                keepInvalid:true,
+                allowInputToggle:true
+            },
+            files: [
+                {
+                    'file': null,
+                    'name': ''
+                }
+            ]
+        }
+    },
+    computed: {
+        showError: function() {
+            var vm = this;
+            return vm.errors;
+        },
+        title: function(){
+            return this.processing_status == 'With Approver' ? 'Issue Comms' : 'Propose to issue approval';
+        }
+    },
+    methods:{
+        ok:function () {
+            let vm =this;
+            if($(vm.form).valid()){
+                vm.sendData();
+            }
+        },
+        uploadFile(event, file_obj){
+            const file = event.target.files?.[0];
+            if (!file) {
+                return;
+            }
+            file_obj.file = file;
+            file_obj.name = file.name;
+        },
+        removeFile(index){
+            let length = this.files.length;
+            $('.file-row-'+index).remove();
+            this.files.splice(index,1);
+            this.$nextTick(() => {
+                length == 1 ? this.attachAnother() : '';
+            });
+        },
+        attachAnother(){
+            this.files.push({
+                'file': null,
+                'name': ''
+            })
+        },
+        cancel:function () {
+            this.close()
+        },
+        close:function () {
+            let vm = this;
+            this.isModalOpen = false;
+            this.comms = {};
+            this.errors = false;
+            $('.has-error').removeClass('has-error');
+            this.validation_form.resetForm();
+            let file_length = vm.files.length;
+            this.files = [];
+            for (var i = 0; i < file_length;i++){
+                vm.$nextTick(() => {
+                    $('.file-row-'+i).remove();
+                });
+            }
+            this.attachAnother();
+        },
+        sendData:function(){
+            let vm = this;
+            vm.errors = false;
+            let comms = new FormData(vm.form); 
+             for (let i = 0; i < vm.files.length; i++) {
+                comms.append('files', vm.files[i].file);
+            }
+            vm.addingComms = true;
+            fetch(vm.url,{
+                method: 'POST',
+                body: comms,
+            }).then(async (response)=>{
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                vm.addingComms = false;
+                vm.$emit('refreshActionFromResponse',this.action);
+                vm.close();
+                //vm.$emit('refreshFromResponse',response);
+            }).catch((error) => {
+                vm.errors = true;
+                vm.addingComms = false;
+                //TODO the apiVueResourceError need to be updated
+                // vm.errorString = helpers.apiVueResourceError(error);
+                vm.errorString = error;
+            });
+        },
+        addFormValidations: function() {
+            let vm = this;
+            // Configure jQuery Validate for required comms fields.
+            vm.validation_form = $(vm.form).validate({
+                rules: {
+                    to:"required",
+                    fromm:"required",
+                    type:"required",
+                    subject:"required",
+                    text:"required",
+                },
+                messages: {
+                },
+                errorClass: 'is-invalid',
+                errorElement: 'div',
+                errorPlacement: function(error) {
+                    error.addClass('invalid-feedback');
+                    // element.parent().append(error);
+                },
+                highlight: function(element) {
+                    $(element).addClass('is-invalid');
+                },
+                // Previous tooltip-based validation rendering kept for reference.
+                // showErrors: function(errorMap, errorList) {
+                //     $.each(this.validElements(), function(index, element) {
+                //         var $element = $(element);
+                //         $element.attr("data-original-title", "").parents('.form-group').removeClass('has-error');
+                //     });
+                //     // Destroy tooltips on valid elements.
+                //     $("." + this.settings.validClass).tooltip("destroy");
+                //     // Add or update tooltips on invalid elements.
+                //     for (var i = 0; i < errorList.length; i++) {
+                //         var error = errorList[i];
+                //         $(error.element)
+                //             .tooltip({
+                //                 trigger: "focus"
+                //             })
+                //             .attr("data-original-title", error.message)
+                //             .parents('.form-group').addClass('has-error');
+                //     }
+                // }
+            });
+       },
+   },
+   mounted:function () {
+        let vm =this;
+        vm.form = document.forms.commsOrgForm;
+        vm.addFormValidations();
+   }
+}
+</script>
+
+<style lang="css">
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 100px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+.top-buffer{margin-top: 5px;}
+.top-buffer-2x{margin-top: 10px;}
+</style>

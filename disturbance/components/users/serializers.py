@@ -1,9 +1,10 @@
 from django.conf import settings
+from disturbance.helpers import is_disturbance_admin
 from ledger.accounts.models import EmailUser,Address, Document
 from disturbance.components.organisations.models import (   
                                     Organisation,
                                 )
-from disturbance.components.organisations.utils import can_admin_org, is_consultant
+from disturbance.components.organisations.utils import can_admin_org, is_consultant, is_org_access_member
 from rest_framework import serializers
 from ledger.accounts.utils import in_dbca_domain
 from disturbance.components.approvals.models import Approval
@@ -118,6 +119,8 @@ class UserSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     is_department_user = serializers.SerializerMethodField()
     existing_record_text = serializers.SerializerMethodField()
+    is_org_access_member = serializers.SerializerMethodField()
+    is_das_admin = serializers.SerializerMethodField()
 
     class Meta:
         model = EmailUser
@@ -136,6 +139,8 @@ class UserSerializer(serializers.ModelSerializer):
             'is_department_user',
             'full_name',
             'existing_record_text',
+            'is_org_access_member',
+            'is_das_admin',
         )
 
 
@@ -204,6 +209,18 @@ class UserSerializer(serializers.ModelSerializer):
                 "disable_radio_button": disable_radio_button,
                 "notification": notification,
                 }
+    
+    def get_is_org_access_member(self, obj):
+        request = self.context['request'] if self.context else None
+        if request:
+            return is_org_access_member(request.user)
+        return False
+
+    def get_is_das_admin(self, obj):
+        request = self.context['request'] if self.context else None
+        if request:
+            return is_disturbance_admin(request)
+        return False
 
 
 class PersonalSerializer(serializers.ModelSerializer):

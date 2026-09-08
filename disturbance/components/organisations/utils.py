@@ -148,3 +148,15 @@ def make_walter_admin_user():
             org_contact.save()
     except:
         pass
+
+def is_org_access_member(user):
+    from disturbance.components.organisations.models import OrganisationAccessGroup
+    from disturbance.components.organisations.models import OrganisationContact
+    try:
+        group = OrganisationAccessGroup.objects.first()
+        if group and group.filtered_members:
+            return user in group.filtered_members
+        return False
+    except OrganisationContact.DoesNotExist:
+        pass
+    return False
