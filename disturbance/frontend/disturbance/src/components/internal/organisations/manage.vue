@@ -477,10 +477,8 @@ export default {
             this.$refs.contacts_datatable.vmDataTable.ajax.reload();
         },
         refreshActionFromResponse: function(action){
-            alert('refreshActionFromResponse called');
             let vm=this;
 
-            alert('action: ' + action);
             if(action && this.user_action===action){
                 let name = vm.contact_user?.first_name || 'the user'+ ' ' + (vm.contact_user?.last_name || '');
 
