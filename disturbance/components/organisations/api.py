@@ -173,8 +173,52 @@ class OrganisationViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_object()
             qs = instance.contacts.exclude(user_status='draft')
+            
+            # DataTables parameters
+            draw = request.GET.get('draw', 1)
+            start = int(request.GET.get('start', 0))
+            length = int(request.GET.get('length', 10))
+            search_value = request.GET.get('search[value]', '')
+            
+            # Total records before filtering
+            records_total = qs.count()
+            
+            # Apply search filter if search_value is provided
+            if search_value:
+                qs = qs.filter(
+                    Q(first_name__icontains=search_value) |
+                    Q(last_name__icontains=search_value) |
+                    Q(email__icontains=search_value) |
+                    Q(user_role__icontains=search_value)
+                )
+
+            # Total records after filtering
+            records_filtered = qs.count()
+
+            # Apply ordering
+            order_column_index = request.GET.get('order[0][column]', 0)
+            order_dir = request.GET.get('order[0][dir]', 'asc')
+            
+            # Map column indices to field names
+            order_columns = ['first_name', 'last_name', 'user_role', 'email', 'user_status']
+            if order_column_index and int(order_column_index) < len(order_columns):
+                order_field = order_columns[int(order_column_index)]
+                if order_dir == 'desc':
+                    order_field = f'-{order_field}'
+                qs = qs.order_by(order_field)
+
+            # Apply pagination
+            qs = qs[start:start + length]
+
             serializer = OrganisationContactSerializer(qs,many=True)
-            return Response(serializer.data)
+
+            # return Response(serializer.data)
+            return Response({
+                'draw': draw,
+                'recordsTotal': records_total,
+                'recordsFiltered': records_filtered,
+                'data': serializer.data
+            })
         except serializers.ValidationError:
             print(traceback.print_exc())
             raise
