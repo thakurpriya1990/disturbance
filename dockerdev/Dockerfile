@@ -2,10 +2,10 @@
 FROM ghcr.io/dbca-wa/disturbance:latest_seg as builder_base_disturbancedev
 USER root
 # Temporary disabled due ubuntu mirror issues
-#RUN apt-get update
+RUN apt-get update
 
 RUN apt-get install --no-install-recommends -y patch
-RUN apt-get install --no-install-recommends -y libpq-dev git ssh sudo 
+RUN apt-get install --no-install-recommends -y libpq-dev git
 RUN apt-get install --no-install-recommends -y screen
 RUN apt-get install --no-install-recommends -y virtualenv
 RUN apt-get install --no-install-recommends -y python3-dev
@@ -27,7 +27,7 @@ RUN cp /root/.bashrc /home/container
 RUN cp /root/.profile /home/container
 
 
-
+USER container
 EXPOSE 8080
 HEALTHCHECK --interval=1m --timeout=5s --start-period=10s --retries=3 CMD ["wget", "-q", "-O", "-", "http://localhost:8080/"]
 CMD ["/startup.sh"]
