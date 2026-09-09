@@ -32,6 +32,8 @@ ENV SYSTEM_NAME="Disturbance Assessment System"
 ENV APIARY_SYSTEM_NAME="Apiary System"
 ENV PAYMENT_OFFICERS_GROUP="Apiary Payments Officers"
 ENV NODE_MAJOR=24
+ENV VIRTUAL_ENV=/app/venv
+ENV PATH=$VIRTUAL_ENV/bin:$PATH
 
 # Use Australian Mirrors
 #RUN sed 's/archive.ubuntu.com/au.archive.ubuntu.com/g' /etc/apt/sources.list > /etc/apt/sourcesau.list
@@ -87,7 +89,7 @@ RUN chmod 755 /startup.sh && \
 FROM builder_base_das as python_libs_das
 WORKDIR /app
 USER oim
-RUN virtualenv /app/venv
+RUN python3 -m venv $VIRTUAL_ENV
 ENV PATH=/app/venv/bin:$PATH
 RUN git config --global --add safe.directory /app
 COPY --chown=oim:oim requirements.txt ./
