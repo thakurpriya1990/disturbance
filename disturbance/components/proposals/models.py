@@ -1743,7 +1743,7 @@ class Proposal(DirtyFieldsMixin, RevisionedMixin):
 
                     # Check if the user is in ledger
                     try:
-                        user = EmailUser.objects.get(email__icontains=referral_email)
+                        user = EmailUser.objects.get(email=referral_email)
                     except EmailUser.DoesNotExist:
                         # Validate if it is a deparment user
                         department_user = get_department_user(referral_email)
@@ -2833,7 +2833,7 @@ class Referral(models.Model):
                     referral = None
                     # Check if the user is in ledger
                     try:
-                        user = EmailUser.objects.get(email__icontains=referral_email)
+                        user = EmailUser.objects.get(email=referral_email)
                     except EmailUser.DoesNotExist:
                         # Validate if it is a deparment user
                         department_user = get_department_user(referral_email)
