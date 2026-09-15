@@ -119,7 +119,7 @@ class BookingSettlementReportView(views.APIView):
             traceback.print_exc()
 
 
-class MapLayerViewSet(viewsets.ModelViewSet):
+class MapLayerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = MapLayer.objects.none()
     serializer_class = MapLayerSerializer
 
@@ -136,7 +136,7 @@ class MapLayerViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-class DASMapLayerViewSet(viewsets.ModelViewSet):
+class DASMapLayerViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DASMapLayer.objects.none()
     serializer_class = DASMapLayerSerializer
 

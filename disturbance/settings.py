@@ -67,6 +67,9 @@ GDAL_LIBRARY_PATH = os.environ.get(
 GEOS_LIBRARY_PATH = os.environ.get(
     "GEOS_LIBRARY_PATH",
 )
+OGR2OGR = os.environ.get(
+    "OGR2OGR",
+)
 
 INSTALLED_APPS += [
     'reversion_compare',
@@ -261,7 +264,6 @@ if not os.path.exists('private-media' + os.sep + GEO_EXPORT_FOLDER):
 
 CRS = env('CRS', 'epsg:4326')
 CRS_CARTESIAN = env('CRS_CARTESIAN', 'epsg:3043')
-OGR2OGR = env('OGR2OGR', shutil.which('ogr2ogr') or '/usr/bin/ogr2ogr')
 #GEOM_PRECISION = env('GEOM_PRECISION', 5)
 
 OSCAR_BASKET_COOKIE_OPEN = 'das_basket'
