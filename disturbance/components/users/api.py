@@ -81,7 +81,7 @@ from rest_framework import filters
 #    search_fields = ('email', 'first_name', 'last_name')
 
 
-class UserViewSet(viewsets.ModelViewSet):
+class UserViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = EmailUser.objects.none()
     serializer_class = UserSerializer
 
