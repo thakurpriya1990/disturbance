@@ -6,7 +6,7 @@ from django.contrib.auth import views as auth_views
 from rest_framework import routers
 from disturbance import views
 from disturbance.admin import disturbance_admin_site
-from disturbance.components.main.views import GeocodingAddressSearchTokenView, FileDownloadView, FileListView
+from disturbance.components.main.views import FileDownloadView, FileListView
 from disturbance.components.proposals import views as proposal_views
 from disturbance.components.organisations import views as organisation_views
 from disturbance.components.proposals.views import ExternalProposalTemporaryUseSubmitSuccessView
@@ -120,7 +120,8 @@ api_patterns = [
             history_api.GetVersionsView.as_view(), name='get-versions'),
     url(r'^api/history/version/(?P<app_label>[\w-]+)/(?P<component_name>[\w-]+)/(?P<model_name>[\w-]+)/(?P<serializer_name>[\w-]+)/(?P<pk>\d+)/(?P<version_number>\d+)/$',
             history_api.GetVersionView.as_view(), name='get-version'),
-    url(r'^api/geocoding_address_search_token', GeocodingAddressSearchTokenView.as_view(), name='geocoding_address_search_token'),
+    # not used in das
+    # url(r'^api/geocoding_address_search_token', GeocodingAddressSearchTokenView.as_view(), name='geocoding_address_search_token'),
     url(r'^api/approval_document_paginated/approvals_document_external/(?P<pk>\d+)/$', approval_api.ApprovalDocumentPaginatedViewSet.as_view({'get': 'approvals_document_external'}), name="approval_document_paginated_external"),
 ]
 

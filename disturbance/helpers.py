@@ -85,6 +85,38 @@ def is_org_request_assessor(request):
         )
     )
 
+def is_das_approver(request):
+    from disturbance.components.proposals.models import ProposalApproverGroup
+    return (
+        request
+        and request.user
+        and (
+            ProposalApproverGroup.objects.filter(members_id=request.user.id).exists() or request.user.is_superuser
+        )
+    )
+
+
+def is_das_assessor(request):
+    from disturbance.components.proposals.models import ProposalAssessorGroup
+    return (
+        request
+        and request.user
+        and (
+            ProposalAssessorGroup.objects.filter(members_id=request.user.id).exists() or request.user.is_superuser
+        )
+    )
+
+
+def is_das_referrer(request):
+    from disturbance.components.proposals.models import Referral
+    return (
+        request
+        and request.user
+        and (
+            Referral.objects.filter(referral__id=request.user.id).exists() or request.user.is_superuser
+        )
+    )
+
 def is_internal(request):
     return is_departmentUser(request)
 

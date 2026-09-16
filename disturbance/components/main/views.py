@@ -16,10 +16,10 @@ import os
 
 logger = logging.getLogger(__name__)
 
-
-class GeocodingAddressSearchTokenView(views.APIView):
-    def get(self, request, format=None):
-        return Response({"access_token": settings.GEOCODING_ADDRESS_SEARCH_TOKEN})
+# not used in das
+# class GeocodingAddressSearchTokenView(views.APIView):
+#     def get(self, request, format=None):
+#         return Response({"access_token": settings.GEOCODING_ADDRESS_SEARCH_TOKEN})
 
 class FileListView(TemplateView):
     #folder_path = settings.GEO_EXPORT_FOLDER
