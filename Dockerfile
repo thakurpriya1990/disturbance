@@ -2,7 +2,7 @@
 ARG IMAGE_TAG
 ARG IMAGE_NAME
 # Prepare the base environment.
-FROM ghcr.io/dbca-wa/docker-apps-dev:ubuntu_2604_base_python as builder_base_das
+FROM ghcr.io/dbca-wa/docker-apps-dev:ubuntu_2604_base_python_node as builder_base_das
 MAINTAINER asi@dbca.wa.gov.au
 ARG IMAGE_TAG
 ARG IMAGE_NAME
@@ -45,28 +45,28 @@ ENV PATH=$VIRTUAL_ENV/bin:$PATH
 #RUN echo "*************************************************** Build TAG = $build_tag ***************************************************"
 
 RUN apt-get update
-RUN apt-get install -y software-properties-common
+# RUN apt-get install -y software-properties-common
 
 RUN apt-get clean
 RUN apt-get upgrade -y 
-RUN apt-get install -y run-one
-RUN apt-get install --no-install-recommends -y \
-libgdal-dev \
-software-properties-common \
-imagemagick \
-libspatialindex-dev
+RUN apt-get install -y run-one imagemagick libspatialindex-dev
+# RUN apt-get install --no-install-recommends -y \
+# libgdal-dev \
+# software-properties-common \
+# imagemagick \
+# libspatialindex-dev
 
 RUN update-ca-certificates
 
 # Install Node.js and clean up in the same layer.
-RUN mkdir -p /etc/apt/keyrings && \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
-    | tee /etc/apt/sources.list.d/nodesource.list && \
-    apt-get update && \
-    apt-get install --no-install-recommends -y nodejs && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# RUN mkdir -p /etc/apt/keyrings && \
+#     curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg && \
+#     echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_$NODE_MAJOR.x nodistro main" \
+#     | tee /etc/apt/sources.list.d/nodesource.list && \
+#     apt-get update && \
+#     apt-get install --no-install-recommends -y nodejs && \
+#     apt-get clean && \
+#     rm -rf /var/lib/apt/lists/*
 
 COPY startup.sh /
 COPY ./timezone /etc/timezone
