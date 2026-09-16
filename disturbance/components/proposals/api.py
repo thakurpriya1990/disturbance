@@ -16,7 +16,7 @@ from django.conf import settings
 from django.db.models import F, Q
 from django.db import transaction, connection
 from django.core.exceptions import ValidationError
-from rest_framework import viewsets, serializers, status, views
+from rest_framework import viewsets, serializers, status, views, mixins
 from rest_framework.decorators import action, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
@@ -126,7 +126,7 @@ from rest_framework_datatables.renderers import DatatablesRenderer
 from disturbance.components.main.process_document import (
         process_generic_document, 
         )
-from disturbance.components.proposals.permissions import InternalProposalPermission
+from disturbance.components.proposals.permissions import InternalProposalPermission, ProposalAssessorPermission, ProposalReferrerPermission, ProposalApproverPermission
 
 
 import logging
@@ -438,7 +438,7 @@ class ProposalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return response
     
 
-class ProposalViewSet(viewsets.ModelViewSet):
+class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
 
@@ -475,11 +475,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         try:
-            # application_type = self.get_object().application_type.name
-            # if application_type in (ApplicationType.APIARY, ApplicationType.SITE_TRANSFER, ApplicationType.TEMPORARY_USE):
-            #     return ProposalApiaryTypeSerializer
-            # else:
-            #     return ProposalSerializer
             return ProposalSerializer
         except serializers.ValidationError:
             print(traceback.print_exc())
@@ -493,7 +488,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
     def internal_serializer_class(self):
         try:
-            #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
             application_type = self.get_object().application_type.name
             return InternalProposalSerializer
         except serializers.ValidationError:
@@ -517,7 +511,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         file_url = reverse('file-download', kwargs={'filename':filename})
         return Response(data={'message': f'File created {filename}'}, status=status.HTTP_200_OK)
                 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     def get_revision(self, request, *args, **kwargs):
         """
         Use the Proposal model method to get a particular Proposal revision.
@@ -538,7 +532,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def get_revision_diffs(self, request, *args, **kwargs):
         """
         Use the Proposal model method to get the differences between the lastest revision and
@@ -561,7 +555,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=['GET'], detail=True, permission_classes=[InternalProposalPermission])
     def version_differences(self, request, *args, **kwargs):
         """ Returns a json response containing the differences between two 
             versions.
@@ -578,7 +572,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return Response(differences)
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=['GET'], detail=True, permission_classes=[InternalProposalPermission])
     def version_differences_comment_data(self, request, *args, **kwargs):
         """ Returns a json response containing the differences between two 
             versions.
@@ -595,7 +589,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return JsonResponse(differences, safe=False)
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=['GET'], detail=True, permission_classes=[InternalProposalPermission])
     def version_differences_assessor_data(self, request, *args, **kwargs):
         """ Returns a json response containing the differences between two 
             versions.
@@ -612,7 +606,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
         return JsonResponse(differences, safe=False)
 
-    @action(methods=['GET'], detail=True)
+    @action(methods=['GET'], detail=True, permission_classes=[InternalProposalPermission])
     def version_differences_documents(self, request, *args, **kwargs):
         """ Returns a json response containing the differences between two 
             versions.
@@ -629,27 +623,6 @@ class ProposalViewSet(viewsets.ModelViewSet):
         differences = instance.get_document_differences(newer_version, older_version, differences_only)
 
         return JsonResponse(differences, safe=False)
-
-    @action(methods=['POST'], detail=True)
-    @renderer_classes((JSONRenderer,))
-    def process_deed_poll_document(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            returned_data = process_generic_document(request, instance, document_type=DeedPollDocument.DOC_TYPE_NAME)
-            if returned_data:
-                return Response(returned_data)
-            else:
-                return Response()
-
-        except serializers.ValidationError:
-            print(traceback.print_exc())
-            raise
-        except ValidationError as e:
-            print(traceback.print_exc())
-            handle_validation_error(e)
-        except Exception as e:
-            print(traceback.print_exc())
-            raise serializers.ValidationError(str(e))
 
     @action(methods=['GET',], detail=False)
     def filter_list(self, request, *args, **kwargs):
@@ -860,6 +833,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 #        serializer = ListProposalSerializer(self.get_queryset(), context={'request':request}, many=True)
 #        return Response(serializer.data)
 
+    # not used
     @action(methods=['GET',], detail=False)
     def list_paginated(self, request, *args, **kwargs):
         """
@@ -873,7 +847,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return paginator.get_paginated_response(serializer.data)
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def action_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -927,7 +901,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -986,7 +960,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, *args, **kwargs):
         try:
@@ -1022,7 +996,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def requirements(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1040,6 +1014,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    # not used
     @action(methods=['GET',], detail=True)
     def apiary_site_transfer_originating_approval_requirements(self, request, *args, **kwargs):
         try:
@@ -1061,6 +1036,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    # not used
     @action(methods=['GET',], detail=True)
     def apiary_site_transfer_target_approval_requirements(self, request, *args, **kwargs):
         # for new licences, sitetransfer_approval is None
@@ -1103,6 +1079,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    #not used
     @action(methods=['GET',], detail=False)
     def user_list(self, request, *args, **kwargs):
         qs = self.get_queryset().exclude(processing_status=Proposal.PROCESSING_STATUS_DISCARDED)
@@ -1110,6 +1087,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ListProposalSerializer(qs,context={'request':request}, many=True)
         return Response(serializer.data)
 
+    # not used
     @action(methods=['GET',], detail=False)
     def user_list_paginated(self, request, *args, **kwargs):
         """
@@ -1125,6 +1103,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = ListProposalSerializer(result_page, context={'request':request}, many=True)
         return paginator.get_paginated_response(serializer.data)
 
+
+    # not used
     @action(methods=['GET',], detail=False)
     def list_paginated(self, request, *args, **kwargs):
         """
@@ -1142,7 +1122,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
 
    
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def internal_proposal(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.internal_view_log(request)
@@ -1151,7 +1131,8 @@ class ProposalViewSet(viewsets.ModelViewSet):
         serializer = serializer_class(instance,context={'request': request})
         return Response(serializer.data)
 
-    @action(methods=['GET',], detail=True)
+    # not used
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission])
     def internal_revision_proposal(self, request, *args, **kwargs):
         
         instance = self.get_object()
@@ -1182,13 +1163,14 @@ class ProposalViewSet(viewsets.ModelViewSet):
     def submit(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if instance.customer_status == Proposal.CUSTOMER_STATUS_DRAFT:
             # if instance.apiary_group_application_type:
             #     save_proponent_data(instance, request, self)
             # else:
             #     instance.submit(request, self)
             #     instance.tenure = search_tenure(instance)
-            instance.submit(request, self)
-            instance.tenure = search_tenure(instance)
+                instance.submit(request, self)
+                instance.tenure = search_tenure(instance)
 
             instance.save()
             serializer = self.get_serializer(instance)
@@ -1228,7 +1210,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
         
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission],)
     def assign_request_user(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1247,7 +1229,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission],)
     def assign_to(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1274,7 +1256,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalProposalPermission],)
     def unassign(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1293,7 +1275,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission],)
     def switch_status(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1377,7 +1359,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             else:
                 raise
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     def proposed_approval(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1405,7 +1387,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     def approval_level_document(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1424,7 +1406,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalProposalPermission])
     def approval_level_comment(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1443,21 +1425,21 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission, ProposalApproverPermission])
     @basic_exception_handler
     def final_approval_temp_use(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.final_approval_temp_use(request,)
         return Response({})
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission, ProposalApproverPermission])
     @basic_exception_handler
     def final_decline_temp_use(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.final_decline_temp_use(request,)
         return Response({})
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     def final_approval(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1478,7 +1460,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[ProposalAssessorPermission])
     def proposed_decline(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1499,7 +1481,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[ProposalApproverPermission])
     def final_decline(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1520,7 +1502,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['post'], detail=True)
+    @action(methods=['post'], detail=True, permission_classes=[InternalProposalPermission])
     def assesor_send_referral(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -1575,6 +1557,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    # TODO on-cleanup - determine if this is required or not
     @action(methods=['post'], detail=True)
     @renderer_classes((JSONRenderer,))
     def update_region_section(self, request, *args, **kwargs):
@@ -1610,7 +1593,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
         raise serializers.ValidationError(str(e))
 
-    @action(methods=['post'], detail=True)
+    @action(methods=['post'], detail=True, permission_classes=[ProposalAssessorPermission])
     @renderer_classes((JSONRenderer,))
     def assessor_save(self, request, *args, **kwargs):
         try:
@@ -1804,6 +1787,7 @@ class ProposalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    # TODO on-cleanup - determine if this is required or not
     def destroy(self, request, *args, **kwargs):
         try:
             http_status = status.HTTP_200_OK
@@ -1830,10 +1814,10 @@ class ProposalViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-class ReferralViewSet(viewsets.ModelViewSet):
-    #queryset = Referral.objects.all()
+class ReferralViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Referral.objects.none()
     serializer_class = ReferralSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -1845,9 +1829,6 @@ class ReferralViewSet(viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         try:
-            #referral_id = self.kwargs.get('referral_id')
-            #if referral_id:
-             #   referral = Referral.objects.get(id=referral_id)
             referral = self.get_object()
             apiary_referral_attribute_exists = getattr(referral, 'apiary_referral', None)
             if apiary_referral_attribute_exists:
@@ -2035,8 +2016,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
 
 
 
-class ProposalRequirementViewSet(viewsets.ModelViewSet):
-    #queryset = ProposalRequirement.objects.all()
+class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
     permission_classes = [InternalProposalPermission]
@@ -2149,9 +2129,10 @@ class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(serializer.data)
 
 
-class AmendmentRequestViewSet(viewsets.ModelViewSet):
+class AmendmentRequestViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = AmendmentRequest.objects.none()
     serializer_class = AmendmentRequestSerializer
+    permission_classes = [ProposalAssessorPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -2165,16 +2146,7 @@ class AmendmentRequestViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         try:
-            # reason_id=request.data.get('reason')
-            # data = {
-            #     #'schema': qs_proposal_type.order_by('-version').first().schema,
-            #     'text': request.data.get('text'),
-            #     'proposal': request.data.get('proposal'),
-            #     'reason': AmendmentReason.objects.get(id=reason_id) if reason_id else None,
-            # }
-            #serializer = self.get_serializer(data= request.data)
             serializer = self.get_serializer(data= json.loads(request.data.get('data')))
-            #serializer = self.get_serializer(data=data)
             serializer.is_valid(raise_exception = True)
             instance = serializer.save()
             instance.add_documents(request)
@@ -2214,7 +2186,6 @@ class AmendmentRequestReasonChoicesView(views.APIView):
     renderer_classes = [JSONRenderer,]
     def get(self,request, format=None):
         choices_list = []
-        #choices = AmendmentRequest.REASON_CHOICES
         choices=AmendmentReason.objects.all()
         if choices:
             for c in choices:
@@ -2224,6 +2195,7 @@ class AmendmentRequestReasonChoicesView(views.APIView):
 
 class SearchKeywordsView(views.APIView):
     renderer_classes = [JSONRenderer,]
+    permission_classes = [InternalProposalPermission]
 
     def get(self,request, format=None):
         qs = []
@@ -2253,6 +2225,7 @@ class SearchKeywordsView(views.APIView):
 
 class SearchReferenceView(views.APIView):
     renderer_classes = [JSONRenderer,]
+    permission_classes = [InternalProposalPermission]
     def post(self,request, format=None):
         try:
             qs = []
@@ -2278,6 +2251,7 @@ class ProposalTypeSectionViewSet(viewsets.ReadOnlyModelViewSet):
     # latest_proposal_types=[p.id for p in ProposalType.objects.all() if p.latest ]
     # queryset = ProposalTypeSection.objects.filter(proposal_type_id__in=latest_proposal_types).order_by('id')
     serializer_class = ProposalTypeSectionSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         latest_proposal_types = [p.id for p in ProposalType.objects.all() if p.latest]
@@ -2300,6 +2274,7 @@ class SearchProposalTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
     queryset = ProposalType.objects.none()
     serializer_class = SearchProposalTypeSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         # Only select Proposal Types which has Sections linked to them.
@@ -2322,6 +2297,7 @@ class SearchProposalTypeViewSet(viewsets.ReadOnlyModelViewSet):
 
 class SearchSectionsView(views.APIView):
     renderer_classes = [JSONRenderer,]
+    permission_classes = [InternalProposalPermission]
     def post(self,request, format=None):
         qs = []
         proposal_type_id= request.data.get('proposal_type_id')
@@ -2339,6 +2315,7 @@ class SearchSectionsView(views.APIView):
 
 class GetSearchGeoJsonView(views.APIView):
     renderer_classes = [JSONRenderer,]
+    permission_classes = [InternalProposalPermission]
     def post(self,request, format=None):
         proposal_lodgement_numbers= request.data.get('proposal_lodgement_numbers')
         
@@ -2422,9 +2399,10 @@ class SchemaMasterlistPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return response
 
 
-class SchemaMasterlistViewSet(viewsets.ModelViewSet):
+class SchemaMasterlistViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = MasterlistQuestion.objects.none()
     serializer_class = SchemaMasterlistSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -2699,9 +2677,10 @@ class SchemaQuestionPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return response
 
 
-class SchemaQuestionViewSet(viewsets.ModelViewSet):
+class SchemaQuestionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = SectionQuestion.objects.none()
     serializer_class = SchemaQuestionSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -3067,9 +3046,10 @@ class SchemaProposalTypePaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return response
 
 
-class SchemaProposalTypeViewSet(viewsets.ModelViewSet):
+class SchemaProposalTypeViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ProposalTypeSection.objects.none()
     serializer_class = SchemaProposalTypeSerializer
+    permission_classes = [InternalProposalPermission]
 
     def get_queryset(self):
         user = self.request.user

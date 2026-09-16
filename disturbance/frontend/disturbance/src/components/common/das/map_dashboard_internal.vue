@@ -420,10 +420,10 @@
                 }
                 this.loadFeatures(this.filteredProposals);
             },
-            retrieveMapboxAccessToken: async function(){
-                let ret_val = await $.ajax('/api/geocoding_address_search_token')
-                return ret_val
-            },
+            // retrieveMapboxAccessToken: async function(){
+            //     let ret_val = await $.ajax('/api/geocoding_address_search_token')
+            //     return ret_val
+            // },
             initAwesomplete: function(){
                 var vm = this;
                 var element_search = document.getElementById(vm.search_input_id);
@@ -1700,8 +1700,8 @@
         },
         
         created: async function() {
-            let temp_token = await this.retrieveMapboxAccessToken()
-            this.mapboxAccessToken = temp_token.access_token
+            // let temp_token = await this.retrieveMapboxAccessToken()
+            // this.mapboxAccessToken = temp_token.access_token
         },
         mounted: function() {
             let vm = this;

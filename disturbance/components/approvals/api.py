@@ -15,7 +15,7 @@ from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-from rest_framework import viewsets, serializers, status, generics, views
+from rest_framework import viewsets, serializers, status, generics, views, mixins
 from rest_framework.decorators import action, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer
@@ -266,8 +266,7 @@ class ApprovalPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return self.paginator.get_paginated_response(serializer.data)
 
 
-class ApprovalViewSet(viewsets.ModelViewSet):
-    #queryset = Approval.objects.all()
+class ApprovalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Approval.objects.none()
     serializer_class = ApprovalSerializer
 
@@ -276,7 +275,6 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             return Approval.objects.all()
         elif is_customer(self.request):
             user_orgs = [org.id for org in self.request.user.disturbance_organisations.all()]
-            #queryset =  Approval.objects.filter(applicant_id__in = user_orgs)
             queryset =  Approval.objects.filter(Q(applicant_id__in = user_orgs)|Q(proxy_applicant_id=self.request.user.id))
             return queryset
         return Approval.objects.none()
@@ -347,7 +345,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = serializer_class(instance)
         return Response(serializer.data)
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission],)
     @basic_exception_handler
     def approval_cancellation(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -357,7 +355,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
         serializer = ApprovalSerializer(instance,context={'request':request})
         return Response(serializer.data)
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission],)
     def approval_suspension(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -376,7 +374,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission],)
     def approval_reinstate(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -393,7 +391,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission],)
     def approval_surrender(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -412,7 +410,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalApprovalPermission],)
     def approval_pdf_view_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -429,7 +427,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalApprovalPermission],)
     def action_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -483,7 +481,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=True)
+    @action(methods=['GET',], detail=True, permission_classes=[InternalApprovalPermission],)
     def comms_log(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
@@ -542,7 +540,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalApprovalPermission],)
     @renderer_classes((JSONRenderer,))
     def add_comms_log(self, request, *args, **kwargs):
         try:
@@ -573,14 +571,16 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
-    @action(methods=['GET',], detail=False)
+    # TODO not used, could potentially be removed in the future
+    @action(methods=['GET',], detail=False, permission_classes=[InternalApprovalPermission],)
     def sti_search(self, request, *args, **kwargs):
         """ Used by the internal users to filter for sti name in ptoposal titlei (for use by external systems) """
         name = request.GET.get('name')
         data = Approval.objects.filter(current_proposal__title__icontains=name).values_list('licence_document___file', flat=True)
         return Response(list(data))
 
-    @action(methods=['GET',], detail=False)
+    # TODO not used, could potentially be removed in the future
+    @action(methods=['GET',], detail=False, permission_classes=[InternalApprovalPermission],)
     def sti_unmatched(self, request, *args, **kwargs):
         """ Used by the internal users to filter for sti name in ptoposal titlei (for use by external systems) """
 
@@ -594,7 +594,8 @@ class ApprovalViewSet(viewsets.ModelViewSet):
 
         return Response(list(data))
 
-    @action(methods=['GET',], detail=True)
+    # TODO not used, could potentially be removed in the future
+    @action(methods=['GET',], detail=True, permission_classes=[InternalApprovalPermission],)
     def requirements(self, request, *args, **kwargs):
         try:
             approval = self.get_object()
@@ -612,6 +613,7 @@ class ApprovalViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    # TODO not used, could potentially be removed in the future
     @action(methods=['GET', ], detail=False)
     def approval_history(self, request, *args, **kwargs):
         try:
