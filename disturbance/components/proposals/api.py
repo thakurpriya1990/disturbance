@@ -2029,7 +2029,7 @@ class ReferralViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
-    permission_classes = [InternalProposalPermission]
+    permission_classes = [ProposalAssessorPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -2045,6 +2045,13 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     def move_up(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not (
+                instance.proposal
+                and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+            ):
+                raise serializers.ValidationError(
+                    "Proposal must be With Assessor (Requirements) for requirement to updated."
+                )
             instance.up()
             instance.save()
             serializer = self.get_serializer(instance)
@@ -2063,6 +2070,13 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     def move_down(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not (
+                instance.proposal
+                and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+            ):
+                raise serializers.ValidationError(
+                    "Proposal must be With Assessor (Requirements) for requirement to updated."
+                )
             instance.down()
             instance.save()
             serializer = self.get_serializer(instance)
@@ -2081,6 +2095,13 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     def discard(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not (
+                instance.proposal
+                and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+            ):
+                raise serializers.ValidationError(
+                    "Proposal must be With Assessor (Requirements) for requirement to removed."
+                )
             instance.is_deleted = True
             instance.save()
             serializer = self.get_serializer(instance)
