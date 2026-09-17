@@ -176,7 +176,8 @@ def is_authorised_to_modify_draft(request, instance):
     applicant = instance.applicant.organisation.organisation_set.all()[0]
     applicantIsIndividual = isinstance(applicant, EmailUser)
     if instance.processing_status=='draft':
-        if is_customer(request):
+        # if is_customer(request):  -- commented as the internal user was not able to submit new proposal
+        if request.user and request.user.is_authenticated:
             # the status of the application must be DRAFT for customer to modify
             if applicantIsIndividual:
                 # it is an individual so the applicant and submitter must be the same
