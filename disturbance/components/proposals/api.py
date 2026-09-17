@@ -1813,6 +1813,16 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @action(detail=True,methods=["delete",],
+    )
+    def discard(self, request, *args, **kwargs):
+        instance = self.get_object()
+        is_authorised_to_modify_draft(request, instance)
+        instance.discard(request)
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
 
 class ReferralViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Referral.objects.none()

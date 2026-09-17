@@ -167,18 +167,13 @@ def is_authorised_to_modify(request, instance):
         raise serializers.ValidationError('You are not authorised to modify this application.')
 
 def is_authorised_to_modify_draft(request, instance):
-    return True
+    # return True
     authorised = True
 
-    # Getting Organisation is different in DAS and Apiary
-    if str(instance.application_type) == "Apiary":
-        # Get Organisation if in Apiary
-        applicant = instance.relevant_applicant
-    else:
-        # Get Organisation if in DAS
-        # There can only ever be one Organisation associated with an application so it is
-        # ok to just pull the first element from organisation_set.
-        applicant = instance.applicant.organisation.organisation_set.all()[0]
+    # Get Organisation if in DAS
+    # There can only ever be one Organisation associated with an application so it is
+    # ok to just pull the first element from organisation_set.
+    applicant = instance.applicant.organisation.organisation_set.all()[0]
     applicantIsIndividual = isinstance(applicant, EmailUser)
     if instance.processing_status=='draft':
         if is_customer(request):
