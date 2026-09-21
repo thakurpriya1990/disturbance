@@ -75,7 +75,7 @@ from disturbance.components.organisations.permissions import (
 from disturbance.components.main.utils import get_template_group, handle_validation_error
 
 
-class OrganisationViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
+class OrganisationViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = Organisation.objects.none()
     serializer_class = OrganisationSerializer
     allow_external = False #TODO: review this - workaround for allowing organisations to be accessed when validating pins
