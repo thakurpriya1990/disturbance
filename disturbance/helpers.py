@@ -91,7 +91,7 @@ def is_das_approver(request):
         request
         and request.user
         and (
-            ProposalApproverGroup.objects.filter(members_id=request.user.id).exists() or request.user.is_superuser
+            ProposalApproverGroup.objects.filter(members__id=request.user.id).exists() or request.user.is_superuser
         )
     )
 
@@ -102,7 +102,7 @@ def is_das_assessor(request):
         request
         and request.user
         and (
-            ProposalAssessorGroup.objects.filter(members_id=request.user.id).exists() or request.user.is_superuser
+            ProposalAssessorGroup.objects.filter(members__id=request.user.id).exists() or request.user.is_superuser
         )
     )
 
