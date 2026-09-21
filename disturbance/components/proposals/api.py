@@ -500,6 +500,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    def perform_update(self, serializer):
+            serializer.save()
+
     @action(methods=['POST', ], detail=False)
     @api_exception_handler
     def create_shapefile(self, request, *args, **kwargs):
@@ -2115,6 +2118,38 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    # add status check and perm
+    def create(self, request, *args, **kwargs):
+        data = request.data.get("data")
+        proposal = Proposal.objects.get(id=data["proposal"])
+        if proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError(
+                "No valid proposal With Assessor (Requirements) for requirement provided."
+            )
+
+    # add status check and perm
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if (
+            instance.proposal
+            and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+        ):
+            serializer = self.get_serializer(instance, data=request.data.get("data"))
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError(
+                "No valid proposal With Assessor (Requirements) for requirement provided."
+            )
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):
