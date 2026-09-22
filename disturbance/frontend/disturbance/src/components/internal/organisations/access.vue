@@ -433,7 +433,7 @@ export default {
             swal.fire({
                 title: "Decline Organisation Request",
                 text: "Are you sure you want to decline this organisation request?",
-                type: "question",
+                icon: "question",
                 showCancelButton: true,
                 confirmButtonText: 'Decline',
                 customClass: {

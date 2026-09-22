@@ -500,6 +500,9 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    def perform_update(self, serializer):
+            serializer.save()
+
     @action(methods=['POST', ], detail=False)
     @api_exception_handler
     def create_shapefile(self, request, *args, **kwargs):
@@ -1813,6 +1816,16 @@ class ProposalViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    @action(detail=True,methods=["delete",],
+    )
+    def discard(self, request, *args, **kwargs):
+        instance = self.get_object()
+        is_authorised_to_modify_draft(request, instance)
+        instance.discard(request)
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
 
 class ReferralViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = Referral.objects.none()
@@ -2019,7 +2032,7 @@ class ReferralViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
 class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     queryset = ProposalRequirement.objects.none()
     serializer_class = ProposalRequirementSerializer
-    permission_classes = [InternalProposalPermission]
+    permission_classes = [ProposalAssessorPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -2035,6 +2048,13 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     def move_up(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not (
+                instance.proposal
+                and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+            ):
+                raise serializers.ValidationError(
+                    "Proposal must be With Assessor (Requirements) for requirement to updated."
+                )
             instance.up()
             instance.save()
             serializer = self.get_serializer(instance)
@@ -2053,6 +2073,13 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     def move_down(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not (
+                instance.proposal
+                and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+            ):
+                raise serializers.ValidationError(
+                    "Proposal must be With Assessor (Requirements) for requirement to updated."
+                )
             instance.down()
             instance.save()
             serializer = self.get_serializer(instance)
@@ -2071,6 +2098,13 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
     def discard(self, request, *args, **kwargs):
         try:
             instance = self.get_object()
+            if not (
+                instance.proposal
+                and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+            ):
+                raise serializers.ValidationError(
+                    "Proposal must be With Assessor (Requirements) for requirement to removed."
+                )
             instance.is_deleted = True
             instance.save()
             serializer = self.get_serializer(instance)
@@ -2084,6 +2118,38 @@ class ProposalRequirementViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMi
         except Exception as e:
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
+
+    # add status check and perm
+    def create(self, request, *args, **kwargs):
+        data = request.data.get("data")
+        proposal = Proposal.objects.get(id=data["proposal"])
+        if proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS:
+            serializer = self.get_serializer(data=data)
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError(
+                "No valid proposal With Assessor (Requirements) for requirement provided."
+            )
+
+    # add status check and perm
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if (
+            instance.proposal
+            and instance.proposal.processing_status == Proposal.PROCESSING_STATUS_WITH_ASSESSOR_REQUIREMENTS
+        ):
+            serializer = self.get_serializer(instance, data=request.data.get("data"))
+            serializer.is_valid(raise_exception=True)
+            instance = serializer.save()
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        else:
+            raise serializers.ValidationError(
+                "No valid proposal With Assessor (Requirements) for requirement provided."
+            )
 
 
 class ProposalStandardRequirementViewSet(viewsets.ReadOnlyModelViewSet):

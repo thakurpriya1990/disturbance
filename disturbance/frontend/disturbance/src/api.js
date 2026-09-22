@@ -54,7 +54,8 @@ export default {
     //list_referrals:"/api/list_proposal/referral_list/?format=datatables",
 
     discard_proposal:function (id) {
-      return `/api/proposal/${id}.json`;
+    //   return `/api/proposal/${id}.json`;
+       return `/api/proposal/${id}/discard/`;
     },
     site_url: site_url,
     //dep_name: 'Department of Biodiversity, Conservation and Attractions',

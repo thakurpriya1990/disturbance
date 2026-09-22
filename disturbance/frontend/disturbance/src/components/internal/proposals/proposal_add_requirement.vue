@@ -291,7 +291,7 @@ export default {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(requirement)
+                    body: JSON.stringify({ data: requirement }),
                 })
                 .then(response => {
                     if (!response.ok) throw response;
@@ -322,7 +322,7 @@ export default {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(requirement)
+                    body: JSON.stringify({ data: requirement }),
                 })
                 .then(response => {
                     if (!response.ok) throw response;

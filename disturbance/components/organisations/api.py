@@ -75,7 +75,7 @@ from disturbance.components.organisations.permissions import (
 from disturbance.components.main.utils import get_template_group, handle_validation_error
 
 
-class OrganisationViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
+class OrganisationViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
     queryset = Organisation.objects.none()
     serializer_class = OrganisationSerializer
     allow_external = False #TODO: review this - workaround for allowing organisations to be accessed when validating pins
@@ -1134,9 +1134,10 @@ class OrganisationAccessGroupMembers(views.APIView):
         return Response(members)
 
 
-class OrganisationContactViewSet(viewsets.ModelViewSet):
+class OrganisationContactViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin, mixins.DestroyModelMixin):
     serializer_class = OrganisationContactSerializer
     queryset = OrganisationContact.objects.all()
+    permission_classes = [InternalOrganisationPermission]
 
     def get_queryset(self):
         user = self.request.user
@@ -1146,6 +1147,13 @@ class OrganisationContactViewSet(viewsets.ModelViewSet):
             user_orgs = [org.id for org in user.disturbance_organisations.all()]
             return OrganisationContact.objects.filter( Q(organisation_id__in = user_orgs) )
         return OrganisationContact.objects.none()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
         """ delete an Organisation contact """
