@@ -17,7 +17,7 @@ from django.db import transaction, connection
 from django.core.paginator import Paginator
 from django.core.exceptions import ValidationError
 from django.db.utils import IntegrityError
-from rest_framework import viewsets, serializers, status, views
+from rest_framework import viewsets, serializers, status, views, mixins
 from rest_framework.decorators import action, renderer_classes
 from rest_framework.response import Response
 from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
@@ -64,6 +64,7 @@ from disturbance.helpers import is_authorised_to_modify, is_customer, is_interna
 from rest_framework_datatables.pagination import DatatablesPageNumberPagination
 from rest_framework_datatables.filters import DatatablesFilterBackend
 from rest_framework_datatables.renderers import DatatablesRenderer
+from disturbance.components.proposals.sqs_utils.permissions import InternalSpatialQueryPermission
 
 from disturbance.components.main.utils import (
     check_db_connection,
@@ -92,7 +93,7 @@ def get_chunks(data_str):
     return chunks
 
 
-class ProposalSqsViewSet(viewsets.ModelViewSet):
+class ProposalSqsViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
  
     queryset = Proposal.objects.none()
     serializer_class = ProposalSerializer
@@ -207,6 +208,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
             print(traceback.print_exc())
             raise serializers.ValidationError(str(e))
 
+    # not used anymore
     def internal_serializer_class(self):
         try:
             #application_type = Proposal.objects.get(id=self.kwargs.get('pk')).application_type.name
@@ -228,7 +230,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
             raise serializers.ValidationError(str(e))
 
 
-    @action(methods=['GET', ], detail=False)
+    @action(methods=['GET', ], detail=False, permission_classes=[InternalSpatialQueryPermission])
     @api_exception_handler
     def layers_used(self, request, *args, **kwargs):
         if not is_internal(self.request):
@@ -372,7 +374,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
 #
 #        return Response(resp.json())
 
-    @action(methods=['POST',], detail=True)
+    @action(methods=['POST',], detail=True, permission_classes=[InternalSpatialQueryPermission])
     @api_exception_handler
     def sqs_data_single(self, request, *args, **kwargs):
         '''
@@ -608,6 +610,7 @@ class ProposalSqsViewSet(viewsets.ModelViewSet):
 #                status=status.HTTP_400_BAD_REQUEST
 #            )
 
+    # not used anymore
     def _cleanup_expired_layer_data_for_checkbox(self, proposal, mlq_label, schema_name, masterlist_question_qs):
         # If this question has expired layer configuration, remove stale cached layer
         # results for this question from the proposal before queuing a refresh.
@@ -1760,10 +1763,11 @@ class SpatialQueryMetricsDetailsPaginatedViewSet(viewsets.ReadOnlyModelViewSet):
         return response
 
 
-class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
+class SpatialQueryQuestionViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     """ For the 'New Question' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
     queryset = SpatialQueryQuestion.objects.all()
     serializer_class = DTSpatialQueryQuestionSerializer
+    permission_classes = [InternalSpatialQueryPermission]
 
 #    @list_route(methods=['GET', ])
 #    @api_exception_handler
@@ -2042,7 +2046,7 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
         if not request.GET:
             # add additional info for debugging on frontend
             layer_url = get_sqs_url(f'layers/{layer_name}/geojson')
-            log_request(f'{request.user} - {self.__class__.__name__}.{inspect.currentframe().f_code.co_name} - {url}')
+            log_request(f'{request.user} - {self.__class__.__name__}.{inspect.currentframe().f_code.co_name} - {layer_url}')
             data.update({'layer_url': layer_url}) if isinstance(data, dict) else data.append({'layer_url': layer_url})
 
         return Response(data)
@@ -2386,10 +2390,11 @@ class SpatialQueryQuestionViewSet(viewsets.ModelViewSet):
 #            logger.exception()
 #            raise serializers.ValidationError(str(e))
 
-class SpatialQueryLayerViewSet(viewsets.ModelViewSet):
+class SpatialQueryLayerViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     """ For the 'New Layer' and 'Edit' in 'Spatial Query Questions' tab  http://localhost:8000/api/spatial_query/1.json """
     queryset = SpatialQueryLayer.objects.all()
     serializer_class = SpatialQueryLayerSerializer
+    permission_classes = [InternalSpatialQueryPermission]
 
     @action(methods=['DELETE', ], detail=True)
     def delete_spatialquerylayer(self, request, *args, **kwargs):

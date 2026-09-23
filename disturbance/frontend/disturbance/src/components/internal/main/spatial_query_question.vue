@@ -1144,7 +1144,10 @@ export default {
 
             console.log(url);
             fetch(url).then(async (response) => {
-                if (!response.ok) { return response.json().then(err => { throw err }); }
+                if (!response.ok) { 
+                    // return response.json().then(err => { throw err }); 
+                    throw new Error(await helpers.parseApiError(response));
+                }
                 console.log('Response: ' + JSON.stringify(response));
                 let data = await response.json();
                 return data;
@@ -1152,7 +1155,7 @@ export default {
                 console.log('Error: ' + JSON.stringify(error))
                 swal.fire({
                     title:'Error',
-                    text:error,
+                    text:error.message,
                     icon:'error',
                     target: document.body,
                     didOpen: () => {
@@ -1313,7 +1316,8 @@ export default {
                     body: JSON.stringify(data)
                 }).then(async (response) => {
                     if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                        // throw new Error(`HTTP error! Status: ${response.status}`);
+                        throw new Error(await helpers.parseApiError(response));
                     }
                     //self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                     const res_body = await response.json();
@@ -1328,7 +1332,7 @@ export default {
                     swal.fire({
                         title:'Save Error',
                         // helpers.apiVueResourceError(error),
-                        text:error,
+                        text:error.message,
                         icon:'error',
                         target: document.body,
                         didOpen: () => {
@@ -1357,7 +1361,8 @@ export default {
                     body: JSON.stringify(data)
                 }).then(async (response)=>{
                     if (!response.ok) {
-                        throw new Error(`HTTP error! Status: ${response.status}`);
+                        // throw new Error(`HTTP error! Status: ${response.status}`);
+                        throw new Error(await helpers.parseApiError(response));
                     }
                     const res_body = await response.json();
                     console.log('JM8 ' + JSON.stringify(res_body));
@@ -1379,7 +1384,7 @@ export default {
                     console.log('Error: ' + JSON.stringify(error.message));
                     swal.fire({
                         title:'Save Error',
-                        text:error,
+                        text:error.message,
                         icon:'error',
                         target: document.body,
                         didOpen: () => {
@@ -1629,7 +1634,10 @@ export default {
             const self = this;
             self.show_spinner = true;
             fetch(url).then(async (response) => {
-                if (!response.ok) { return response.json().then(err => { throw err }); }
+                if (!response.ok) { 
+                    throw new Error(await helpers.parseApiError(response));
+                    // return response.json().then(err => { throw err }); 
+                }
                 let data = await response.json();
                 swal.fire({
                     title:'Layer Exists in SQS!',
@@ -1650,7 +1658,7 @@ export default {
             }).catch((error) => {
                 swal.fire({
                     title:'Layer Check Error',
-                    text:error,
+                    text:error.message,
                     icon:'error',
                     target: document.body,
                     didOpen: () => {
@@ -1679,7 +1687,8 @@ export default {
                 body: JSON.stringify(data)
             }).then(async (response)=>{
                 if (!response.ok) {
-                    throw new Error(`HTTP error! Status: ${response.status}`);
+                    // throw new Error(`HTTP error! Status: ${response.status}`);
+                    throw new Error(await helpers.parseApiError(response));
                 }
                 let data = await response.json();
                 swal.fire({
@@ -1701,7 +1710,7 @@ export default {
             }).catch((error) => {
                 swal.fire({
                     title:'Create/Update Error',
-                    text:error,
+                    text:error.message,
                     icon:'error',
                     customClass: {
                         confirmButton: 'btn btn-primary',
@@ -1766,7 +1775,10 @@ export default {
                     vm.show_spinner = true;
                     vm.export_layers_btn_disabled = true;
                     fetch('/api/proposal_sqs/layers_used/').then(async (response) => {
-                        if (!response.ok) { return response.json().then(err => { throw err }); }
+                        if (!response.ok) { 
+                            // return response.json().then(err => { throw err }); 
+                            throw new Error(await helpers.parseApiError(response));
+                        }
                         let data = await response.blob();
                         // var FileSaver = require('file-saver');
                         const blob = new Blob([data], {type: 'text/csv'});
@@ -1791,7 +1803,7 @@ export default {
                         console.log(error);
                         swal.fire({
                             title: "Export Layers Used",
-                            text: error,
+                            text: error.message,
                             icon: "error",
                             customClass: {
                                 confirmButton: 'btn btn-primary',
@@ -2114,13 +2126,14 @@ export default {
                         })
                         .then(async (response) => {
                             if (!response.ok) {
-                                throw new Error(`HTTP error! Status: ${response.status}`);
+                                // throw new Error(`HTTP error! Status: ${response.status}`);
+                                throw new Error(await helpers.parseApiError(response));
                             }
                             self.$refs.spatial_query_question_table.vmDataTable.ajax.reload();
                         }).catch((error) => {
                             swal.fire({
                                 title:'Delete Error',
-                                text:error,
+                                text:error.message,
                                 icon:'error',
                                 target: document.body,
                                 didOpen: () => {
@@ -2173,7 +2186,8 @@ export default {
                             }
                         }).then(async (response) => {
                             if (!response.ok) {
-                                throw new Error(`HTTP error! Status: ${response.status}`);
+                                // throw new Error(`HTTP error! Status: ${response.status}`);
+                                throw new Error(await helpers.parseApiError(response));
                             }
                             const res_body = await response.json();
                             //self.$refs.spatial_query_layer_table.vmDataTable.ajax.reload();
@@ -2187,7 +2201,7 @@ export default {
                         }).catch((error) => {
                             swal.fire({
                                 title:'Delete Error',
-                                text:error,
+                                text:error.message,
                                 icon:'error',
                                 customClass: {
                                     confirmButton: 'btn btn-primary',
